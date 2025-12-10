@@ -23,4 +23,7 @@ router.get('/languages', requireAuth, githubController.getLanguages);
 // Get GitHub profile (uses PAT, not user-specific)
 router.get('/profile', githubController.getProfile);
 
+// Analyze a specific repository by owner/repo
+router.get('/repo/:owner/:repo', githubController.analyzeRepo);
+
 module.exports = router;

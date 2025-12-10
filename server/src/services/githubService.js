@@ -179,6 +179,107 @@ class GitHubService {
             .sort((a, b) => b[1] - a[1])
             .map(([name, count]) => ({ name, count }));
     }
+    /**
+     * Get detailed info for a specific repository
+     * @param {string} owner - Repository owner
+     * @param {string} repo - Repository name
+     */
+    async getRepoInfo(owner, repo) {
+        try {
+            const { data: repoData } = await this.octokit.rest.repos.get({
+                owner,
+                repo,
+            });
+
+            // Get commit count
+            const { data: commitsData } = await this.octokit.rest.repos.listCommits({
+                owner,
+                repo,
+                per_page: 1,
+            });
+
+            // GitHub returns total count in headers for pagination
+            let commitCount = 0;
+            try {
+                const response = await this.octokit.request('GET /repos/{owner}/{repo}/commits', {
+                    owner,
+                    repo,
+                    per_page: 1,
+                });
+                // Parse the Link header to get total count
+                const linkHeader = response.headers.link;
+                if (linkHeader) {
+                    const match = linkHeader.match(/page=(\d+)>; rel="last"/);
+                    if (match) {
+                        commitCount = parseInt(match[1]);
+                    }
+                } else {
+                    commitCount = 1; // Only one page means few commits
+                }
+            } catch {
+                commitCount = commitsData.length || 0;
+            }
+
+            // Get languages
+            const { data: languagesData } = await this.octokit.rest.repos.listLanguages({
+                owner,
+                repo,
+            });
+
+            const totalBytes = Object.values(languagesData).reduce((a, b) => a + b, 0);
+            const languages = Object.entries(languagesData).map(([name, bytes]) => ({
+                name,
+                bytes,
+                percentage: Math.round((bytes / totalBytes) * 100),
+            }));
+
+            return {
+                name: repoData.name,
+                fullName: repoData.full_name,
+                description: repoData.description,
+                stars: repoData.stargazers_count,
+                forks: repoData.forks_count,
+                openIssues: repoData.open_issues_count,
+                createdAt: repoData.created_at,
+                updatedAt: repoData.updated_at,
+                pushedAt: repoData.pushed_at,
+                defaultBranch: repoData.default_branch,
+                size: repoData.size,
+                url: repoData.html_url,
+                commitCount,
+                languages,
+                topics: repoData.topics || [],
+            };
+        } catch (error) {
+            console.error('Error fetching repo info:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Parse GitHub URL to extract owner and repo
+     * @param {string} url - GitHub repository URL
+     */
+    static parseGitHubUrl(url) {
+        if (!url) return null;
+
+        // Handle various GitHub URL formats
+        const patterns = [
+            /github\.com\/([^\/]+)\/([^\/]+)/,
+            /github\.com:([^\/]+)\/([^\/]+)/,
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+                return {
+                    owner: match[1],
+                    repo: match[2].replace(/\.git$/, ''),
+                };
+            }
+        }
+        return null;
+    }
 }
 
 module.exports = GitHubService;

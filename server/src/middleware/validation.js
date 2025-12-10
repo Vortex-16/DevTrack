@@ -41,7 +41,7 @@ const schemas = {
     // Gemini chat schema
     geminiChat: Joi.object({
         message: Joi.string().min(1).max(4000).required(),
-        context: Joi.string().max(2000).optional(),
+        context: Joi.string().max(10000).allow('').optional(),
     }),
 
     // GitHub username
@@ -54,6 +54,29 @@ const schemas = {
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().min(1).max(100).default(20),
     }),
+
+    // Project schemas
+    createProject: Joi.object({
+        name: Joi.string().min(1).max(100).required(),
+        description: Joi.string().max(1000).allow('').optional(),
+        status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
+        repositoryUrl: Joi.string().uri().allow('').optional(),
+        technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
+        progress: Joi.number().min(0).max(100).optional(),
+        commits: Joi.number().min(0).optional(),
+        githubData: Joi.object().optional(),
+        aiAnalysis: Joi.object().optional(),
+    }),
+
+    updateProject: Joi.object({
+        name: Joi.string().min(1).max(100).optional(),
+        description: Joi.string().max(1000).optional(),
+        status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
+        repositoryUrl: Joi.string().uri().allow('').optional(),
+        technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
+        progress: Joi.number().min(0).max(100).optional(),
+        commits: Joi.number().min(0).optional(),
+    }).min(1),
 };
 
 // ======================

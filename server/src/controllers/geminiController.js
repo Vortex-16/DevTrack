@@ -14,6 +14,8 @@ const chat = async (req, res, next) => {
     try {
         const { message, context } = req.body;
 
+        console.log('Chat request received:', { message: message?.substring(0, 50), hasContext: !!context });
+
         if (!message || message.trim().length === 0) {
             throw new APIError('Message is required', 400);
         }
@@ -21,18 +23,18 @@ const chat = async (req, res, next) => {
         const geminiService = getGeminiService();
         const response = await geminiService.chat(message, context);
 
-        if (!response.success) {
-            throw new APIError(response.error || 'AI request failed', 500);
-        }
+        console.log('Gemini response:', { success: response.success, hasMessage: !!response.message });
 
+        // Return the AI message or error message
         res.status(200).json({
-            success: true,
+            success: response.success,
             data: {
-                message: response.message,
-                model: response.model,
+                message: response.success ? response.message : (response.error || 'AI request failed. Please try again.'),
+                model: response.model || 'gemini-2.0-flash',
             },
         });
     } catch (error) {
+        console.error('Chat error:', error);
         next(error);
     }
 };
@@ -118,9 +120,34 @@ const healthCheck = async (req, res, next) => {
     }
 };
 
+/**
+ * Analyze project progress
+ * POST /api/gemini/analyze-project
+ */
+const analyzeProject = async (req, res, next) => {
+    try {
+        const { repoInfo } = req.body;
+
+        if (!repoInfo) {
+            throw new APIError('Repository info is required', 400);
+        }
+
+        const geminiService = getGeminiService();
+        const result = await geminiService.analyzeProjectProgress(repoInfo);
+
+        res.status(200).json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     chat,
     getMotivation,
     reviewCode,
     healthCheck,
+    analyzeProject,
 };

@@ -178,10 +178,35 @@ const getProfile = async (req, res, next) => {
     }
 };
 
+/**
+ * Analyze a specific repository
+ * GET /api/github/repo/:owner/:repo
+ */
+const analyzeRepo = async (req, res, next) => {
+    try {
+        const { owner, repo } = req.params;
+
+        if (!owner || !repo) {
+            throw new APIError('Owner and repo are required', 400);
+        }
+
+        const githubService = new GitHubService();
+        const repoInfo = await githubService.getRepoInfo(owner, repo);
+
+        res.status(200).json({
+            success: true,
+            data: repoInfo,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getActivity,
     getCommits,
     getRepos,
     getLanguages,
     getProfile,
+    analyzeRepo,
 };

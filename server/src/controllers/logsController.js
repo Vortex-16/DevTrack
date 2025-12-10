@@ -19,12 +19,10 @@ const getLogs = async (req, res, next) => {
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
 
-        // Get logs ordered by date (newest first)
+        // Get logs for user (simple query - no ordering to avoid index requirement)
         const logsRef = collections.logs()
             .where('uid', '==', userId)
-            .orderBy('date', 'desc')
-            .limit(limitNum)
-            .offset(offset);
+            .limit(limitNum);
 
         const snapshot = await logsRef.get();
 

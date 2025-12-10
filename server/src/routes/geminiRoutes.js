@@ -21,4 +21,7 @@ router.post('/review', requireAuth, geminiController.reviewCode);
 // Health check for Gemini service
 router.get('/health', geminiController.healthCheck);
 
+// Analyze project progress
+router.post('/analyze-project', requireAuth, geminiController.analyzeProject);
+
 module.exports = router;
