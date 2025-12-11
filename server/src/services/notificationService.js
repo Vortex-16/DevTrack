@@ -172,10 +172,10 @@ class NotificationService {
      */
     async registerToken(userId, token) {
         try {
-            await collections.users().doc(userId).update({
+            await collections.users().doc(userId).set({
                 fcmToken: token,
                 fcmTokenUpdatedAt: new Date().toISOString(),
-            });
+            }, { merge: true });
 
             return { success: true, message: 'Token registered successfully' };
         } catch (error) {
@@ -190,10 +190,10 @@ class NotificationService {
      */
     async removeToken(userId) {
         try {
-            await collections.users().doc(userId).update({
+            await collections.users().doc(userId).set({
                 fcmToken: null,
                 fcmTokenUpdatedAt: new Date().toISOString(),
-            });
+            }, { merge: true });
 
             return { success: true, message: 'Token removed successfully' };
         } catch (error) {

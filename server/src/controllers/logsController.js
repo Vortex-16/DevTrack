@@ -115,11 +115,12 @@ const createLog = async (req, res, next) => {
         const logRef = await collections.logs().add(logData);
 
         // Update user's last activity times (for notification system)
-        await collections.users().doc(userId).update({
+        // Use set with merge to create user doc if it doesn't exist
+        await collections.users().doc(userId).set({
             lastStartTime: startTime,
             lastEndTime: endTime,
             updatedAt: new Date().toISOString(),
-        });
+        }, { merge: true });
 
         res.status(201).json({
             success: true,
@@ -174,7 +175,7 @@ const updateLog = async (req, res, next) => {
             if (updates.startTime) userUpdate.lastStartTime = updates.startTime;
             if (updates.endTime) userUpdate.lastEndTime = updates.endTime;
 
-            await collections.users().doc(userId).update(userUpdate);
+            await collections.users().doc(userId).set(userUpdate, { merge: true });
         }
 
         const updatedDoc = await logRef.get();

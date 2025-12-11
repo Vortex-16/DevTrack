@@ -4,22 +4,50 @@ import Button from '../components/ui/Button'
 import { logsApi } from '../services/api'
 import { useState, useEffect } from 'react'
 
+// Helper to format dates - handles both strings and Firestore Timestamps
+const formatDate = (date) => {
+    if (!date) return 'Unknown date'
+    // If it's a Firestore Timestamp object
+    if (date._seconds !== undefined) {
+        return new Date(date._seconds * 1000).toLocaleDateString()
+    }
+    // If it's already a string or Date
+    if (typeof date === 'string') return date
+    if (date instanceof Date) return date.toLocaleDateString()
+    return String(date)
+}
+
+// Helper to get raw date string for form inputs
+const getRawDate = (date) => {
+    if (!date) return new Date().toISOString().split('T')[0]
+    if (date._seconds !== undefined) {
+        return new Date(date._seconds * 1000).toISOString().split('T')[0]
+    }
+    if (typeof date === 'string') return date.split('T')[0]
+    if (date instanceof Date) return date.toISOString().split('T')[0]
+    return new Date().toISOString().split('T')[0]
+}
+
 export default function Learning() {
     const [learningEntries, setLearningEntries] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [showModal, setShowModal] = useState(false)
+    const [editingEntry, setEditingEntry] = useState(null)
     const [stats, setStats] = useState({ totalLogs: 0, currentStreak: 0, uniqueDays: 0 })
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-    // Form state
-    const [formData, setFormData] = useState({
+    const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
         startTime: '09:00',
         endTime: '10:00',
         learnedToday: '',
         tags: '',
         mood: 'good'
-    })
+    }
+
+    // Form state
+    const [formData, setFormData] = useState(defaultFormData)
 
     useEffect(() => {
         fetchLogs()
@@ -48,28 +76,69 @@ export default function Learning() {
         }
     }
 
+    const resetForm = () => {
+        setFormData(defaultFormData)
+        setEditingEntry(null)
+    }
+
+    const openAddModal = () => {
+        resetForm()
+        setShowModal(true)
+    }
+
+    const openEditModal = (entry) => {
+        setEditingEntry(entry)
+        setFormData({
+            date: getRawDate(entry.date),
+            startTime: entry.startTime || '09:00',
+            endTime: entry.endTime || '10:00',
+            learnedToday: entry.learnedToday || '',
+            tags: (entry.tags || []).join(', '),
+            mood: entry.mood || 'good'
+        })
+        setShowModal(true)
+    }
+
+    const closeModal = () => {
+        setShowModal(false)
+        resetForm()
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
             const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t)
-            await logsApi.create({
+            const payload = {
                 ...formData,
                 tags: tagsArray
-            })
-            setShowModal(false)
-            setFormData({
-                date: new Date().toISOString().split('T')[0],
-                startTime: '09:00',
-                endTime: '10:00',
-                learnedToday: '',
-                tags: '',
-                mood: 'good'
-            })
+            }
+
+            if (editingEntry) {
+                // Update existing entry
+                await logsApi.update(editingEntry.id, payload)
+            } else {
+                // Create new entry
+                await logsApi.create(payload)
+            }
+
+            closeModal()
             fetchLogs()
             fetchStats()
         } catch (err) {
-            console.error('Error creating log:', err)
-            alert('Failed to create log entry')
+            console.error('Error saving log:', err)
+            alert(`Failed to ${editingEntry ? 'update' : 'create'} log entry`)
+        }
+    }
+
+    const handleDelete = async (id) => {
+        try {
+            await logsApi.delete(id)
+            setDeleteConfirm(null)
+            fetchLogs()
+            fetchStats()
+        } catch (err) {
+            console.error('Error deleting log:', err)
+            alert('Failed to delete log entry')
         }
     }
 
@@ -89,7 +158,7 @@ export default function Learning() {
                     <h1 className="text-4xl font-bold text-gradient mb-2">Learning Tracker</h1>
                     <p className="text-slate-400">Track your courses, tutorials, and skills</p>
                 </div>
-                <Button onClick={() => setShowModal(true)}>+ Add Learning Entry</Button>
+                <Button onClick={openAddModal}>+ Add Learning Entry</Button>
             </div>
 
             {/* Stats */}
@@ -122,7 +191,7 @@ export default function Learning() {
                     <div className="text-4xl mb-4">📚</div>
                     <h3 className="text-xl font-semibold mb-2">No Learning Entries Yet</h3>
                     <p className="text-slate-400 mb-4">Start tracking your learning journey!</p>
-                    <Button onClick={() => setShowModal(true)}>Add Your First Entry</Button>
+                    <Button onClick={openAddModal}>Add Your First Entry</Button>
                 </Card>
             )}
 
@@ -130,10 +199,10 @@ export default function Learning() {
             <div className="space-y-4">
                 {learningEntries.map((entry) => (
                     <Card key={entry.id} hover>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-xl font-semibold">{entry.date}</h3>
+                                    <h3 className="text-xl font-semibold">{formatDate(entry.date)}</h3>
                                     <Badge variant={entry.mood === 'good' ? 'success' : entry.mood === 'great' ? 'primary' : 'warning'}>
                                         {entry.mood}
                                     </Badge>
@@ -150,18 +219,66 @@ export default function Learning() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 md:flex-col">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => openEditModal(entry)}
+                                    className="text-sm px-3 py-1"
+                                >
+                                    ✏️ Edit
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setDeleteConfirm(entry.id)}
+                                    className="text-sm px-3 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                >
+                                    🗑️ Delete
+                                </Button>
+                            </div>
                         </div>
                     </Card>
                 ))}
             </div>
 
-            {/* Modal */}
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4">
+                        <div className="text-center">
+                            <div className="text-4xl mb-4">⚠️</div>
+                            <h2 className="text-xl font-bold mb-2">Delete Entry?</h2>
+                            <p className="text-slate-400 mb-6">This action cannot be undone.</p>
+                            <div className="flex gap-4">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setDeleteConfirm(null)}
+                                    className="flex-1"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={() => handleDelete(deleteConfirm)}
+                                    className="flex-1 bg-red-600 hover:bg-red-700"
+                                >
+                                    Delete
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Add/Edit Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
                     <Card className="w-full max-w-lg mx-4">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Add Learning Entry</h2>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">✕</button>
+                            <h2 className="text-2xl font-bold">
+                                {editingEntry ? 'Edit Learning Entry' : 'Add Learning Entry'}
+                            </h2>
+                            <button onClick={closeModal} className="text-slate-400 hover:text-white">✕</button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,16 +348,16 @@ export default function Learning() {
                                     <option value="great">Great 🚀</option>
                                     <option value="good">Good 👍</option>
                                     <option value="okay">Okay 😐</option>
-                                    <option value="struggling">Struggling 😓</option>
+                                    <option value="tired">Tired 😓</option>
                                 </select>
                             </div>
 
                             <div className="flex gap-4 pt-4">
-                                <Button type="button" variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
+                                <Button type="button" variant="ghost" onClick={closeModal} className="flex-1">
                                     Cancel
                                 </Button>
                                 <Button type="submit" className="flex-1">
-                                    Save Entry
+                                    {editingEntry ? 'Update Entry' : 'Save Entry'}
                                 </Button>
                             </div>
                         </form>

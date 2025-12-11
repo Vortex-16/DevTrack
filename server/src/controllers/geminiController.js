@@ -1,13 +1,13 @@
 /**
- * Gemini AI Controller
- * Handles AI chat and assistance features
+ * AI Controller (Groq-powered)
+ * Handles AI chat and assistance features using Groq Service
  */
 
-const { getGeminiService } = require('../services/geminiService');
+const { getGroqService } = require('../services/groqService');
 const { APIError } = require('../middleware/errorHandler');
 
 /**
- * Chat with Gemini AI
+ * Chat with AI
  * POST /api/gemini/chat
  */
 const chat = async (req, res, next) => {
@@ -20,17 +20,17 @@ const chat = async (req, res, next) => {
             throw new APIError('Message is required', 400);
         }
 
-        const geminiService = getGeminiService();
-        const response = await geminiService.chat(message, context);
+        const groqService = getGroqService();
+        const response = await groqService.chat(message, context);
 
-        console.log('Gemini response:', { success: response.success, hasMessage: !!response.message });
+        console.log('AI response:', { success: response.success, hasMessage: !!response.message });
 
         // Return the AI message or error message
         res.status(200).json({
             success: response.success,
             data: {
                 message: response.success ? response.message : (response.error || 'AI request failed. Please try again.'),
-                model: response.model || 'gemini-2.0-flash',
+                model: response.model || 'llama-3.3-70b-versatile',
             },
         });
     } catch (error) {
@@ -47,8 +47,8 @@ const getMotivation = async (req, res, next) => {
     try {
         const stats = req.body;
 
-        const geminiService = getGeminiService();
-        const motivation = await geminiService.generateMotivation(stats);
+        const groqService = getGroqService();
+        const motivation = await groqService.generateMotivation(stats);
 
         res.status(200).json({
             success: true,
@@ -73,12 +73,12 @@ const reviewCode = async (req, res, next) => {
             throw new APIError('Code is required', 400);
         }
 
-        if (code.length > 10000) {
-            throw new APIError('Code too long. Maximum 10000 characters.', 400);
+        if (code.length > 20000) {
+            throw new APIError('Code too long for review.', 400);
         }
 
-        const geminiService = getGeminiService();
-        const result = await geminiService.reviewCode(code, language || 'javascript');
+        const groqService = getGroqService();
+        const result = await groqService.reviewCode(code, language || 'javascript');
 
         if (!result.success) {
             throw new APIError(result.error || 'Code review failed', 500);
@@ -96,20 +96,20 @@ const reviewCode = async (req, res, next) => {
 };
 
 /**
- * Health check for Gemini service
+ * Health check for AI service
  * GET /api/gemini/health
  */
 const healthCheck = async (req, res, next) => {
     try {
-        const geminiService = getGeminiService();
+        const groqService = getGroqService();
 
         // Quick test to verify API is working
-        const response = await geminiService.chat('Say "OK" if you are working.');
+        const response = await groqService.chat('Say "OK" if you are working.');
 
         res.status(200).json({
             success: true,
             status: response.success ? 'healthy' : 'degraded',
-            model: 'gemini-2.0-flash',
+            model: 'llama-3.3-70b-versatile',
         });
     } catch (error) {
         res.status(200).json({
@@ -132,8 +132,8 @@ const analyzeProject = async (req, res, next) => {
             throw new APIError('Repository info is required', 400);
         }
 
-        const geminiService = getGeminiService();
-        const result = await geminiService.analyzeProjectProgress(repoInfo);
+        const groqService = getGroqService();
+        const result = await groqService.analyzeProjectProgress(repoInfo);
 
         res.status(200).json({
             success: true,

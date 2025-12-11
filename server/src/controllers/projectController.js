@@ -96,19 +96,48 @@ const getProject = async (req, res, next) => {
 const createProject = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-        const { name, description, status, repositoryUrl, technologies, progress, commits, githubData, aiAnalysis } = req.body;
+        const { name, description, projectIdea, status, repositoryUrl, technologies, progress, commits, githubData, aiAnalysis } = req.body;
+
+        let fetchedGithubData = githubData || null;
+        let fetchedAiAnalysis = aiAnalysis || null;
+
+        // Auto-fetch GitHub data if repositoryUrl is provided
+        if (repositoryUrl && !githubData) {
+            try {
+                const GitHubService = require('../services/githubService');
+                const { getGroqService } = require('../services/groqService');
+
+                const parsed = GitHubService.parseGitHubUrl(repositoryUrl);
+
+                if (parsed) {
+                    console.log(`📊 Auto-fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
+                    const github = new GitHubService();
+                    fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
+
+                    // Run AI analysis on the fetched data
+                    console.log('🤖 Running AI analysis...');
+                    const groqService = getGroqService();
+                    fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
+                    console.log('✅ AI analysis complete');
+                }
+            } catch (fetchError) {
+                console.error('Error auto-fetching GitHub data:', fetchError.message);
+                // Continue without GitHub data - don't fail the project creation
+            }
+        }
 
         const projectData = {
             uid: userId,
             name,
             description: description || '',
+            projectIdea: projectIdea || '', // Store project idea/goal
             status: status || 'Planning',
             repositoryUrl: repositoryUrl || '',
             technologies: technologies || [],
-            progress: progress || 0,
-            commits: commits || 0,
-            githubData: githubData || null,
-            aiAnalysis: aiAnalysis || null,
+            progress: fetchedAiAnalysis?.progressPercentage || progress || 0,
+            commits: fetchedGithubData?.totalCommits || commits || 0,
+            githubData: fetchedGithubData,
+            aiAnalysis: fetchedAiAnalysis,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };

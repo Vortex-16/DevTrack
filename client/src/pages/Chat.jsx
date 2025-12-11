@@ -3,6 +3,71 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { geminiApi, projectsApi, logsApi } from '../services/api'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+
+// Custom styled markdown renderer with colored text
+const MarkdownMessage = ({ content }) => {
+    return (
+        <ReactMarkdown
+            components={{
+                // Bold text with primary color
+                strong: ({ children }) => (
+                    <strong className="text-primary-400 font-semibold">{children}</strong>
+                ),
+                // Italic text
+                em: ({ children }) => (
+                    <em className="text-slate-300 italic">{children}</em>
+                ),
+                // Headers
+                h1: ({ children }) => (
+                    <h1 className="text-xl font-bold text-white mt-3 mb-2">{children}</h1>
+                ),
+                h2: ({ children }) => (
+                    <h2 className="text-lg font-bold text-white mt-2 mb-1">{children}</h2>
+                ),
+                h3: ({ children }) => (
+                    <h3 className="text-md font-semibold text-primary-300 mt-2 mb-1">{children}</h3>
+                ),
+                // Lists
+                ul: ({ children }) => (
+                    <ul className="list-disc list-inside space-y-1 my-2 ml-2">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                    <ol className="list-decimal list-inside space-y-1 my-2 ml-2">{children}</ol>
+                ),
+                li: ({ children }) => (
+                    <li className="text-slate-200">{children}</li>
+                ),
+                // Code blocks
+                code: ({ inline, children }) => (
+                    inline
+                        ? <code className="bg-dark-700 text-green-400 px-1 py-0.5 rounded text-sm">{children}</code>
+                        : <pre className="bg-dark-700 text-green-400 p-3 rounded-lg my-2 overflow-x-auto text-sm"><code>{children}</code></pre>
+                ),
+                // Paragraphs
+                p: ({ children }) => {
+                    // Check if this paragraph contains danger words
+                    const text = String(children)
+                    if (text.includes('❌') || text.includes('🚨') || text.includes('⚠️')) {
+                        return <p className="text-red-400 my-1">{children}</p>
+                    }
+                    if (text.includes('✅') || text.includes('✓') || text.includes('🎉')) {
+                        return <p className="text-green-400 my-1">{children}</p>
+                    }
+                    return <p className="text-slate-200 my-1">{children}</p>
+                },
+                // Blockquotes for tips
+                blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-primary-500 pl-3 my-2 text-slate-300 italic">
+                        {children}
+                    </blockquote>
+                ),
+            }}
+        >
+            {content}
+        </ReactMarkdown>
+    )
+}
 
 // Simple cache for AI responses
 const responseCache = new Map()
@@ -24,7 +89,7 @@ export default function Chat() {
         // Add welcome message
         setMessages([{
             role: 'assistant',
-            content: `👋 Hi! I'm your DevTrack AI Assistant powered by Gemini 2.0 Flash.
+            content: `👋 **Hi! I'm your DevTrack AI Assistant** powered by **Llama 3.3 70B** via Groq.
 
 I can help you with:
 - **Project guidance** - Which project to focus on and why
@@ -32,8 +97,11 @@ I can help you with:
 - **Code help** - Debug issues or explain concepts
 - **Motivation** - Keep you on track with your goals
 
-💡 **Tip**: To reduce API usage, I cache responses for similar questions.
-⏱️ **Rate limit**: 1 request every 10 seconds.
+✅ I have access to your full project details including GitHub data and AI analysis!
+
+> 💡 **Tip**: To reduce API usage, I cache responses for similar questions.
+
+⏱️ Rate limit: 1 request every 10 seconds.
 
 Just ask me anything!`
         }])
@@ -72,13 +140,44 @@ Just ask me anything!`
         let context = 'User Context:\n'
 
         if (projects.length > 0) {
-            context += '\nProjects:\n'
+            context += '\nProjects (with full details):\n'
             projects.forEach(p => {
-                context += `- ${p.name} (${p.status}, ${p.progress || 0}% complete)`
+                context += `\n## ${p.name}\n`
+                context += `- Status: ${p.status}\n`
+                context += `- Progress: ${p.progress || 0}%\n`
+                context += `- Commits: ${p.commits || 0}\n`
                 if (p.technologies?.length) {
-                    context += ` - Technologies: ${p.technologies.join(', ')}`
+                    context += `- Technologies: ${p.technologies.join(', ')}\n`
                 }
-                context += '\n'
+                if (p.description) {
+                    context += `- Description: ${p.description}\n`
+                }
+                if (p.projectIdea) {
+                    context += `- Project Idea: ${p.projectIdea}\n`
+                }
+                if (p.repositoryUrl) {
+                    context += `- GitHub: ${p.repositoryUrl}\n`
+                }
+                // Include GitHub data if available
+                if (p.githubData) {
+                    context += `- Stars: ${p.githubData.stars || 0}, Forks: ${p.githubData.forks || 0}\n`
+                    context += `- Open Issues: ${p.githubData.openIssues?.length || p.githubData.openIssuesCount || 0}\n`
+                    context += `- Recent Commits This Week: ${p.githubData.recentCommitsThisWeek || 0}\n`
+                }
+                // Include AI Analysis if available
+                if (p.aiAnalysis) {
+                    context += `- AI Progress Summary: ${p.aiAnalysis.progressSummary || p.aiAnalysis.reasoning || 'N/A'}\n`
+                    context += `- Commit Frequency Score: ${p.aiAnalysis.commitFrequencyScore || 'N/A'}\n`
+                    if (p.aiAnalysis.nextRecommendedTasks?.length) {
+                        context += `- Next Tasks: ${p.aiAnalysis.nextRecommendedTasks.slice(0, 2).join(', ')}\n`
+                    }
+                    if (p.aiAnalysis.areasOfImprovement?.length) {
+                        context += `- Areas to Improve: ${p.aiAnalysis.areasOfImprovement.slice(0, 2).join(', ')}\n`
+                    }
+                    if (p.aiAnalysis.concerns) {
+                        context += `- Concerns: ${p.aiAnalysis.concerns}\n`
+                    }
+                }
             })
         } else {
             context += '\nNo projects yet.\n'
@@ -227,8 +326,8 @@ Just ask me anything!`
                                         {msg.role === 'user' ? '👤 You' : '🤖 DevTrack AI'}
                                     </span>
                                 </div>
-                                <div className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap">
-                                    {msg.content}
+                                <div className="prose prose-invert prose-sm max-w-none">
+                                    <MarkdownMessage content={msg.content} />
                                 </div>
                             </div>
                         </div>

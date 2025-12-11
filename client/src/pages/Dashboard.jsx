@@ -5,6 +5,19 @@ import { logsApi, projectsApi, healthApi } from '../services/api'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
+// Helper to format dates - handles both strings and Firestore Timestamps
+const formatDate = (date) => {
+    if (!date) return 'Unknown date'
+    // If it's a Firestore Timestamp object
+    if (date._seconds !== undefined) {
+        return new Date(date._seconds * 1000).toLocaleDateString()
+    }
+    // If it's already a string or Date
+    if (typeof date === 'string') return date
+    if (date instanceof Date) return date.toLocaleDateString()
+    return String(date)
+}
+
 export default function Dashboard() {
     const [logStats, setLogStats] = useState(null)
     const [projectStats, setProjectStats] = useState(null)
@@ -157,7 +170,7 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <span className="text-slate-500 text-sm">{log.date}</span>
+                                        <span className="text-slate-500 text-sm">{formatDate(log.date)}</span>
                                     </div>
                                 ))}
                             </div>

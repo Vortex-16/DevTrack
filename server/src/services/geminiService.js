@@ -13,12 +13,24 @@ class GeminiService {
 
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-        // Define models to try in order
+        // Define models to try in order - Prioritize FREE models (2025 Update)
         this.models = [
-            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-            { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash' },
-            { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro' }
+            { id: 'gemini-2.0-flash-lite-preview', name: 'Gemini 2.0 Flash Lite' },
+            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+            { id: 'gemini-1.5-flash-001', name: 'Gemini 1.5 Flash (Legacy)' },
         ];
+
+        // In-memory cache for responses (LRU-style with TTL)
+        this.responseCache = new Map();
+        this.CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+        this.MAX_CACHE_SIZE = 100;
+
+        // Track rate-limited models to skip them temporarily
+        this.rateLimitedModels = new Map();
+        this.RATE_LIMIT_SKIP_DURATION = 60 * 1000; // Skip for 60 seconds
+
+        // Track in-flight requests to prevent duplicates
+        this.inFlightRequests = new Map();
 
         // System prompt for developer-focused assistance
         this.systemPrompt = `You are DevTrack AI Assistant, a helpful coding mentor integrated into a developer consistency tracking platform.
@@ -42,32 +54,146 @@ Remember: You're helping developers build consistent learning habits while they 
     }
 
     /**
+     * Generate a cache key from a prompt
+     */
+    getCacheKey(prompt) {
+        // Normalize prompt for caching (first 200 chars, lowercase, trim)
+        return prompt.toLowerCase().trim().substring(0, 200);
+    }
+
+    /**
+     * Get cached response if available and not expired
+     */
+    getCachedResponse(prompt) {
+        const key = this.getCacheKey(prompt);
+        const cached = this.responseCache.get(key);
+
+        if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+            console.log('✅ Cache hit - returning cached response');
+            return cached;
+        }
+
+        if (cached) {
+            this.responseCache.delete(key); // Remove expired cache
+        }
+        return null;
+    }
+
+    /**
+     * Cache a response
+     */
+    cacheResponse(prompt, text, model) {
+        const key = this.getCacheKey(prompt);
+
+        // Simple LRU: if cache is full, remove oldest entry
+        if (this.responseCache.size >= this.MAX_CACHE_SIZE) {
+            const firstKey = this.responseCache.keys().next().value;
+            this.responseCache.delete(firstKey);
+        }
+
+        this.responseCache.set(key, {
+            text,
+            model,
+            timestamp: Date.now()
+        });
+    }
+
+    /**
+     * Check if a model is currently rate-limited
+     */
+    isModelRateLimited(modelId) {
+        const limitedUntil = this.rateLimitedModels.get(modelId);
+        if (limitedUntil && Date.now() < limitedUntil) {
+            return true;
+        }
+        if (limitedUntil) {
+            this.rateLimitedModels.delete(modelId); // Clean up expired
+        }
+        return false;
+    }
+
+    /**
+     * Mark a model as rate-limited
+     */
+    markModelRateLimited(modelId) {
+        const skipUntil = Date.now() + this.RATE_LIMIT_SKIP_DURATION;
+        this.rateLimitedModels.set(modelId, skipUntil);
+        console.log(`⏸️ Model ${modelId} marked as rate-limited until ${new Date(skipUntil).toLocaleTimeString()}`);
+    }
+
+    /**
      * Try to generate content using available models with fallback
      * @param {string} prompt - The prompt to send
      */
     async generateWithFallback(prompt) {
+        // Check cache first
+        const cached = this.getCachedResponse(prompt);
+        if (cached) {
+            return cached;
+        }
+
+        // Check for in-flight duplicate request
+        const cacheKey = this.getCacheKey(prompt);
+        if (this.inFlightRequests.has(cacheKey)) {
+            console.log('⏳ Duplicate request detected, waiting for in-flight request...');
+            return await this.inFlightRequests.get(cacheKey);
+        }
+
+        // Create promise for this request
+        const requestPromise = this._executeGeneration(prompt);
+        this.inFlightRequests.set(cacheKey, requestPromise);
+
+        try {
+            const result = await requestPromise;
+            return result;
+        } finally {
+            this.inFlightRequests.delete(cacheKey);
+        }
+    }
+
+    /**
+     * Internal method to execute generation with model fallback
+     */
+    async _executeGeneration(prompt) {
         let lastError = null;
 
         for (const modelConfig of this.models) {
+            // Skip rate-limited models
+            if (this.isModelRateLimited(modelConfig.id)) {
+                console.log(`⏭️ Skipping rate-limited model: ${modelConfig.id}`);
+                continue;
+            }
+
             try {
-                console.log(`Attempting generation with model: ${modelConfig.id}`);
+                console.log(`🚀 Attempting generation with model: ${modelConfig.id}`);
                 const model = this.genAI.getGenerativeModel({ model: modelConfig.id });
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
+                const text = response.text();
+
+                // Cache the successful response
+                this.cacheResponse(prompt, text, modelConfig.id);
+
                 return {
-                    text: response.text(),
-                    model: modelConfig.id
+                    text,
+                    model: modelConfig.id,
+                    timestamp: Date.now()
                 };
             } catch (error) {
-                console.warn(`Model ${modelConfig.id} failed:`, error.message);
+                console.warn(`❌ Model ${modelConfig.id} failed:`, error.message);
                 lastError = error;
+
+                // If it's a rate limit error, mark this model as rate-limited
+                if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate')) {
+                    this.markModelRateLimited(modelConfig.id);
+                }
 
                 // If it's a safety violation, don't try other models as they'll likely fail too
                 if (error.message.includes('SAFETY')) {
                     throw error;
                 }
 
-                // Continue to next model for other errors (quota, timeout, etc.)
+                // Continue to next model for other errors
             }
         }
 

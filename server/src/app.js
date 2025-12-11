@@ -75,8 +75,8 @@ app.use('/api/gemini/', aiLimiter);
 // ======================
 // BODY PARSING
 // ======================
-app.use(express.json({ limit: '10kb' })); // Limit body size
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '5mb' })); // Increased for large GitHub repo data
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // ======================
 // LOGGING

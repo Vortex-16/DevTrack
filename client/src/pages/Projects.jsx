@@ -68,27 +68,42 @@ export default function Projects() {
             const repoInfo = repoResponse.data.data
 
             let result = {
-                commits: repoInfo.commitCount || 0,
+                commits: repoInfo.totalCommits || repoInfo.commitCount || 0,
                 technologies: repoInfo.languages?.map(l => l.name) || [],
                 githubData: {
                     stars: repoInfo.stars,
                     forks: repoInfo.forks,
-                    openIssues: repoInfo.openIssues,
+                    openIssues: repoInfo.openIssuesCount || repoInfo.openIssues,
                     languages: repoInfo.languages,
+                    totalCommits: repoInfo.totalCommits,
+                    recentCommitsThisWeek: repoInfo.recentCommitsThisWeek,
                 },
                 progress: 0,
                 aiAnalysis: null
             }
 
-            // Analyze with Gemini
+            // Analyze with AI (Groq)
             try {
                 const analysisResponse = await geminiApi.analyzeProject(repoInfo)
-                console.log('Gemini response:', analysisResponse.data)
+                console.log('AI Analysis response:', analysisResponse.data)
                 if (analysisResponse.data.data?.success) {
-                    result.progress = analysisResponse.data.data.progress
+                    const analysis = analysisResponse.data.data
+                    // Use new format progressPercentage, fallback to old format progress
+                    result.progress = analysis.progressPercentage ?? analysis.progress ?? 0
                     result.aiAnalysis = {
-                        reasoning: analysisResponse.data.data.reasoning,
-                        suggestions: analysisResponse.data.data.suggestions,
+                        // New enhanced format
+                        progressSummary: analysis.progressSummary,
+                        progressPercentage: analysis.progressPercentage,
+                        commitFrequencyScore: analysis.commitFrequencyScore,
+                        productivityStreaks: analysis.productivityStreaks,
+                        areasOfImprovement: analysis.areasOfImprovement,
+                        nextRecommendedTasks: analysis.nextRecommendedTasks,
+                        fileAnalysis: analysis.fileAnalysis,
+                        trends: analysis.trends,
+                        concerns: analysis.concerns,
+                        // Fallback for old format
+                        reasoning: analysis.reasoning || analysis.progressSummary,
+                        suggestions: analysis.suggestions || analysis.nextRecommendedTasks,
                     }
                 }
             } catch (aiErr) {
@@ -206,6 +221,42 @@ export default function Projects() {
         } catch (err) {
             console.error('Error deleting project:', err)
             alert('Failed to delete project')
+        }
+    }
+
+    const handleReanalyze = async (project) => {
+        if (!project.repositoryUrl) {
+            alert('No GitHub repository URL linked to this project')
+            return
+        }
+
+        try {
+            setAnalyzing(true)
+            console.log('Re-analyzing project:', project.name)
+
+            const analysisData = await analyzeWithGitHub(project.repositoryUrl)
+
+            if (analysisData) {
+                // Update project with new analysis data
+                await projectsApi.update(project.id, {
+                    commits: analysisData.commits,
+                    technologies: analysisData.technologies.length > 0 ? analysisData.technologies : project.technologies,
+                    githubData: analysisData.githubData,
+                    progress: analysisData.progress,
+                    aiAnalysis: analysisData.aiAnalysis
+                })
+
+                fetchProjects()
+                fetchStats()
+                console.log('✅ Re-analysis complete!')
+            } else {
+                alert('Failed to fetch GitHub data. Check the repository URL.')
+            }
+        } catch (err) {
+            console.error('Error re-analyzing project:', err)
+            alert('Failed to re-analyze project')
+        } finally {
+            setAnalyzing(false)
         }
     }
 
@@ -370,33 +421,66 @@ export default function Projects() {
 
                             <p className="text-slate-400 mb-4">{project.description || 'No description'}</p>
 
-                            {/* AI Analysis */}
+                            {/* AI Analysis - Enhanced */}
                             {project.aiAnalysis && (
                                 <div className="mb-4 p-3 bg-primary-900/20 border border-primary-500/30 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-sm">🤖 AI Analysis</span>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium">🤖 AI Analysis</span>
+                                        {project.aiAnalysis.commitFrequencyScore !== undefined && (
+                                            <Badge variant="success" className="text-xs">
+                                                Commit Score: {project.aiAnalysis.commitFrequencyScore}%
+                                            </Badge>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-slate-300">{project.aiAnalysis.reasoning}</p>
-                                    {project.aiAnalysis.suggestions?.length > 0 && (
-                                        <div className="mt-2 flex flex-wrap gap-1">
-                                            {project.aiAnalysis.suggestions.slice(0, 2).map((s, i) => (
-                                                <Badge key={i} variant="default" className="text-xs">{s}</Badge>
-                                            ))}
+
+                                    {/* Progress Summary */}
+                                    <p className="text-sm text-slate-300 mb-2">
+                                        {project.aiAnalysis.progressSummary || project.aiAnalysis.reasoning || 'Analysis complete'}
+                                    </p>
+
+                                    {/* Trends */}
+                                    {project.aiAnalysis.trends && (
+                                        <p className="text-xs text-slate-400 mb-2">📈 {project.aiAnalysis.trends}</p>
+                                    )}
+
+                                    {/* Next Tasks */}
+                                    {(project.aiAnalysis.nextRecommendedTasks?.length > 0 || project.aiAnalysis.suggestions?.length > 0) && (
+                                        <div className="mt-2">
+                                            <span className="text-xs text-slate-400">Next steps:</span>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {(project.aiAnalysis.nextRecommendedTasks || project.aiAnalysis.suggestions)?.slice(0, 2).map((task, i) => (
+                                                    <Badge key={i} variant="default" className="text-xs">{task}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Areas of Improvement */}
+                                    {project.aiAnalysis.areasOfImprovement?.length > 0 && (
+                                        <div className="mt-2">
+                                            <span className="text-xs text-slate-400">Improve:</span>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {project.aiAnalysis.areasOfImprovement.slice(0, 2).map((area, i) => (
+                                                    <Badge key={i} variant="warning" className="text-xs">{area}</Badge>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             )}
 
-                            {/* Progress */}
+                            {/* Progress - Use AI progress or fallback */}
                             <div className="mb-4">
                                 <div className="flex justify-between text-sm mb-2">
                                     <span className="text-slate-400">Progress</span>
-                                    <span className="text-gradient font-semibold">{project.progress || 0}%</span>
+                                    <span className="text-gradient font-semibold">
+                                        {project.aiAnalysis?.progressPercentage ?? project.progress ?? 0}%
+                                    </span>
                                 </div>
                                 <div className="w-full bg-dark-800 rounded-full h-2">
                                     <div
                                         className="gradient-primary h-2 rounded-full transition-all duration-500"
-                                        style={{ width: `${project.progress || 0}%` }}
+                                        style={{ width: `${project.aiAnalysis?.progressPercentage ?? project.progress ?? 0}%` }}
                                     />
                                 </div>
                             </div>
@@ -424,6 +508,16 @@ export default function Projects() {
                                 <span>{project.commits || 0} commits</span>
                             </div>
                             <div className="flex gap-2">
+                                {project.repositoryUrl && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleReanalyze(project)}
+                                        disabled={analyzing}
+                                    >
+                                        {analyzing ? '⏳' : '🔄'} Analyze
+                                    </Button>
+                                )}
                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(project)}>
                                     ✏️ Edit
                                 </Button>

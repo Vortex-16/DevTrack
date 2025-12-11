@@ -59,6 +59,7 @@ const schemas = {
     createProject: Joi.object({
         name: Joi.string().min(1).max(100).required(),
         description: Joi.string().max(1000).allow('').optional(),
+        projectIdea: Joi.string().max(2000).allow('').optional(), // Overall project idea/goal
         status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
         repositoryUrl: Joi.string().uri().allow('').optional(),
         technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
