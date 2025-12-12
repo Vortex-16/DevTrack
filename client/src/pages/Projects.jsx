@@ -4,6 +4,90 @@ import Button from '../components/ui/Button'
 import { projectsApi, githubApi, geminiApi } from '../services/api'
 import { useState, useEffect } from 'react'
 
+// Moved outside to prevent re-creation on every render (fixes input focus issues)
+const ProjectModal = ({ isEdit, onSubmit, onClose, formData, setFormData, analyzing }) => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <Card className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">{isEdit ? 'Edit Project' : 'New Project'}</h2>
+                <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Project Name</label>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
+                        placeholder="My Awesome Project"
+                        required
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Description</label>
+                    <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2 min-h-[80px]"
+                        placeholder="Describe your project..."
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Status</label>
+                    <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
+                    >
+                        <option value="Planning">Planning</option>
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">
+                        GitHub Repository URL
+                        <span className="text-primary-400 ml-2">✨ Auto-analyzes with AI!</span>
+                    </label>
+                    <input
+                        type="url"
+                        value={formData.repositoryUrl}
+                        onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
+                        placeholder="https://github.com/username/repo"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Technologies (comma separated)</label>
+                    <input
+                        type="text"
+                        value={formData.technologies}
+                        onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
+                        placeholder="React, Node.js, Firebase"
+                    />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                    <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
+                        Cancel
+                    </Button>
+                    <Button type="submit" className="flex-1" disabled={analyzing}>
+                        {analyzing ? '🔍 Analyzing...' : isEdit ? 'Save Changes' : 'Create Project'}
+                    </Button>
+                </div>
+            </form>
+        </Card>
+    </div>
+)
+
 export default function Projects() {
     const [projects, setProjects] = useState([])
     const [loading, setLoading] = useState(true)
@@ -268,89 +352,6 @@ export default function Projects() {
         )
     }
 
-    const ProjectModal = ({ isEdit, onSubmit, onClose }) => (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <Card className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">{isEdit ? 'Edit Project' : 'New Project'}</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
-                </div>
-
-                <form onSubmit={onSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">Project Name</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
-                            placeholder="My Awesome Project"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">Description</label>
-                        <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2 min-h-[80px]"
-                            placeholder="Describe your project..."
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">Status</label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
-                        >
-                            <option value="Planning">Planning</option>
-                            <option value="Active">Active</option>
-                            <option value="On Hold">On Hold</option>
-                            <option value="Completed">Completed</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">
-                            GitHub Repository URL
-                            <span className="text-primary-400 ml-2">✨ Auto-analyzes with AI!</span>
-                        </label>
-                        <input
-                            type="url"
-                            value={formData.repositoryUrl}
-                            onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
-                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
-                            placeholder="https://github.com/username/repo"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">Technologies (comma separated)</label>
-                        <input
-                            type="text"
-                            value={formData.technologies}
-                            onChange={(e) => setFormData({ ...formData, technologies: e.target.value })}
-                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-4 py-2"
-                            placeholder="React, Node.js, Firebase"
-                        />
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                        <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
-                            Cancel
-                        </Button>
-                        <Button type="submit" className="flex-1" disabled={analyzing}>
-                            {analyzing ? '🔍 Analyzing...' : isEdit ? 'Save Changes' : 'Create Project'}
-                        </Button>
-                    </div>
-                </form>
-            </Card>
-        </div>
-    )
-
     return (
         <div className="space-y-8">
             {/* Header */}
@@ -536,6 +537,9 @@ export default function Projects() {
                     isEdit={false}
                     onSubmit={handleSubmit}
                     onClose={() => setShowModal(false)}
+                    formData={formData}
+                    setFormData={setFormData}
+                    analyzing={analyzing}
                 />
             )}
 
@@ -548,6 +552,9 @@ export default function Projects() {
                         setShowEditModal(false)
                         setEditingProject(null)
                     }}
+                    formData={formData}
+                    setFormData={setFormData}
+                    analyzing={analyzing}
                 />
             )}
         </div>
