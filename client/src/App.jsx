@@ -34,6 +34,9 @@ function App() {
                 <Route path="/chat" element={<Chat />} />
             </Route>
 
+            {/* Preview Landing Page (for testing while signed in) */}
+            <Route path="/preview-landing" element={<Landing />} />
+
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
