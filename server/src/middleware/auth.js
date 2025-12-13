@@ -26,7 +26,7 @@ const requireAuth = async (req, res, next) => {
 
         // Verify the session token with Clerk
         try {
-            const sessionClaims = await clerkClient.verifyToken(token);
+            const sessionClaims = await clerkClient.verifyToken(token, { clockSkewInMs: 60000 });
 
             // Attach user info to request
             req.auth = {
@@ -61,7 +61,7 @@ const optionalAuth = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
 
         try {
-            const sessionClaims = await clerkClient.verifyToken(token);
+            const sessionClaims = await clerkClient.verifyToken(token, { clockSkewInMs: 60000 });
             req.auth = {
                 userId: sessionClaims.sub,
                 sessionId: sessionClaims.sid,
