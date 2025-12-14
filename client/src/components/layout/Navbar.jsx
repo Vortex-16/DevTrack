@@ -7,7 +7,7 @@ const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Learning', path: '/learning', icon: '📚' },
     { name: 'Projects', path: '/projects', icon: '🚀' },
-    { name: 'AI Chat', path: '/ai-chat', icon: '🤖' },
+    { name: 'AI Chat', path: '/chat', icon: '🤖' },
     { name: 'Info', path: '/system-info', icon: 'ℹ️' },
 ]
 
