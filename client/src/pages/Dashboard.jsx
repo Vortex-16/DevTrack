@@ -2,6 +2,7 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { logsApi, projectsApi, githubApi } from '../services/api'
+import LoadingText from '../components/ui/LoadingText'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -404,18 +405,7 @@ export default function Dashboard() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <motion.div
-                    className="flex flex-col items-center gap-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                >
-                    <motion.div
-                        className="w-12 h-12 rounded-full border-4 border-cyan-500 border-t-transparent"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <span className="text-slate-400">Loading dashboard...</span>
-                </motion.div>
+                <LoadingText />
             </div>
         )
     }

@@ -43,12 +43,12 @@ api.interceptors.response.use(
 
 // API methods
 export const logsApi = {
-    getAll: (params) => api.get('/logs', { params }),
+    getAll: (params, config = {}) => api.get('/logs', { params, ...config }),
     getById: (id) => api.get(`/logs/${id}`),
     create: (data) => api.post('/logs', data),
     update: (id, data) => api.put(`/logs/${id}`, data),
     delete: (id) => api.delete(`/logs/${id}`),
-    getStats: () => api.get('/logs/stats'),
+    getStats: (config = {}) => api.get('/logs/stats', config),
 };
 
 export const projectsApi = {

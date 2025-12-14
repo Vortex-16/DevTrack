@@ -3,7 +3,8 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { logsApi } from '../services/api'
 import { useState, useEffect } from 'react'
-
+import { useAuth } from '@clerk/clerk-react'
+import LoadingText from '../components/ui/LoadingText'
 // Helper to format dates - handles both strings and Firestore Timestamps
 const formatDate = (date) => {
     if (!date) return 'Unknown date'
@@ -29,6 +30,7 @@ const getRawDate = (date) => {
 }
 
 export default function Learning() {
+    const { isLoaded, isSignedIn, getToken } = useAuth()
     const [learningEntries, setLearningEntries] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -50,14 +52,27 @@ export default function Learning() {
     const [formData, setFormData] = useState(defaultFormData)
 
     useEffect(() => {
-        fetchLogs()
-        fetchStats()
-    }, [])
+        if (isLoaded && isSignedIn) {
+            fetchLogs()
+            fetchStats()
+        }
+    }, [isLoaded, isSignedIn])
 
     const fetchLogs = async () => {
         try {
             setLoading(true)
-            const response = await logsApi.getAll({ limit: 50 })
+            const token = await getToken({ skipCache: true })
+            
+            if (!token) {
+                console.warn('No auth token available, skipping fetch')
+                setLoading(false)
+                return
+            }
+
+            const response = await logsApi.getAll(
+                { limit: 50 },
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
             setLearningEntries(response.data.data.logs || [])
         } catch (err) {
             setError(err.message)
@@ -69,7 +84,13 @@ export default function Learning() {
 
     const fetchStats = async () => {
         try {
-            const response = await logsApi.getStats()
+            const token = await getToken({ skipCache: true })
+            
+            if (!token) return
+
+            const response = await logsApi.getStats({
+                headers: { Authorization: `Bearer ${token}` }
+            })
             setStats(response.data.data || {})
         } catch (err) {
             console.error('Error fetching stats:', err)
@@ -142,10 +163,16 @@ export default function Learning() {
         }
     }
 
+
+
+// ... existing imports
+
+// ... inside component
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-slate-400">Loading...</div>
+                <LoadingText />
             </div>
         )
     }
