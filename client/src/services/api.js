@@ -74,6 +74,8 @@ export const githubApi = {
     analyzeRepo: (owner, repo) => api.get(`/github/repo/${owner}/${repo}`),
     getActivity: () => api.get('/github/activity'),
     getCommits: (days = 30) => api.get('/github/commits', { params: { days } }),
+    getRepoLanguages: (owner, repo) => api.get(`/github/repo/${owner}/${repo}/languages`),
+    createRepo: (name, description, isPrivate) => api.post('/github/repo', { name, description, isPrivate }),
 };
 
 export const geminiApi = {
@@ -98,6 +100,15 @@ export const notificationsApi = {
     registerToken: (token) => api.post('/notifications/register', { token }),
     unregisterToken: () => api.delete('/notifications/register'),
     sendTest: () => api.post('/notifications/test'),
+};
+
+export const tasksApi = {
+    getAll: (params) => api.get('/tasks', { params }),
+    getByRange: (start, end) => api.get('/tasks/range', { params: { start, end } }),
+    create: (data) => api.post('/tasks', data),
+    update: (id, data) => api.put(`/tasks/${id}`, data),
+    delete: (id) => api.delete(`/tasks/${id}`),
+    toggle: (id) => api.patch(`/tasks/${id}/toggle`),
 };
 
 export default api;

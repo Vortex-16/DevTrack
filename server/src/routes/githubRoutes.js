@@ -26,4 +26,11 @@ router.get('/profile', githubController.getProfile);
 // Analyze a specific repository by owner/repo (optionalAuth allows private repo access when logged in)
 router.get('/repo/:owner/:repo', optionalAuth, githubController.analyzeRepo);
 
+// Get languages for a specific repository
+router.get('/repo/:owner/:repo/languages', optionalAuth, githubController.getRepoLanguages);
+
+// Create a new GitHub repository
+router.post('/repo', requireAuth, githubController.createRepo);
+
 module.exports = router;
+

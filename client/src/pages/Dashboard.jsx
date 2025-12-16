@@ -3,6 +3,7 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { logsApi, projectsApi, githubApi } from '../services/api'
 import LoadingText from '../components/ui/LoadingText'
+import Calendar from '../components/dashboard/Calendar'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -113,11 +114,11 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
     const maxVal = Math.max(...chartData, 1)
     const points = chartData.map((val, i) => {
         const x = 10 + (i / (chartData.length - 1 || 1)) * 180
-        const y = 60 - (val / maxVal) * 45
+        const y = 45 - (val / maxVal) * 35  // Adjusted for viewBox height 50
         return `${x},${y}`
     }).join(' ')
 
-    const areaPoints = `10,60 ${points} 190,60`
+    const areaPoints = `10,45 ${points} 190,45`  // Adjusted baseline
 
     // Calculate period stats
     const periodStart = new Date()
@@ -137,7 +138,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
             className="h-full"
         >
             <div
-                className="rounded-3xl p-6 h-full relative overflow-hidden border border-white/10"
+                className="rounded-2xl p-4 h-full relative overflow-hidden border border-white/10"
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
@@ -146,29 +147,29 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
                 {/* Background glow */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
 
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-1">
                     <div>
-                        <h3 className="text-3xl font-bold text-white">
+                        <h3 className="text-2xl font-bold text-white">
                             <AnimatedCounter value={totalLogs} />
                         </h3>
-                        <p className="text-slate-400 text-sm">Total Learning Logs</p>
+                        <p className="text-slate-400 text-xs">Total Learning Logs</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-lg font-semibold text-purple-400">{periodLogs.length}</p>
+                        <p className="text-base font-semibold text-purple-400">{periodLogs.length}</p>
                         <p className="text-xs text-slate-500">This {selectedPeriod}</p>
                     </div>
                 </div>
 
                 {/* Streak badge */}
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-medium">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
                         🔥 {currentStreak} day streak
                     </span>
                 </div>
 
                 {/* Chart */}
                 <div className="mt-auto">
-                    <svg viewBox="0 0 200 70" className="w-full h-20">
+                    <svg viewBox="0 0 200 50" className="w-full h-14">
                         <defs>
                             <linearGradient id="portfolioGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                                 <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
@@ -188,8 +189,8 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
                         {chartData.map((val, i) => {
                             if (val > 0) {
                                 const x = 10 + (i / (chartData.length - 1 || 1)) * 180
-                                const y = 60 - (val / maxVal) * 45
-                                return <circle key={i} cx={x} cy={y} r="3" fill="#a855f7" />
+                                const y = 45 - (val / maxVal) * 35  // Match new baseline
+                                return <circle key={i} cx={x} cy={y} r="2.5" fill="#a855f7" />
                             }
                             return null
                         })}
@@ -263,77 +264,129 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0 }) {
     )
 }
 
-// Activity Table - DARK themed
-function ActivityTable({ logs, logStats }) {
+// Activity Table - DARK themed with combined GitHub + Learning logs
+function ActivityTable({ logs, logStats, githubCommits }) {
+    // Helper to parse date properly
+    const parseDate = (date) => {
+        if (!date) return new Date(0)
+        if (date._seconds) return new Date(date._seconds * 1000)
+        if (typeof date === 'string') {
+            // Handle ISO strings and YYYY-MM-DD
+            return new Date(date)
+        }
+        return new Date(date)
+    }
+
+    // Combine and sort activities
+    const combinedActivities = []
+
+    // Add learning logs
+    logs.slice(0, 10).forEach(log => {
+        combinedActivities.push({
+            id: log.id,
+            type: 'learning',
+            title: log.learnedToday,
+            date: log.date,
+            parsedDate: parseDate(log.date),
+            tags: log.tags || [],
+            icon: '📚'
+        })
+    })
+
+    // Add GitHub commits
+    githubCommits.slice(0, 10).forEach((commit, idx) => {
+        combinedActivities.push({
+            id: `commit-${idx}`,
+            type: 'github',
+            title: commit.message || `${commit.count} contribution(s)`,
+            date: commit.date,
+            parsedDate: parseDate(commit.date),
+            repo: commit.repo,
+            icon: '🐙'
+        })
+    })
+
+    // Sort by parsed date (most recent first)
+    combinedActivities.sort((a, b) => b.parsedDate - a.parsedDate)
+
+    // Take top 5
+    const topActivities = combinedActivities.slice(0, 5)
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="h-full"
         >
             <div
-                className="rounded-3xl p-6 h-full border border-white/10"
+                className="rounded-2xl p-4 h-full border border-white/10"
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
-                        <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-base font-semibold text-white">Recent Activity</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
                             🔥 {logStats?.currentStreak || 0} days
                         </span>
                     </div>
-                    <Link to="/learning" className="text-purple-400 text-sm hover:text-purple-300 transition-colors">
+                    <Link to="/learning" className="text-purple-400 text-xs hover:text-purple-300 transition-colors">
                         View All →
                     </Link>
                 </div>
 
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wide border-b border-white/5">
-                    <div className="col-span-6">Topic</div>
-                    <div className="col-span-2 text-center">Tags</div>
-                    <div className="col-span-2 text-center">Date</div>
-                    <div className="col-span-2 text-right">Status</div>
-                </div>
-
-                {/* Table Body */}
-                <div className="space-y-1 mt-2">
-                    {logs.slice(0, 4).map((log, idx) => (
-                        <motion.div
-                            key={log.id}
-                            className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4 + idx * 0.1 }}
-                        >
-                            <div className="col-span-6 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-purple-500/20">
-                                    {(log.learnedToday || 'L')[0].toUpperCase()}
+                {/* Activity List */}
+                <div className="space-y-1.5">
+                    {topActivities.length === 0 ? (
+                        <p className="text-slate-500 text-sm text-center py-4">No recent activity</p>
+                    ) : (
+                        topActivities.map((activity, idx) => (
+                            <motion.div
+                                key={activity.id}
+                                className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.4 + idx * 0.08 }}
+                            >
+                                {/* Icon */}
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg
+                                    ${activity.type === 'github'
+                                        ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
+                                        : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
+                                    }
+                                `}>
+                                    {activity.icon}
                                 </div>
-                                <div>
-                                    <p className="font-medium text-white text-sm">
-                                        {log.learnedToday?.slice(0, 35)}{log.learnedToday?.length > 35 ? '...' : ''}
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-white text-sm truncate">
+                                        {activity.title?.slice(0, 50)}{activity.title?.length > 50 ? '...' : ''}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        {activity.type === 'github' && activity.repo && (
+                                            <span className="text-slate-400">{activity.repo} • </span>
+                                        )}
+                                        {formatDate(activity.date)}
                                     </p>
                                 </div>
-                            </div>
-                            <div className="col-span-2 text-center">
-                                <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs">
-                                    {(log.tags || []).length} tags
+
+                                {/* Type badge */}
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium
+                                    ${activity.type === 'github'
+                                        ? 'bg-gray-500/20 text-gray-400'
+                                        : 'bg-purple-500/20 text-purple-400'
+                                    }
+                                `}>
+                                    {activity.type === 'github' ? 'Commit' : 'Learning'}
                                 </span>
-                            </div>
-                            <div className="col-span-2 text-center">
-                                <span className="text-sm text-slate-400">
-                                    {formatDate(log.date)}
-                                </span>
-                            </div>
-                            <div className="col-span-2 text-right">
-                                <span className="text-emerald-400">✓</span>
-                            </div>
-                        </motion.div>
-                    ))}
+                            </motion.div>
+                        ))
+                    )}
                 </div>
             </div>
         </motion.div>
@@ -460,8 +513,35 @@ export default function Dashboard() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <LoadingText />
+            <div className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+                style={{
+                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                }}
+            >
+                {/* Header Skeleton */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
+                    <div className="h-10 w-36 bg-white/10 rounded-xl animate-pulse" />
+                </div>
+
+                {/* Stats Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+                    <div className="lg:col-span-4 h-48 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
+                    <div className="lg:col-span-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="h-28 bg-white/5 rounded-2xl animate-pulse border border-white/10" />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Activity + Calendar Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-7 h-64 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
+                    <div className="lg:col-span-5 h-64 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
+                </div>
             </div>
         )
     }
@@ -474,14 +554,14 @@ export default function Dashboard() {
         >
             {/* Main Container with rounded border */}
             <div
-                className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+                className="rounded-[2rem] p-4 lg:p-5 border border-white/10 min-h-[calc(100vh-120px)] flex flex-col"
                 style={{
                     background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 }}
             >
                 {/* Header Row */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-4">
                     <div>
                         <h1 className="text-3xl font-bold text-white">Overview</h1>
                     </div>
@@ -546,9 +626,9 @@ export default function Dashboard() {
 
                 {/* Main Dashboard Grid */}
                 {!hasNoData && (
-                    <div className="space-y-6">
+                    <div className="space-y-4 lg:space-y-3">
                         {/* Row 1: Portfolio + Assets */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-3">
                             {/* Portfolio Card - spans 4 cols */}
                             <div className="lg:col-span-4">
                                 <PortfolioCard
@@ -560,10 +640,10 @@ export default function Dashboard() {
 
                             {/* Your Stats Section - spans 8 cols */}
                             <div className="lg:col-span-8">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between mb-3">
                                     <h2 className="text-lg font-semibold text-white">Your Stats</h2>
                                 </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     <AssetCard
                                         icon="📚"
                                         title="Learning"
@@ -603,16 +683,16 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Row 2: Activity Table + Promo Card */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            {/* Activity Table - spans 8 cols */}
-                            <div className="lg:col-span-8">
-                                <ActivityTable logs={recentLogs} logStats={logStats} />
+                        {/* Row 2: Activity Table + Calendar */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-3">
+                            {/* Activity Table - spans 7 cols */}
+                            <div className="lg:col-span-7">
+                                <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
                             </div>
 
-                            {/* Promo Card - spans 4 cols */}
-                            <div className="lg:col-span-4">
-                                <PromoCard />
+                            {/* Calendar - spans 5 cols */}
+                            <div className="lg:col-span-5">
+                                <Calendar />
                             </div>
                         </div>
                     </div>

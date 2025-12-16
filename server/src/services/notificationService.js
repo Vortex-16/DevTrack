@@ -352,6 +352,60 @@ class NotificationService {
             return { success: false, error: error.message };
         }
     }
+
+    /**
+     * Send notification for high priority task
+     * @param {string} userId - User's Clerk ID
+     * @param {object} task - Task object with title, dueDate, priority
+     * @param {string} notificationType - 'created' or 'reminder'
+     */
+    async sendTaskNotification(userId, task, notificationType = 'created') {
+        try {
+            const userDoc = await collections.users().doc(userId).get();
+
+            if (!userDoc.exists) {
+                return { success: false, error: 'User not found' };
+            }
+
+            const user = userDoc.data();
+
+            if (!user.fcmToken) {
+                return { success: false, error: 'No FCM token registered' };
+            }
+
+            let title, body;
+
+            if (notificationType === 'created') {
+                title = '🔥 High Priority Task Added!';
+                body = `"${task.title}" is due on ${task.dueDate}`;
+            } else if (notificationType === 'due_today') {
+                title = '⚠️ High Priority Task Due Today!';
+                body = `Don't forget: "${task.title}"`;
+            } else if (notificationType === 'due_tomorrow') {
+                title = '📌 High Priority Task Due Tomorrow';
+                body = `Coming up: "${task.title}"`;
+            } else {
+                title = '📅 Task Reminder';
+                body = task.title;
+            }
+
+            const notification = { title, body };
+
+            const data = {
+                type: 'task_notification',
+                taskId: task.id || '',
+                taskTitle: task.title,
+                dueDate: task.dueDate,
+                priority: task.priority,
+                notificationType,
+            };
+
+            return await this.sendNotification(user.fcmToken, notification, data);
+        } catch (error) {
+            console.error('Error sending task notification:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 // Singleton instance

@@ -18,6 +18,7 @@ const logsRoutes = require('./routes/logsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const preferencesRoutes = require('./routes/preferencesRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -134,6 +135,7 @@ app.use('/api/logs', logsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/preferences', preferencesRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // ======================
 // 404 HANDLER

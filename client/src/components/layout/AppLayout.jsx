@@ -12,7 +12,7 @@ export default function AppLayout() {
                 <Navbar />
                 {/* Main content with sidebar offset for desktop */}
                 <div className="lg:ml-[80px]">
-                    <div className="max-w-7xl mx-auto px-6 py-8 lg:py-6">
+                    <div className="max-w-7xl mx-auto px-4 py-3 lg:py-2">
                         <AnimatePresence mode="wait">
                             <motion.main
                                 key={location.pathname}

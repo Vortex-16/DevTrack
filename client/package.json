@@ -12,13 +12,15 @@
     "dependencies": {
         "@clerk/clerk-react": "^5.2.0",
         "axios": "^1.7.2",
+        "clsx": "^2.1.1",
         "firebase": "^12.6.0",
         "framer-motion": "^12.23.26",
         "gsap": "^3.14.1",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-markdown": "^10.1.0",
-        "react-router-dom": "^6.24.1"
+        "react-router-dom": "^6.24.1",
+        "tailwind-merge": "^3.4.0"
     },
     "devDependencies": {
         "@types/react": "^18.3.3",

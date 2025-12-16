@@ -238,12 +238,231 @@ function Modal({ isOpen, onClose, title, children }) {
     )
 }
 
-// Project Form
+// Project Form with two-path flow
 function ProjectForm({ formData, setFormData, onSubmit, onCancel, isEdit, analyzing }) {
+    const [hasRepo, setHasRepo] = useState(isEdit ? (formData.repositoryUrl ? 'yes' : 'no') : null)
+    const [fetchingLanguages, setFetchingLanguages] = useState(false)
+    const [fetchedLanguages, setFetchedLanguages] = useState([])
+    const [createRepoMode, setCreateRepoMode] = useState(false)
+    const [newRepoData, setNewRepoData] = useState({ name: '', description: '', isPrivate: false })
+    const [creatingRepo, setCreatingRepo] = useState(false)
+    const [repoError, setRepoError] = useState('')
+
+    // Parse GitHub URL to extract owner/repo
+    const parseGitHubUrl = (url) => {
+        if (!url) return null
+        const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/)
+        if (match) return { owner: match[1], repo: match[2].replace(/\.git$/, '') }
+        return null
+    }
+
+    // Auto-fetch languages when repo URL changes
+    useEffect(() => {
+        const fetchLanguages = async () => {
+            const parsed = parseGitHubUrl(formData.repositoryUrl)
+            if (!parsed) {
+                setFetchedLanguages([])
+                return
+            }
+
+            setFetchingLanguages(true)
+            try {
+                const response = await githubApi.getRepoLanguages(parsed.owner, parsed.repo)
+                const langs = response.data?.data?.languages || []
+                setFetchedLanguages(langs)
+
+                // Auto-fill technologies if empty
+                if (langs.length > 0 && !formData.technologies) {
+                    setFormData({
+                        ...formData,
+                        technologies: langs.map(l => l.name).join(', ')
+                    })
+                }
+            } catch (err) {
+                console.error('Error fetching languages:', err)
+                setFetchedLanguages([])
+            } finally {
+                setFetchingLanguages(false)
+            }
+        }
+
+        const timer = setTimeout(fetchLanguages, 500) // Debounce
+        return () => clearTimeout(timer)
+    }, [formData.repositoryUrl])
+
+    // Create a new GitHub repo
+    const handleCreateRepo = async () => {
+        if (!newRepoData.name) {
+            setRepoError('Repository name is required')
+            return
+        }
+
+        setCreatingRepo(true)
+        setRepoError('')
+
+        try {
+            const response = await githubApi.createRepo(
+                newRepoData.name,
+                newRepoData.description,
+                newRepoData.isPrivate
+            )
+
+            if (response.data?.success) {
+                const repoUrl = response.data.data.url
+                setFormData({
+                    ...formData,
+                    repositoryUrl: repoUrl,
+                    name: formData.name || newRepoData.name
+                })
+                setHasRepo('yes')
+                setCreateRepoMode(false)
+            }
+        } catch (err) {
+            setRepoError(err.response?.data?.error || 'Failed to create repository')
+        } finally {
+            setCreatingRepo(false)
+        }
+    }
+
+    // Initial question - skip if editing
+    if (!isEdit && hasRepo === null) {
+        return (
+            <div className="space-y-6">
+                <div className="text-center mb-6">
+                    <div className="text-4xl mb-3">📁</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Do you have a GitHub repository?</h3>
+                    <p className="text-slate-400 text-sm">We'll auto-fetch languages and analyze your project</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        onClick={() => setHasRepo('yes')}
+                        className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-purple-500 hover:bg-purple-500/10 transition-all text-left"
+                    >
+                        <div className="text-2xl mb-2">✅</div>
+                        <p className="font-semibold text-white">Yes, I have a repo</p>
+                        <p className="text-xs text-slate-400 mt-1">Link your existing repository</p>
+                    </button>
+
+                    <button
+                        onClick={() => setHasRepo('no')}
+                        className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-left"
+                    >
+                        <div className="text-2xl mb-2">🆕</div>
+                        <p className="font-semibold text-white">No, create one</p>
+                        <p className="text-xs text-slate-400 mt-1">We'll create a repo for you</p>
+                    </button>
+                </div>
+
+                <Button type="button" variant="ghost" onClick={onCancel} className="w-full mt-4">
+                    Cancel
+                </Button>
+            </div>
+        )
+    }
+
+    // Create new repo form
+    if (hasRepo === 'no' && !createRepoMode && !formData.repositoryUrl) {
+        return (
+            <div className="space-y-5">
+                <button
+                    onClick={() => setHasRepo(null)}
+                    className="text-slate-400 hover:text-white text-sm flex items-center gap-1 mb-4"
+                >
+                    ← Back
+                </button>
+
+                <div className="text-center mb-6">
+                    <div className="text-4xl mb-3">🚀</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">Create a New Repository</h3>
+                    <p className="text-slate-400 text-sm">We'll create a GitHub repo and link it to your project</p>
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Repository Name *</label>
+                    <input
+                        type="text"
+                        value={newRepoData.name}
+                        onChange={(e) => setNewRepoData({ ...newRepoData, name: e.target.value.replace(/\s+/g, '-') })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
+                        placeholder="my-awesome-project"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm text-slate-400 mb-2">Description (optional)</label>
+                    <textarea
+                        value={newRepoData.description}
+                        onChange={(e) => setNewRepoData({ ...newRepoData, description: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white min-h-[80px] focus:border-purple-500 focus:outline-none transition-colors resize-none"
+                        placeholder="A brief description of your project..."
+                    />
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setNewRepoData({ ...newRepoData, isPrivate: false })}
+                        className={`flex-1 p-3 rounded-xl border-2 transition-all ${!newRepoData.isPrivate
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                            }`}
+                    >
+                        <p className="font-medium text-white">🌍 Public</p>
+                        <p className="text-xs text-slate-400">Anyone can see</p>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setNewRepoData({ ...newRepoData, isPrivate: true })}
+                        className={`flex-1 p-3 rounded-xl border-2 transition-all ${newRepoData.isPrivate
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                            }`}
+                    >
+                        <p className="font-medium text-white">🔒 Private</p>
+                        <p className="text-xs text-slate-400">Only you</p>
+                    </button>
+                </div>
+
+                {repoError && (
+                    <p className="text-red-400 text-sm bg-red-500/10 p-3 rounded-lg">{repoError}</p>
+                )}
+
+                <div className="flex gap-4 pt-2">
+                    <Button type="button" variant="ghost" onClick={() => setHasRepo(null)} className="flex-1">
+                        Back
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleCreateRepo}
+                        className="flex-1"
+                        disabled={creatingRepo || !newRepoData.name}
+                    >
+                        {creatingRepo ? '🔄 Creating...' : '🚀 Create Repository'}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // Main project form (with or without repo)
     return (
         <form onSubmit={onSubmit} className="space-y-5">
+            {!isEdit && hasRepo !== null && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setHasRepo(null)
+                        setFormData({ ...formData, repositoryUrl: '' })
+                    }}
+                    className="text-slate-400 hover:text-white text-sm flex items-center gap-1 mb-2"
+                >
+                    ← Back
+                </button>
+            )}
+
             <div>
-                <label className="block text-sm text-slate-400 mb-2">Project Name</label>
+                <label className="block text-sm text-slate-400 mb-2">Project Name *</label>
                 <input
                     type="text"
                     value={formData.name}
@@ -273,8 +492,8 @@ function ProjectForm({ formData, setFormData, onSubmit, onCancel, isEdit, analyz
                             type="button"
                             onClick={() => setFormData({ ...formData, status })}
                             className={`p-2 rounded-xl border text-xs font-medium transition-all ${formData.status === status
-                                    ? 'bg-purple-500/20 border-purple-500 text-white'
-                                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                                ? 'bg-purple-500/20 border-purple-500 text-white'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                                 }`}
                         >
                             {status}
@@ -283,10 +502,12 @@ function ProjectForm({ formData, setFormData, onSubmit, onCancel, isEdit, analyz
                 </div>
             </div>
 
+            {/* GitHub Repository - Required if hasRepo is 'yes' */}
             <div>
                 <label className="block text-sm text-slate-400 mb-2">
                     GitHub Repository
-                    <span className="text-purple-400 ml-2 text-xs">✨ Auto-analyzes with AI!</span>
+                    {hasRepo === 'yes' && <span className="text-red-400"> *</span>}
+                    <span className="text-purple-400 ml-2 text-xs">✨ Auto-fetches languages!</span>
                 </label>
                 <input
                     type="url"
@@ -294,7 +515,24 @@ function ProjectForm({ formData, setFormData, onSubmit, onCancel, isEdit, analyz
                     onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
                     placeholder="https://github.com/username/repo"
+                    required={hasRepo === 'yes'}
                 />
+
+                {/* Show fetched languages */}
+                {fetchingLanguages && (
+                    <p className="text-purple-400 text-xs mt-2 flex items-center gap-2">
+                        <span className="animate-spin">⏳</span> Fetching languages...
+                    </p>
+                )}
+                {fetchedLanguages.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                        {fetchedLanguages.map((lang, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-xs">
+                                {lang.name} ({lang.percentage}%)
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div>

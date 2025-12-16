@@ -247,6 +247,161 @@ const analyzeRepo = async (req, res, next) => {
     }
 };
 
+/**
+ * Get languages for a specific repository
+ * GET /api/github/repo/:owner/:repo/languages
+ */
+const getRepoLanguages = async (req, res, next) => {
+    try {
+        const { owner, repo } = req.params;
+
+        if (!owner || !repo) {
+            throw new APIError('Owner and repo are required', 400);
+        }
+
+        // Try to get user's GitHub token for private repo access
+        let userToken = null;
+        if (req.auth?.userId) {
+            try {
+                const userDoc = await collections.users().doc(req.auth.userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    if (userData.githubAccessToken) {
+                        userToken = userData.githubAccessToken;
+                    }
+                }
+            } catch (tokenErr) {
+                console.warn('⚠️ Could not retrieve user token');
+            }
+        }
+
+        const githubService = new GitHubService(userToken);
+        const languages = await githubService.getRepoLanguagesOnly(owner, repo);
+
+        res.status(200).json({
+            success: true,
+            data: { languages },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Create a new GitHub repository
+ * POST /api/github/repo
+ */
+const createRepo = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+        const { name, description, isPrivate } = req.body;
+
+        if (!name) {
+            throw new APIError('Repository name is required', 400);
+        }
+
+        // Get FRESH token from Clerk (not cached Firestore token)
+        const { clerkClient } = require('@clerk/clerk-sdk-node');
+        let githubAccessToken = null;
+
+        try {
+            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
+                userId,
+                'oauth_github'
+            );
+            console.log('🔐 Fresh OAuth tokens from Clerk:', JSON.stringify(oauthTokens?.data, null, 2));
+
+            if (oauthTokens?.data?.[0]?.token) {
+                githubAccessToken = oauthTokens.data[0].token;
+
+                // Also update the cached token in Firestore
+                await collections.users().doc(userId).update({
+                    githubAccessToken: githubAccessToken,
+                    updatedAt: new Date().toISOString()
+                });
+                console.log('✅ Updated cached token in Firestore');
+            }
+        } catch (tokenErr) {
+            console.error('❌ Failed to get fresh token from Clerk:', tokenErr.message);
+        }
+
+        if (!githubAccessToken) {
+            throw new APIError('GitHub account not properly connected. Please sign out and sign in again with GitHub to grant repository access.', 400);
+        }
+
+        const { Octokit } = require('octokit');
+        const octokit = new Octokit({ auth: githubAccessToken });
+
+        console.log('🔧 Attempting to create repo:', name);
+
+        // First, verify the token has proper scopes by checking user info
+        try {
+            const { headers } = await octokit.rest.users.getAuthenticated();
+            const scopes = headers['x-oauth-scopes'] || '';
+            console.log('📋 GitHub token scopes:', scopes);
+
+            if (!scopes.includes('repo') && !scopes.includes('public_repo')) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Your GitHub token does not have repository creation permissions. Please configure your Clerk dashboard to request the "repo" scope for GitHub OAuth, then sign out and sign in again.',
+                });
+            }
+        } catch (scopeErr) {
+            console.error('⚠️ Could not verify token scopes:', scopeErr.message);
+        }
+
+        // Create the repository
+        const { data: newRepo } = await octokit.rest.repos.createForAuthenticatedUser({
+            name,
+            description: description || '',
+            private: isPrivate || false,
+            auto_init: true, // Initialize with README
+        });
+
+        console.log('✅ Created GitHub repo:', newRepo.full_name);
+
+        res.status(201).json({
+            success: true,
+            data: {
+                name: newRepo.name,
+                fullName: newRepo.full_name,
+                url: newRepo.html_url,
+                cloneUrl: newRepo.clone_url,
+                description: newRepo.description,
+                private: newRepo.private,
+            },
+        });
+    } catch (error) {
+        console.error('❌ Create repo error:', error.status, error.message);
+
+        if (error.status === 404) {
+            return res.status(404).json({
+                success: false,
+                error: 'GitHub API endpoint not found. This usually means your GitHub token lacks the "repo" scope. Please sign out and sign in again with GitHub.',
+            });
+        }
+        if (error.status === 422) {
+            return res.status(422).json({
+                success: false,
+                error: 'Repository name already exists or is invalid.',
+            });
+        }
+        if (error.status === 401) {
+            return res.status(401).json({
+                success: false,
+                error: 'GitHub authentication failed. Please sign out and sign in again.',
+            });
+        }
+        if (error.status === 403) {
+            return res.status(403).json({
+                success: false,
+                error: 'Permission denied. Your GitHub token may not have repository creation permissions. Please sign out and sign in again.',
+            });
+        }
+        next(error);
+    }
+};
+
 module.exports = {
     getActivity,
     getCommits,
@@ -254,4 +409,7 @@ module.exports = {
     getLanguages,
     getProfile,
     analyzeRepo,
+    getRepoLanguages,
+    createRepo,
 };
+

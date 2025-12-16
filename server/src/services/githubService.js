@@ -568,6 +568,33 @@ class GitHubService {
     }
 
     /**
+     * Get languages for a specific repository only
+     */
+    async getRepoLanguagesOnly(owner, repo) {
+        try {
+            const { data: languagesData } = await this.octokit.rest.repos.listLanguages({
+                owner,
+                repo,
+            });
+
+            const totalBytes = Object.values(languagesData).reduce((a, b) => a + b, 0);
+
+            if (totalBytes === 0) return [];
+
+            return Object.entries(languagesData)
+                .map(([name, bytes]) => ({
+                    name,
+                    bytes,
+                    percentage: Math.round((bytes / totalBytes) * 100),
+                }))
+                .sort((a, b) => b.percentage - a.percentage);
+        } catch (error) {
+            console.error('Error fetching repo languages:', error.message);
+            return [];
+        }
+    }
+
+    /**
      * Get COMPLETE repo info for AI analysis (enhanced)
      */
     async getCompleteRepoInfo(owner, repo) {
