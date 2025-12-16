@@ -24,6 +24,10 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Trust proxy for Render and other reverse proxies
+// Required for express-rate-limit to work correctly
+app.set('trust proxy', 1);
+
 // ======================
 // SECURITY MIDDLEWARE
 // ======================
