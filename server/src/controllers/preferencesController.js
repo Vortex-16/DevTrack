@@ -31,10 +31,6 @@ const savePreferences = async (req, res, next) => {
         const userRef = collections.users().doc(userId);
         const userDoc = await userRef.get();
 
-        if (!userDoc.exists) {
-            throw new APIError('User not found. Please sync your account first.', 404);
-        }
-
         // Validate and sanitize preferences
         const sanitizedPreferences = {
             commitPattern: ['frequent', 'end-only'].includes(preferences.commitPattern)
@@ -54,14 +50,25 @@ const savePreferences = async (req, res, next) => {
                 : DEFAULT_PREFERENCES.breakDetection,
         };
 
-        // Update user document with preferences
-        await userRef.update({
+        const updateData = {
             preferences: sanitizedPreferences,
             userGoal: userGoal || null,
             onboardingCompleted: true,
             onboardingCompletedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-        });
+        };
+
+        // Create or update user document
+        if (!userDoc.exists) {
+            // User doesn't exist, create them with preferences
+            await userRef.set({
+                ...updateData,
+                createdAt: new Date().toISOString(),
+            });
+        } else {
+            // User exists, update their preferences
+            await userRef.update(updateData);
+        }
 
         const updatedUser = await userRef.get();
 
@@ -71,6 +78,7 @@ const savePreferences = async (req, res, next) => {
             data: {
                 preferences: updatedUser.data().preferences,
                 userGoal: updatedUser.data().userGoal,
+                onboardingCompleted: updatedUser.data().onboardingCompleted,
             },
         });
     } catch (error) {
@@ -89,8 +97,16 @@ const getPreferences = async (req, res, next) => {
         const userRef = collections.users().doc(userId);
         const userDoc = await userRef.get();
 
+        // If user doesn't exist, return default data (not completed onboarding)
         if (!userDoc.exists) {
-            throw new APIError('User not found', 404);
+            return res.status(200).json({
+                success: true,
+                data: {
+                    preferences: DEFAULT_PREFERENCES,
+                    userGoal: null,
+                    onboardingCompleted: false,
+                },
+            });
         }
 
         const userData = userDoc.data();
