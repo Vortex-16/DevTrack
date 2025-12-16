@@ -1,24 +1,20 @@
-import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import { geminiApi, projectsApi, logsApi } from '../services/api'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { motion, AnimatePresence } from 'framer-motion'
 
-// Custom styled markdown renderer with colored text
+// Custom styled markdown renderer
 const MarkdownMessage = ({ content }) => {
     return (
         <ReactMarkdown
             components={{
-                // Bold text with primary color
                 strong: ({ children }) => (
-                    <strong className="text-primary-400 font-semibold">{children}</strong>
+                    <strong className="text-purple-400 font-semibold">{children}</strong>
                 ),
-                // Italic text
                 em: ({ children }) => (
                     <em className="text-slate-300 italic">{children}</em>
                 ),
-                // Headers
                 h1: ({ children }) => (
                     <h1 className="text-xl font-bold text-white mt-3 mb-2">{children}</h1>
                 ),
@@ -26,9 +22,8 @@ const MarkdownMessage = ({ content }) => {
                     <h2 className="text-lg font-bold text-white mt-2 mb-1">{children}</h2>
                 ),
                 h3: ({ children }) => (
-                    <h3 className="text-md font-semibold text-primary-300 mt-2 mb-1">{children}</h3>
+                    <h3 className="text-md font-semibold text-purple-300 mt-2 mb-1">{children}</h3>
                 ),
-                // Lists
                 ul: ({ children }) => (
                     <ul className="list-disc list-inside space-y-1 my-2 ml-2">{children}</ul>
                 ),
@@ -38,27 +33,23 @@ const MarkdownMessage = ({ content }) => {
                 li: ({ children }) => (
                     <li className="text-slate-200">{children}</li>
                 ),
-                // Code blocks
                 code: ({ inline, children }) => (
                     inline
-                        ? <code className="bg-dark-700 text-green-400 px-1 py-0.5 rounded text-sm">{children}</code>
-                        : <pre className="bg-dark-700 text-green-400 p-3 rounded-lg my-2 overflow-x-auto text-sm"><code>{children}</code></pre>
+                        ? <code className="bg-white/10 text-emerald-400 px-1.5 py-0.5 rounded text-sm">{children}</code>
+                        : <pre className="bg-white/5 text-emerald-400 p-3 rounded-xl my-2 overflow-x-auto text-sm border border-white/10"><code>{children}</code></pre>
                 ),
-                // Paragraphs
                 p: ({ children }) => {
-                    // Check if this paragraph contains danger words
                     const text = String(children)
                     if (text.includes('❌') || text.includes('🚨') || text.includes('⚠️')) {
                         return <p className="text-red-400 my-1">{children}</p>
                     }
                     if (text.includes('✅') || text.includes('✓') || text.includes('🎉')) {
-                        return <p className="text-green-400 my-1">{children}</p>
+                        return <p className="text-emerald-400 my-1">{children}</p>
                     }
                     return <p className="text-slate-200 my-1">{children}</p>
                 },
-                // Blockquotes for tips
                 blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-primary-500 pl-3 my-2 text-slate-300 italic">
+                    <blockquote className="border-l-4 border-purple-500 pl-3 my-2 text-slate-300 italic bg-purple-500/5 py-2 rounded-r-lg">
                         {children}
                     </blockquote>
                 ),
@@ -69,10 +60,106 @@ const MarkdownMessage = ({ content }) => {
     )
 }
 
+// Message Bubble Component
+function MessageBubble({ message, idx }) {
+    const isUser = message.role === 'user'
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: idx * 0.05 }}
+            className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+        >
+            <div className={`flex items-start gap-3 max-w-[85%] ${isUser ? 'flex-row-reverse' : ''}`}>
+                {/* Avatar */}
+                <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-sm
+                    ${isUser
+                        ? 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/20'
+                        : 'bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-lg shadow-cyan-500/20'}`}
+                >
+                    {isUser ? '👤' : '🤖'}
+                </div>
+
+                {/* Message Content */}
+                <div
+                    className={`rounded-2xl px-4 py-3 ${isUser
+                        ? 'bg-gradient-to-br from-purple-500/90 to-purple-600/90 text-white'
+                        : 'bg-white/5 border border-white/10'}`}
+                    style={!isUser ? {
+                        background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))'
+                    } : {}}
+                >
+                    <div className="prose prose-invert prose-sm max-w-none">
+                        <MarkdownMessage content={message.content} />
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
+// Quick Prompt Button
+function QuickPromptButton({ label, onClick, disabled }) {
+    return (
+        <motion.button
+            onClick={onClick}
+            disabled={disabled}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
+                ${disabled
+                    ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                    : 'bg-white/5 text-slate-300 hover:bg-purple-500/20 hover:text-purple-400 border border-white/10 hover:border-purple-500/30'}`}
+            whileHover={!disabled ? { scale: 1.02 } : {}}
+            whileTap={!disabled ? { scale: 0.98 } : {}}
+        >
+            {label}
+        </motion.button>
+    )
+}
+
+// Typing Indicator
+function TypingIndicator() {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-start"
+        >
+            <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+                    🤖
+                </div>
+                <div
+                    className="rounded-2xl px-5 py-4 border border-white/10"
+                    style={{ background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))' }}
+                >
+                    <div className="flex items-center gap-1">
+                        <motion.div
+                            className="w-2 h-2 rounded-full bg-purple-500"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                        />
+                        <motion.div
+                            className="w-2 h-2 rounded-full bg-purple-500"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                        />
+                        <motion.div
+                            className="w-2 h-2 rounded-full bg-purple-500"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                        />
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
 // Simple cache for AI responses
 const responseCache = new Map()
-const CACHE_EXPIRY = 5 * 60 * 1000 // 5 minutes
-const RATE_LIMIT_MS = 10000 // 10 seconds between requests
+const CACHE_EXPIRY = 5 * 60 * 1000
+const RATE_LIMIT_MS = 10000
 
 export default function Chat() {
     const [messages, setMessages] = useState([])
@@ -86,7 +173,6 @@ export default function Chat() {
 
     useEffect(() => {
         fetchContext()
-        // Add welcome message
         setMessages([{
             role: 'assistant',
             content: `👋 **Hi! I'm your DevTrack AI Assistant** powered by **Llama 3.3 70B** via Groq.
@@ -97,11 +183,7 @@ I can help you with:
 - **Code help** - Debug issues or explain concepts
 - **Motivation** - Keep you on track with your goals
 
-✅ I have access to your full project details including GitHub data and AI analysis!
-
-> 💡 **Tip**: To reduce API usage, I cache responses for similar questions.
-
-⏱️ Rate limit: 1 request every 10 seconds.
+> 💡 **Tip**: I have access to your full project details including GitHub data and AI analysis!
 
 Just ask me anything!`
         }])
@@ -111,7 +193,6 @@ Just ask me anything!`
         scrollToBottom()
     }, [messages])
 
-    // Cooldown timer effect
     useEffect(() => {
         if (cooldown > 0) {
             const timer = setTimeout(() => setCooldown(cooldown - 1), 1000)
@@ -138,94 +219,40 @@ Just ask me anything!`
 
     const buildContext = () => {
         let context = 'User Context:\n'
-
         if (projects.length > 0) {
-            context += '\nProjects (with full details):\n'
+            context += '\nProjects:\n'
             projects.forEach(p => {
-                context += `\n## ${p.name}\n`
-                context += `- Status: ${p.status}\n`
-                context += `- Progress: ${p.progress || 0}%\n`
-                context += `- Commits: ${p.commits || 0}\n`
-                if (p.technologies?.length) {
-                    context += `- Technologies: ${p.technologies.join(', ')}\n`
-                }
-                if (p.description) {
-                    context += `- Description: ${p.description}\n`
-                }
-                if (p.projectIdea) {
-                    context += `- Project Idea: ${p.projectIdea}\n`
-                }
-                if (p.repositoryUrl) {
-                    context += `- GitHub: ${p.repositoryUrl}\n`
-                }
-                // Include GitHub data if available
-                if (p.githubData) {
-                    context += `- Stars: ${p.githubData.stars || 0}, Forks: ${p.githubData.forks || 0}\n`
-                    context += `- Open Issues: ${p.githubData.openIssues?.length || p.githubData.openIssuesCount || 0}\n`
-                    context += `- Recent Commits This Week: ${p.githubData.recentCommitsThisWeek || 0}\n`
-                }
-                // Include AI Analysis if available
+                context += `\n## ${p.name}\n- Status: ${p.status}\n- Progress: ${p.progress || 0}%\n- Commits: ${p.commits || 0}\n`
+                if (p.technologies?.length) context += `- Technologies: ${p.technologies.join(', ')}\n`
                 if (p.aiAnalysis) {
-                    context += `- AI Progress Summary: ${p.aiAnalysis.progressSummary || p.aiAnalysis.reasoning || 'N/A'}\n`
-                    context += `- Commit Frequency Score: ${p.aiAnalysis.commitFrequencyScore || 'N/A'}\n`
-                    if (p.aiAnalysis.nextRecommendedTasks?.length) {
-                        context += `- Next Tasks: ${p.aiAnalysis.nextRecommendedTasks.slice(0, 2).join(', ')}\n`
-                    }
-                    if (p.aiAnalysis.areasOfImprovement?.length) {
-                        context += `- Areas to Improve: ${p.aiAnalysis.areasOfImprovement.slice(0, 2).join(', ')}\n`
-                    }
-                    if (p.aiAnalysis.concerns) {
-                        context += `- Concerns: ${p.aiAnalysis.concerns}\n`
-                    }
+                    context += `- AI Summary: ${p.aiAnalysis.progressSummary || p.aiAnalysis.reasoning || 'N/A'}\n`
                 }
             })
-        } else {
-            context += '\nNo projects yet.\n'
         }
-
-        context += `\nLearning Stats:\n`
-        context += `- Total learning entries: ${learningStats.totalLogs || 0}\n`
-        context += `- Current streak: ${learningStats.currentStreak || 0} days\n`
-        context += `- Unique learning days: ${learningStats.uniqueDays || 0}\n`
-
+        context += `\nLearning Stats:\n- Total entries: ${learningStats.totalLogs || 0}\n- Streak: ${learningStats.currentStreak || 0} days\n`
         return context
     }
 
-    // Generate a cache key from the message
-    const getCacheKey = (message) => {
-        // Normalize message for caching (lowercase, trim, first 100 chars)
-        return message.toLowerCase().trim().substring(0, 100)
-    }
+    const getCacheKey = (message) => message.toLowerCase().trim().substring(0, 100)
 
-    // Check if a cached response exists and is still valid
     const getCachedResponse = (message) => {
-        const key = getCacheKey(message)
-        const cached = responseCache.get(key)
-        if (cached && Date.now() - cached.timestamp < CACHE_EXPIRY) {
-            return cached.response
-        }
+        const cached = responseCache.get(getCacheKey(message))
+        if (cached && Date.now() - cached.timestamp < CACHE_EXPIRY) return cached.response
         return null
     }
 
-    // Store a response in the cache
     const cacheResponse = (message, response) => {
-        const key = getCacheKey(message)
-        responseCache.set(key, {
-            response,
-            timestamp: Date.now()
-        })
+        responseCache.set(getCacheKey(message), { response, timestamp: Date.now() })
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (!input.trim() || loading || cooldown > 0) return
 
-        // Check rate limit
         const now = Date.now()
         const timeSinceLastRequest = now - lastRequestTime.current
         if (timeSinceLastRequest < RATE_LIMIT_MS) {
-            const waitTime = Math.ceil((RATE_LIMIT_MS - timeSinceLastRequest) / 1000)
-            setCooldown(waitTime)
+            setCooldown(Math.ceil((RATE_LIMIT_MS - timeSinceLastRequest) / 1000))
             return
         }
 
@@ -233,13 +260,9 @@ Just ask me anything!`
         setInput('')
         setMessages(prev => [...prev, { role: 'user', content: userMessage }])
 
-        // Check cache first
         const cachedResponse = getCachedResponse(userMessage)
         if (cachedResponse) {
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: cachedResponse + '\n\n_📦 (Cached response)_'
-            }])
+            setMessages(prev => [...prev, { role: 'assistant', content: cachedResponse + '\n\n_📦 (Cached response)_' }])
             return
         }
 
@@ -247,130 +270,124 @@ Just ask me anything!`
         lastRequestTime.current = now
 
         try {
-            const context = buildContext()
-            const response = await geminiApi.chat(userMessage, context)
-
+            const response = await geminiApi.chat(userMessage, buildContext())
             const aiMessage = response.data.data.message
             cacheResponse(userMessage, aiMessage)
-
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: aiMessage
-            }])
-
-            // Start cooldown after successful request
+            setMessages(prev => [...prev, { role: 'assistant', content: aiMessage }])
             setCooldown(10)
         } catch (err) {
             console.error('Chat error:', err)
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: '❌ Sorry, I encountered an error. Please try again.'
-            }])
+            setMessages(prev => [...prev, { role: 'assistant', content: '❌ Sorry, I encountered an error. Please try again.' }])
         } finally {
             setLoading(false)
         }
     }
 
     const quickPrompts = [
-        { label: '🎯 Which project first?', prompt: 'Based on my projects, which one should I focus on first and why? Give me a prioritized plan.' },
-        { label: '📚 What to learn?', prompt: 'Based on my projects and learning history, what should I learn next to improve my skills?' },
-        { label: '💪 Motivate me', prompt: 'Give me a motivational message based on my progress. Be encouraging and specific.' },
-        { label: '📊 Analyze progress', prompt: 'Analyze my overall progress across projects and learning. What am I doing well? What can I improve?' },
+        { label: '🎯 Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
+        { label: '📚 What to learn?', prompt: 'What should I learn next to improve my skills?' },
+        { label: '💪 Motivate me', prompt: 'Give me a motivational message based on my progress.' },
+        { label: '📊 Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
     ]
 
-    const handleQuickPrompt = (prompt) => {
-        if (cooldown > 0) return
-        setInput(prompt)
-    }
-
     return (
-        <div className="flex flex-col h-[calc(100vh-120px)]">
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-4xl font-bold text-gradient mb-2">AI Assistant</h1>
-                <p className="text-slate-400">Get personalized guidance for your development journey</p>
-            </div>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="h-[calc(100vh-25px)] flex flex-col"
+        >
+            {/* Main Container */}
+            <div
+                className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex-1 flex flex-col overflow-hidden"
+                style={{
+                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                }}
+            >
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-1">AI Assistant</h1>
+                        <p className="text-slate-400 text-sm">Get personalized guidance for your development journey</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {/* Context badges */}
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="px-3 py-1.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                {projects.length} projects
+                            </span>
+                            <span className="px-3 py-1.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                                🔥 {learningStats.currentStreak || 0} day streak
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-            {/* Quick Prompts */}
-            <div className="flex flex-wrap gap-2 mb-4">
-                {quickPrompts.map((qp, idx) => (
-                    <Button
-                        key={idx}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleQuickPrompt(qp.prompt)}
-                        className="text-sm"
-                        disabled={cooldown > 0}
-                    >
-                        {qp.label}
-                    </Button>
-                ))}
-            </div>
-
-            {/* Chat Messages */}
-            <Card className="flex-1 overflow-y-auto mb-4 p-4">
-                <div className="space-y-4">
-                    {messages.map((msg, idx) => (
-                        <div
+                {/* Quick Prompts */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {quickPrompts.map((qp, idx) => (
+                        <QuickPromptButton
                             key={idx}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            <div
-                                className={`max-w-[80%] rounded-lg px-4 py-3 ${msg.role === 'user'
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-dark-800 border border-white/10'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs opacity-70">
-                                        {msg.role === 'user' ? '👤 You' : '🤖 DevTrack AI'}
-                                    </span>
-                                </div>
-                                <div className="prose prose-invert prose-sm max-w-none">
-                                    <MarkdownMessage content={msg.content} />
-                                </div>
-                            </div>
-                        </div>
+                            label={qp.label}
+                            onClick={() => setInput(qp.prompt)}
+                            disabled={cooldown > 0 || loading}
+                        />
                     ))}
+                </div>
 
-                    {loading && (
-                        <div className="flex justify-start">
-                            <div className="bg-dark-800 border border-white/10 rounded-lg px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="animate-pulse">🤖 Thinking...</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                {/* Messages Area */}
+                <div
+                    className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                >
+                    <AnimatePresence>
+                        {messages.map((msg, idx) => (
+                            <MessageBubble key={idx} message={msg} idx={idx} />
+                        ))}
+                    </AnimatePresence>
 
+                    {loading && <TypingIndicator />}
                     <div ref={messagesEndRef} />
                 </div>
-            </Card>
 
-            {/* Context Info */}
-            <div className="flex gap-2 mb-2 text-xs text-slate-500">
-                <Badge variant="default">{projects.length} projects loaded</Badge>
-                <Badge variant="default">{learningStats.totalLogs || 0} learning entries</Badge>
-                <Badge variant="default">{learningStats.currentStreak || 0} day streak</Badge>
-                {cooldown > 0 && (
-                    <Badge variant="warning">⏳ Wait {cooldown}s</Badge>
-                )}
+                {/* Input Area */}
+                <form onSubmit={handleSubmit} className="flex gap-3">
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder={cooldown > 0 ? `Please wait ${cooldown}s...` : "Ask me anything about your projects, learning, or coding..."}
+                            className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none transition-colors"
+                            disabled={loading || cooldown > 0}
+                        />
+                        {cooldown > 0 && (
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                <span className="text-orange-400 text-sm font-medium">⏳ {cooldown}s</span>
+                            </div>
+                        )}
+                    </div>
+                    <Button
+                        type="submit"
+                        disabled={loading || !input.trim() || cooldown > 0}
+                        className="px-6 rounded-full"
+                    >
+                        {loading ? (
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            >
+                                ⚡
+                            </motion.div>
+                        ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        )}
+                    </Button>
+                </form>
             </div>
-
-            {/* Input */}
-            <form onSubmit={handleSubmit} className="flex gap-4">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={cooldown > 0 ? `Please wait ${cooldown}s before sending...` : "Ask me anything about your projects, learning, or coding..."}
-                    className="flex-1 bg-dark-800 border border-white/10 rounded-lg px-4 py-3"
-                    disabled={loading || cooldown > 0}
-                />
-                <Button type="submit" disabled={loading || !input.trim() || cooldown > 0}>
-                    {loading ? '...' : cooldown > 0 ? `${cooldown}s` : 'Send'}
-                </Button>
-            </form>
-        </div>
+        </motion.div>
     )
 }

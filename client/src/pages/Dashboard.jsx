@@ -6,15 +6,15 @@ import LoadingText from '../components/ui/LoadingText'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useUser } from '@clerk/clerk-react'
 
 // Helper to format dates for display
 const formatDate = (date) => {
-    if (!date) return 'Unknown date'
+    if (!date) return 'Unknown'
     if (date._seconds !== undefined) {
         return new Date(date._seconds * 1000).toLocaleDateString()
     }
     if (typeof date === 'string') {
-        // If it's YYYY-MM-DD format, parse it properly
         const parts = date.split('-')
         if (parts.length === 3 && parts[0].length === 4) {
             const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
@@ -26,18 +26,15 @@ const formatDate = (date) => {
     return String(date)
 }
 
-// Helper to get YYYY-MM-DD string from any date format (Firestore timestamp, string, or Date)
+// Helper to get YYYY-MM-DD string from any date format
 const getDateString = (date) => {
     if (!date) return null
-
     let d
     if (date._seconds !== undefined) {
-        // Firestore timestamp
         d = new Date(date._seconds * 1000)
     } else if (typeof date === 'string') {
-        // Already a string - check if it's YYYY-MM-DD format
         if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
-            return date.split('T')[0] // Handle ISO strings too
+            return date.split('T')[0]
         }
         d = new Date(date)
     } else if (date instanceof Date) {
@@ -45,24 +42,19 @@ const getDateString = (date) => {
     } else {
         return null
     }
-
-    // Format as YYYY-MM-DD
     const year = d.getFullYear()
     const month = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
 }
 
-// Animated counter component
-function AnimatedCounter({ value, duration = 1.5, suffix = '' }) {
+// Animated counter
+function AnimatedCounter({ value, duration = 1.5 }) {
     const [count, setCount] = useState(0)
 
     useEffect(() => {
         const numValue = parseInt(value) || 0
-        if (numValue === 0) {
-            setCount(0)
-            return
-        }
+        if (numValue === 0) { setCount(0); return }
 
         const step = numValue / (duration * 60)
         let current = 0
@@ -79,91 +71,200 @@ function AnimatedCounter({ value, duration = 1.5, suffix = '' }) {
         return () => clearInterval(timer)
     }, [value, duration])
 
-    return <span>{count}{suffix}</span>
+    return <span>{count}</span>
 }
 
-// Stat card with cyan/purple gradient design
-function StatCard({ title, value, subtitle, delay = 0, color = 'cyan', icon = '' }) {
-    const colors = {
-        cyan: {
-            text: 'text-cyan-400',
-            glow: 'rgba(34, 211, 238, 0.2)',
-            border: 'border-cyan-500/30',
-        },
-        purple: {
-            text: 'text-purple-400',
-            glow: 'rgba(168, 85, 247, 0.2)',
-            border: 'border-purple-500/30',
-        },
-        green: {
-            text: 'text-emerald-400',
-            glow: 'rgba(52, 211, 153, 0.2)',
-            border: 'border-emerald-500/30',
-        },
-        orange: {
-            text: 'text-orange-400',
-            glow: 'rgba(251, 146, 60, 0.2)',
-            border: 'border-orange-500/30',
+// Portfolio Card - DARK themed with functional time buttons
+function PortfolioCard({ totalLogs, currentStreak, logs }) {
+    const [selectedPeriod, setSelectedPeriod] = useState('1W')
+
+    // Get days based on selected period
+    const getDaysForPeriod = (period) => {
+        switch (period) {
+            case '1D': return 1
+            case '1W': return 7
+            case '1M': return 30
+            case '3M': return 90
+            case '1Y': return 365
+            case 'All': return 365
+            default: return 7
         }
     }
 
-    const c = colors[color]
+    const days = getDaysForPeriod(selectedPeriod)
+
+    // Generate chart data based on selected period
+    const chartData = Array.from({ length: Math.min(days, 30) }, (_, i) => {
+        const date = new Date()
+        const daysBack = Math.min(days, 30) - 1 - i
+        date.setDate(date.getDate() - daysBack)
+        const dateStr = getDateString(date)
+
+        // Filter logs within the period
+        const periodStart = new Date()
+        periodStart.setDate(periodStart.getDate() - days)
+
+        return logs.filter(log => {
+            const logDate = getDateString(log.date)
+            return logDate === dateStr
+        }).length
+    })
+
+    const maxVal = Math.max(...chartData, 1)
+    const points = chartData.map((val, i) => {
+        const x = 10 + (i / (chartData.length - 1 || 1)) * 180
+        const y = 60 - (val / maxVal) * 45
+        return `${x},${y}`
+    }).join(' ')
+
+    const areaPoints = `10,60 ${points} 190,60`
+
+    // Calculate period stats
+    const periodStart = new Date()
+    periodStart.setDate(periodStart.getDate() - days)
+    const periodLogs = logs.filter(log => {
+        const logDateStr = getDateString(log.date)
+        if (!logDateStr) return false
+        const logDate = new Date(logDateStr)
+        return logDate >= periodStart
+    })
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.5 }}
+            transition={{ delay: 0.1 }}
+            className="h-full"
         >
             <div
-                className={`rounded-xl p-6 ${c.border} border backdrop-blur-sm`}
+                className="rounded-3xl p-6 h-full relative overflow-hidden border border-white/10"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(10, 15, 30, 0.95))',
-                    boxShadow: `0 0 30px ${c.glow}`,
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
-                <h3 className={`text-sm font-medium ${c.text} mb-2 flex items-center gap-2`}>
-                    {icon && <span>{icon}</span>}
-                    {title}
-                </h3>
-                <div className="text-4xl font-bold text-white mb-1">
-                    {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
+                {/* Background glow */}
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
+
+                <div className="flex items-start justify-between mb-2">
+                    <div>
+                        <h3 className="text-3xl font-bold text-white">
+                            <AnimatedCounter value={totalLogs} />
+                        </h3>
+                        <p className="text-slate-400 text-sm">Total Learning Logs</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-lg font-semibold text-purple-400">{periodLogs.length}</p>
+                        <p className="text-xs text-slate-500">This {selectedPeriod}</p>
+                    </div>
                 </div>
-                <p className={`text-sm ${c.text}`}>{subtitle}</p>
+
+                {/* Streak badge */}
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-medium">
+                        🔥 {currentStreak} day streak
+                    </span>
+                </div>
+
+                {/* Chart */}
+                <div className="mt-auto">
+                    <svg viewBox="0 0 200 70" className="w-full h-20">
+                        <defs>
+                            <linearGradient id="portfolioGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points={areaPoints} fill="url(#portfolioGradient)" />
+                        <polyline
+                            points={points}
+                            fill="none"
+                            stroke="#a855f7"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        {/* Dots on data points */}
+                        {chartData.map((val, i) => {
+                            if (val > 0) {
+                                const x = 10 + (i / (chartData.length - 1 || 1)) * 180
+                                const y = 60 - (val / maxVal) * 45
+                                return <circle key={i} cx={x} cy={y} r="3" fill="#a855f7" />
+                            }
+                            return null
+                        })}
+                    </svg>
+
+                    {/* Time range tabs - FUNCTIONAL */}
+                    <div className="flex items-center gap-1 mt-2 p-1 rounded-xl bg-white/5">
+                        {['1D', '1W', '1M', '3M', '1Y', 'All'].map((period) => (
+                            <button
+                                key={period}
+                                onClick={() => setSelectedPeriod(period)}
+                                className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200
+                                    ${selectedPeriod === period
+                                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                                        : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                            >
+                                {period}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
         </motion.div>
     )
 }
 
-// Weekly Activity Bar Chart
-function WeeklyActivityChart({ logs }) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    const today = new Date()
-    const dayOfWeek = today.getDay()
+// Asset Card - DARK themed
+function AssetCard({ icon, title, subtitle, value, change, color, delay = 0 }) {
+    const colors = {
+        cyan: { border: 'border-cyan-500/30', iconBg: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/20' },
+        purple: { border: 'border-purple-500/30', iconBg: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
+        green: { border: 'border-emerald-500/30', iconBg: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/20' },
+        orange: { border: 'border-orange-500/30', iconBg: 'from-orange-500 to-orange-600', glow: 'shadow-orange-500/20' },
+    }
+    const c = colors[color] || colors.cyan
 
-    // Calculate activity for each day of the current week
-    const weekActivity = days.map((day, index) => {
-        const targetDay = new Date(today)
-        const diff = index - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
-        targetDay.setDate(today.getDate() + diff)
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay }}
+            className="flex-1 min-w-[140px]"
+        >
+            <div
+                className={`rounded-2xl p-4 h-full border ${c.border} backdrop-blur-sm`}
+                style={{
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                }}
+            >
+                <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}>
+                        {icon}
+                    </div>
+                    <div>
+                        <p className="font-bold text-white text-lg">
+                            {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
+                        </p>
+                        <p className="text-slate-400 text-xs">{title}</p>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-slate-500 text-xs">{subtitle}</span>
+                    {change !== undefined && change !== 0 && (
+                        <span className={`text-xs font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {change >= 0 ? '+' : ''}{change}%
+                        </span>
+                    )}
+                </div>
+            </div>
+        </motion.div>
+    )
+}
 
-        // Format as YYYY-MM-DD for comparison
-        const dateStr = getDateString(targetDay)
-
-        // Use getDateString to convert log dates (which may be Firestore timestamps) for comparison
-        const count = logs.filter(log => getDateString(log.date) === dateStr).length
-        return { day, count, isToday: diff === 0, date: dateStr }
-    })
-
-    console.log('📅 Weekly Activity Debug:', JSON.stringify({
-        today: today.toISOString().split('T')[0],
-        dayOfWeek,
-        weekDates: weekActivity.map(w => ({ day: w.day, date: w.date, count: w.count })),
-        logDatesConverted: logs.map(l => getDateString(l.date)),
-    }, null, 2))
-
-    const maxCount = Math.max(...weekActivity.map(d => d.count), 1)
-
+// Activity Table - DARK themed
+function ActivityTable({ logs, logStats }) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -171,161 +272,146 @@ function WeeklyActivityChart({ logs }) {
             transition={{ delay: 0.3 }}
         >
             <div
-                className="rounded-xl p-6 border border-white/10"
+                className="rounded-3xl p-6 h-full border border-white/10"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(10, 15, 30, 0.95))',
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
-                <h3 className="text-lg font-semibold text-white mb-6">Weekly Activity</h3>
-                <div className="flex items-end justify-between gap-3 h-40">
-                    {weekActivity.map((item, index) => {
-                        // Make bars much more visible - minimum 25% height if there's activity
-                        const height = item.count > 0 ? Math.max((item.count / maxCount) * 100, 40) : 10
-                        return (
-                            <div key={item.day} className="flex flex-col items-center flex-1">
-                                <motion.div
-                                    className="w-full rounded-lg relative overflow-hidden"
-                                    style={{
-                                        height: `${height}%`,
-                                        minHeight: item.count > 0 ? '40px' : '10px',
-                                        background: item.isToday
-                                            ? 'linear-gradient(180deg, #22d3ee, #06b6d4)'
-                                            : item.count > 0
-                                                ? 'linear-gradient(180deg, #a855f7, #7c3aed)'
-                                                : 'rgba(71, 85, 105, 0.3)',
-                                    }}
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${height}%` }}
-                                    transition={{ delay: 0.4 + index * 0.1, duration: 0.6, ease: "easeOut" }}
-                                    title={`${item.day}: ${item.count} entries on ${item.date}`}
-                                >
-                                    {item.count > 0 && (
-                                        <>
-                                            <div
-                                                className="absolute inset-0"
-                                                style={{
-                                                    background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)',
-                                                }}
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-white font-bold text-xs">{item.count}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                </motion.div>
-                                <span className={`mt-3 text-sm ${item.isToday ? 'text-cyan-400 font-semibold' : 'text-slate-400'}`}>
-                                    {item.day}
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
+                        <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
+                            🔥 {logStats?.currentStreak || 0} days
+                        </span>
+                    </div>
+                    <Link to="/learning" className="text-purple-400 text-sm hover:text-purple-300 transition-colors">
+                        View All →
+                    </Link>
+                </div>
+
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wide border-b border-white/5">
+                    <div className="col-span-6">Topic</div>
+                    <div className="col-span-2 text-center">Tags</div>
+                    <div className="col-span-2 text-center">Date</div>
+                    <div className="col-span-2 text-right">Status</div>
+                </div>
+
+                {/* Table Body */}
+                <div className="space-y-1 mt-2">
+                    {logs.slice(0, 4).map((log, idx) => (
+                        <motion.div
+                            key={log.id}
+                            className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 + idx * 0.1 }}
+                        >
+                            <div className="col-span-6 flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-purple-500/20">
+                                    {(log.learnedToday || 'L')[0].toUpperCase()}
+                                </div>
+                                <div>
+                                    <p className="font-medium text-white text-sm">
+                                        {log.learnedToday?.slice(0, 35)}{log.learnedToday?.length > 35 ? '...' : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="col-span-2 text-center">
+                                <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs">
+                                    {(log.tags || []).length} tags
                                 </span>
                             </div>
-                        )
-                    })}
+                            <div className="col-span-2 text-center">
+                                <span className="text-sm text-slate-400">
+                                    {formatDate(log.date)}
+                                </span>
+                            </div>
+                            <div className="col-span-2 text-right">
+                                <span className="text-emerald-400">✓</span>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
             </div>
         </motion.div>
     )
 }
 
-// 30-Day Activity Heatmap (like GitHub contributions)
-function StreakGrid({ logs = [], logStats }) {
-    const days = 30
-    const today = new Date()
-
-    // Get all log dates as a Set for quick lookup - convert Firestore timestamps to YYYY-MM-DD
-    const logDatesSet = new Set(
-        Array.isArray(logs)
-            ? logs.map(log => getDateString(log.date)).filter(Boolean)
-            : []
-    )
-
-    console.log('🗓️ StreakGrid Data:', {
-        logsCount: logs?.length || 0,
-        logDatesConverted: Array.from(logDatesSet),
-    })
-
-    // Generate last 30 days
-    const last30Days = Array.from({ length: days }, (_, i) => {
-        const date = new Date(today)
-        date.setDate(date.getDate() - (days - 1 - i))
-        const dateStr = getDateString(date)
-        const hasActivity = logDatesSet.has(dateStr)
-        return {
-            date: dateStr,
-            hasActivity,
-            isToday: i === days - 1
-        }
-    })
-
+// Promo Card - DARK themed
+function PromoCard() {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
+            className="h-full"
         >
             <div
-                className="rounded-xl p-6 border border-white/10"
+                className="rounded-3xl p-6 h-full relative overflow-hidden border border-white/10"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(10, 15, 30, 0.95))',
+                    background: 'linear-gradient(135deg, #1a1b2e 0%, #0d0e1a 100%)',
                 }}
             >
-                <h3 className="text-lg font-semibold text-white mb-4">30-Day Activity</h3>
-                <div className="grid grid-cols-10 gap-2 mb-4">
-                    {last30Days.map((day, i) => (
-                        <motion.div
-                            key={i}
-                            className="aspect-square rounded relative group"
-                            style={{
-                                background: day.hasActivity
-                                    ? day.isToday
-                                        ? 'linear-gradient(135deg, #22d3ee, #06b6d4)'
-                                        : 'linear-gradient(135deg, #a855f7, #7c3aed)'
-                                    : 'rgba(51, 65, 85, 0.3)',
-                                boxShadow: day.hasActivity ? '0 0 8px rgba(168, 85, 247, 0.4)' : 'none',
-                            }}
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.5 + i * 0.015 }}
-                            title={`${day.date}: ${day.hasActivity ? 'Active' : 'No activity'}`}
-                        >
-                            {day.isToday && day.hasActivity && (
-                                <div className="absolute inset-0 rounded animate-pulse bg-cyan-400/20"></div>
-                            )}
-                        </motion.div>
-                    ))}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded bg-gradient-to-br from-purple-400 to-purple-600"></div>
-                            <span className="text-slate-400">Learning day</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded bg-gradient-to-br from-cyan-400 to-cyan-600"></div>
-                            <span className="text-slate-400">Today</span>
-                        </div>
-                    </div>
-                    <div className="text-slate-400">
-                        Streak: <span className="text-white font-semibold">{logStats?.currentStreak || 0} days</span>
-                    </div>
+                {/* Decorative shapes */}
+                <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-white/5 rotate-12" />
+                <div className="absolute bottom-8 right-8 w-12 h-12 rounded-xl bg-white/5 -rotate-6" />
+                <div className="absolute top-1/2 right-12 w-8 h-8 rounded-lg bg-purple-500/20 rotate-45" />
+
+                <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                        Track Your <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Growth</span>
+                    </h3>
+                    <h3 className="text-xl font-bold text-white mb-4">
+                        with DevTrack!
+                    </h3>
+                    <p className="text-slate-400 text-sm mb-6 max-w-[200px]">
+                        Log your learning daily and watch your consistency grow!
+                    </p>
+                    <Link to="/learning">
+                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-medium">
+                            Start Now
+                        </Button>
+                    </Link>
                 </div>
             </div>
         </motion.div>
     )
 }
 
+// GitHub Icon component
+function GitHubIcon() {
+    return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
+        </svg>
+    )
+}
+
 export default function Dashboard() {
+    const { user } = useUser()
     const [logStats, setLogStats] = useState(null)
     const [projectStats, setProjectStats] = useState(null)
     const [recentLogs, setRecentLogs] = useState([])
     const [githubCommits, setGithubCommits] = useState([])
     const [githubStreak, setGithubStreak] = useState(0)
+    const [githubUsername, setGithubUsername] = useState('')
     const [loading, setLoading] = useState(true)
     const retriedGithub = useRef(false)
 
     useEffect(() => {
         fetchData()
-    }, [])
+        // Get GitHub username from Clerk user metadata
+        if (user?.externalAccounts) {
+            const githubAccount = user.externalAccounts.find(acc => acc.provider === 'github')
+            if (githubAccount?.username) {
+                setGithubUsername(githubAccount.username)
+            }
+        }
+    }, [user])
 
-    // Retry GitHub fetch once if empty (handles race condition with user sync)
     useEffect(() => {
         if (!loading && githubCommits.length === 0 && !retriedGithub.current) {
             retriedGithub.current = true
@@ -335,14 +421,13 @@ export default function Dashboard() {
                     const commits = githubRes.data?.data?.commits || []
                     const streak = githubRes.data?.data?.streak || 0
                     if (commits.length > 0 || streak > 0) {
-                        console.log('🔄 GitHub retry successful:', commits.length, 'commits, streak:', streak)
                         setGithubCommits(commits)
                         setGithubStreak(streak)
                     }
                 } catch (err) {
                     console.log('GitHub retry failed:', err.message)
                 }
-            }, 1500) // Wait for user sync to complete
+            }, 1500)
             return () => clearTimeout(timer)
         }
     }, [loading, githubCommits.length])
@@ -351,43 +436,17 @@ export default function Dashboard() {
         try {
             setLoading(true)
             const [logStatsRes, projectStatsRes, logsRes, githubRes] = await Promise.all([
-                logsApi.getStats().catch((err) => {
-                    console.error('❌ Stats API error:', err)
-                    return { data: { data: {} } }
-                }),
-                projectsApi.getStats().catch((err) => {
-                    console.error('❌ Project stats error:', err)
-                    return { data: { data: {} } }
-                }),
-                logsApi.getAll({ limit: 50 }).catch((err) => {
-                    console.error('❌ Logs API error:', err)
-                    return { data: { data: { logs: [] } } }
-                }),
-                githubApi.getCommits(30).catch((err) => {
-                    console.error('❌ GitHub API error:', err)
-                    return { data: { data: { commits: [] } } }
-                })
+                logsApi.getStats().catch(() => ({ data: { data: {} } })),
+                projectsApi.getStats().catch(() => ({ data: { data: {} } })),
+                logsApi.getAll({ limit: 50 }).catch(() => ({ data: { data: { logs: [] } } })),
+                githubApi.getCommits(30).catch(() => ({ data: { data: { commits: [] } } }))
             ])
-
-            const logs = logsRes.data.data.logs || []
-            const commits = githubRes.data?.data?.commits || []
-            const streak = githubRes.data?.data?.streak || 0
-
-            console.log('📊 Dashboard Data Received:', {
-                logStats: logStatsRes.data.data,
-                projectStats: projectStatsRes.data.data,
-                logsCount: logs.length,
-                logDates: logs.map(l => l.date),
-                githubCommitsCount: commits.length,
-                githubStreak: streak,
-                commitDates: commits.map(c => c.date?.split('T')[0])
-            })
 
             setLogStats(logStatsRes.data.data || {})
             setProjectStats(projectStatsRes.data.data || {})
-            setRecentLogs(logs)
-            setGithubCommits(commits)
-            setGithubStreak(streak)
+            setRecentLogs(logsRes.data.data.logs || [])
+            setGithubCommits(githubRes.data?.data?.commits || [])
+            setGithubStreak(githubRes.data?.data?.streak || 0)
         } catch (err) {
             console.error('Error fetching data:', err)
         } finally {
@@ -396,11 +455,8 @@ export default function Dashboard() {
     }
 
     const hasNoData = !logStats?.totalLogs && !projectStats?.totalProjects
-
-    // Get unique skills from recent logs tags
     const allTags = recentLogs.flatMap(log => log.tags || [])
     const uniqueTags = [...new Set(allTags)]
-    const skillsCount = uniqueTags.length
 
     if (loading) {
         return (
@@ -412,181 +468,156 @@ export default function Dashboard() {
 
     return (
         <motion.div
-            className="space-y-8 relative"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+            {/* Main Container with rounded border */}
+            <div
+                className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+                style={{
+                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                }}
             >
-                <h1 className="text-4xl font-bold text-gradient mb-2">Dashboard</h1>
-                <p className="text-slate-400">Track your developer journey in one place</p>
-            </motion.div>
-
-            {/* Empty State */}
-            <AnimatePresence>
-                {hasNoData && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                        <Card className="text-center py-16 border-2 border-dashed border-cyan-500/30 bg-gradient-to-br from-cyan-900/10 to-transparent">
-                            <motion.div
-                                className="text-7xl mb-6"
-                                animate={{ y: [0, -10, 0] }}
-                                transition={{ duration: 2, repeat: Infinity }}
+                {/* Header Row */}
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white">Overview</h1>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {/* GitHub Link */}
+                        {githubUsername ? (
+                            <a
+                                href={`https://github.com/${githubUsername}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
                             >
-                                🎯
-                            </motion.div>
-                            <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
-                            <p className="text-slate-400 mb-8 max-w-lg mx-auto text-lg">
-                                Start your developer journey by adding a project or logging your first learning session.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <Link to="/projects">
-                                    <Button size="lg" className="w-full sm:w-auto">
-                                        🚀 Add a Project
-                                    </Button>
-                                </Link>
-                                <Link to="/learning">
-                                    <Button variant="secondary" size="lg" className="w-full sm:w-auto">
-                                        📚 Log Learning
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Stats Row */}
-            {!hasNoData && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard
-                        icon="📚"
-                        title="Learning Streak"
-                        value={logStats?.currentStreak || 0}
-                        subtitle={logStats?.currentStreak > 0 ? `${logStats.currentStreak} days in a row!` : 'Start logging today!'}
-                        delay={0.1}
-                        color="cyan"
-                    />
-                    <StatCard
-                        icon="🐙"
-                        title="GitHub Streak"
-                        value={githubStreak}
-                        subtitle={githubStreak > 0 ? `${githubStreak} days of commits!` : 'Push some code!'}
-                        delay={0.15}
-                        color="purple"
-                    />
-                    <StatCard
-                        icon="📊"
-                        title="Total Commits"
-                        value={projectStats?.totalCommits || 0}
-                        subtitle={`Across ${projectStats?.totalProjects || 0} projects`}
-                        delay={0.2}
-                        color="green"
-                    />
-                    <StatCard
-                        icon="🏷️"
-                        title="Skills Tracked"
-                        value={skillsCount}
-                        subtitle={
-                            uniqueTags.length > 0
-                                ? uniqueTags.slice(0, 3).join(', ') + (uniqueTags.length > 3 ? '...' : '')
-                                : 'Add tags to learning logs'
-                        }
-                        delay={0.25}
-                        color="orange"
-                    />
+                                <GitHubIcon />
+                                <span className="text-sm text-white font-medium hidden sm:block">{githubUsername}</span>
+                            </a>
+                        ) : (
+                            <a
+                                href="https://github.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                            >
+                                <GitHubIcon />
+                                <span className="text-sm font-medium hidden sm:block">Connect GitHub</span>
+                            </a>
+                        )}
+                    </div>
                 </div>
-            )}
 
-            {/* Charts Row */}
-            {!hasNoData && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <WeeklyActivityChart logs={recentLogs} />
-                    <StreakGrid logs={recentLogs} logStats={logStats} />
-                </div>
-            )}
-
-            {/* Recent Activity */}
-            {!hasNoData && recentLogs.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    <h2 className="text-2xl font-bold mb-4 text-white">Recent Learning</h2>
-                    <div
-                        className="rounded-xl p-6 border border-white/10"
-                        style={{
-                            background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(10, 15, 30, 0.95))',
-                        }}
-                    >
-                        <div className="space-y-4">
-                            {recentLogs.slice(0, 5).map((log, idx) => (
+                {/* Empty State */}
+                <AnimatePresence>
+                    {hasNoData && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                        >
+                            <Card className="text-center py-16 border-2 border-dashed border-purple-500/30">
                                 <motion.div
-                                    key={log.id}
-                                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.5 + idx * 0.1 }}
+                                    className="text-7xl mb-6"
+                                    animate={{ y: [0, -10, 0] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
                                 >
-                                    <div className="flex items-center space-x-3">
-                                        <motion.div
-                                            className="w-2 h-2 rounded-full bg-cyan-500"
-                                            animate={{ scale: [1, 1.3, 1] }}
-                                            transition={{ duration: 2, repeat: Infinity, delay: idx * 0.2 }}
-                                        />
-                                        <div>
-                                            <span className="text-slate-200">{log.learnedToday?.slice(0, 60)}{log.learnedToday?.length > 60 ? '...' : ''}</span>
-                                            <div className="flex gap-2 mt-1">
-                                                {(log.tags || []).slice(0, 3).map((tag, i) => (
-                                                    <Badge key={i} variant="default" className="text-xs">{tag}</Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="text-slate-500 text-sm">{formatDate(log.date)}</span>
+                                    🎯
                                 </motion.div>
-                            ))}
-                        </div>
-                    </div>
-                </motion.div>
-            )}
+                                <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
+                                <p className="text-slate-400 mb-8 max-w-lg mx-auto">
+                                    Start your developer journey by adding a project or logging your first learning session.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                    <Link to="/projects">
+                                        <Button size="lg">🚀 Add a Project</Button>
+                                    </Link>
+                                    <Link to="/learning">
+                                        <Button variant="secondary" size="lg">📚 Log Learning</Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-            {/* Quick Actions */}
-            {!hasNoData && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                >
-                    <div
-                        className="rounded-xl p-6 border border-cyan-500/20"
-                        style={{
-                            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(168, 85, 247, 0.1))',
-                        }}
-                    >
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div>
-                                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                    <span>ℹ️</span> Want to know how tracking works?
-                                </h3>
-                                <p className="text-slate-400 text-sm">Learn how streaks, progress, and stats are calculated</p>
+                {/* Main Dashboard Grid */}
+                {!hasNoData && (
+                    <div className="space-y-6">
+                        {/* Row 1: Portfolio + Assets */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Portfolio Card - spans 4 cols */}
+                            <div className="lg:col-span-4">
+                                <PortfolioCard
+                                    totalLogs={logStats?.totalLogs || 0}
+                                    currentStreak={logStats?.currentStreak || 0}
+                                    logs={recentLogs}
+                                />
                             </div>
-                            <Link to="/system-info">
-                                <Button variant="secondary">View System Info</Button>
-                            </Link>
+
+                            {/* Your Stats Section - spans 8 cols */}
+                            <div className="lg:col-span-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-semibold text-white">Your Stats</h2>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <AssetCard
+                                        icon="📚"
+                                        title="Learning"
+                                        subtitle="Streak days"
+                                        value={logStats?.currentStreak || 0}
+                                        change={logStats?.currentStreak > 0 ? 14 : 0}
+                                        color="cyan"
+                                        delay={0.15}
+                                    />
+                                    <AssetCard
+                                        icon="🐙"
+                                        title="GitHub"
+                                        subtitle="Commit streak"
+                                        value={githubStreak}
+                                        change={githubStreak > 0 ? 8 : 0}
+                                        color="purple"
+                                        delay={0.2}
+                                    />
+                                    <AssetCard
+                                        icon="📊"
+                                        title="Commits"
+                                        subtitle={`${projectStats?.totalProjects || 0} projects`}
+                                        value={projectStats?.totalCommits || 0}
+                                        change={27}
+                                        color="green"
+                                        delay={0.25}
+                                    />
+                                    <AssetCard
+                                        icon="🏷️"
+                                        title="Skills"
+                                        subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
+                                        value={uniqueTags.length}
+                                        color="orange"
+                                        delay={0.3}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Row 2: Activity Table + Promo Card */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Activity Table - spans 8 cols */}
+                            <div className="lg:col-span-8">
+                                <ActivityTable logs={recentLogs} logStats={logStats} />
+                            </div>
+
+                            {/* Promo Card - spans 4 cols */}
+                            <div className="lg:col-span-4">
+                                <PromoCard />
+                            </div>
                         </div>
                     </div>
-                </motion.div>
-            )}
+                )}
+            </div>
         </motion.div>
     )
 }
