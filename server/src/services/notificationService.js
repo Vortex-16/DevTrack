@@ -5,9 +5,52 @@
 
 const { admin, collections } = require('../config/firebase');
 
+// Motivational message templates based on user goals
+const GOAL_MESSAGES = {
+    'Learning new tech stack': [
+        "🚀 Time to level up your skills!",
+        "📚 Every day of learning compounds into expertise!",
+        "💡 New technology mastery awaits!",
+    ],
+    'Working on side projects': [
+        "🛠️ Your side project is waiting for you!",
+        "💪 Ship something awesome today!",
+        "🎯 One commit closer to launch!",
+    ],
+    'Preparing for placements': [
+        "📝 Consistency beats cramming!",
+        "🎓 Future employers notice dedication!",
+        "💼 Your portfolio grows with each commit!",
+    ],
+    'Freelance work': [
+        "💰 Your clients value your dedication!",
+        "⚡ Build your reputation with consistency!",
+        "🌟 Great freelancers show up daily!",
+    ],
+    'Personal portfolio': [
+        "🖼️ Your portfolio is your best resume!",
+        "✨ Showcase your growth every day!",
+        "🎨 Each project tells your story!",
+    ],
+    'default': [
+        "🔥 Time to Code!",
+        "💻 Keep the streak alive!",
+        "🚀 Consistency is your superpower!",
+    ],
+};
+
 class NotificationService {
     constructor() {
         this.messaging = admin.messaging();
+    }
+
+    /**
+     * Get a random motivational message based on user's goal
+     * @param {string} userGoal - User's main focus/goal
+     */
+    getMotivationalMessage(userGoal) {
+        const messages = GOAL_MESSAGES[userGoal] || GOAL_MESSAGES['default'];
+        return messages[Math.floor(Math.random() * messages.length)];
     }
 
     /**
@@ -30,8 +73,8 @@ class NotificationService {
                 },
                 webpush: {
                     notification: {
-                        icon: '/icon.png',
-                        badge: '/badge.png',
+                        icon: '/DevTrack.png',
+                        badge: '/favicon.png',
                         vibrate: [200, 100, 200],
                     },
                     fcmOptions: {
@@ -57,7 +100,7 @@ class NotificationService {
     }
 
     /**
-     * Send consistency reminder to a user
+     * Send consistency reminder to a user based on their preferences
      * @param {string} userId - User's Clerk ID
      */
     async sendConsistencyReminder(userId) {
@@ -69,23 +112,38 @@ class NotificationService {
             }
 
             const user = userDoc.data();
+            const preferences = user.preferences || {};
 
             if (!user.fcmToken) {
                 return { success: false, error: 'No FCM token registered' };
             }
 
-            if (!user.lastStartTime) {
-                return { success: false, error: 'No previous activity recorded' };
+            // Get personalized motivational title
+            const title = this.getMotivationalMessage(user.userGoal);
+
+            // Build personalized body message
+            let body = '';
+
+            if (preferences.reminderMode === 'adaptive' && user.lastStartTime) {
+                body = `You started at ${user.lastStartTime} yesterday. Let's stay consistent today!`;
+            } else if (preferences.reminderMode === 'fixed') {
+                body = `It's your scheduled coding time. Let's build something amazing!`;
+            } else {
+                body = `Time to write some code and keep your streak alive!`;
             }
 
-            const notification = {
-                title: '🔥 Time to Code!',
-                body: `You started at ${user.lastStartTime} yesterday. Let's stay consistent today!`,
-            };
+            // Add goal context if available
+            if (user.userGoal) {
+                body += ` Focus: ${user.userGoal}`;
+            }
+
+            const notification = { title, body };
 
             const data = {
                 type: 'consistency_reminder',
-                lastStartTime: user.lastStartTime,
+                lastStartTime: user.lastStartTime || '',
+                userGoal: user.userGoal || '',
+                reminderMode: preferences.reminderMode || 'adaptive',
             };
 
             return await this.sendNotification(user.fcmToken, notification, data);
@@ -121,6 +179,7 @@ class NotificationService {
     /**
      * Check and send reminders to all eligible users
      * This should be called by a scheduler/cron job
+     * Enhanced to support both adaptive and fixed reminder modes
      */
     async checkAndSendReminders() {
         try {
@@ -131,7 +190,7 @@ class NotificationService {
 
             console.log(`⏰ Checking reminders for time: ${currentTime}`);
 
-            // Get users whose lastStartTime matches current time (within 5 minute window)
+            // Get all users with FCM tokens
             const usersSnapshot = await collections.users()
                 .where('fcmToken', '!=', null)
                 .get();
@@ -140,14 +199,33 @@ class NotificationService {
 
             for (const doc of usersSnapshot.docs) {
                 const user = doc.data();
+                const preferences = user.preferences || {};
 
-                if (!user.lastStartTime) continue;
+                // Skip users who haven't completed onboarding
+                if (!user.onboardingCompleted) continue;
 
-                // Check if current time is within 5 minutes of last start time
-                const [lastHour, lastMinute] = user.lastStartTime.split(':').map(Number);
+                let shouldSendReminder = false;
 
-                if (currentHour === lastHour && Math.abs(currentMinute - lastMinute) <= 5) {
-                    console.log(`📤 Sending reminder to user: ${doc.id}`);
+                if (preferences.reminderMode === 'fixed' && preferences.fixedTime) {
+                    // Fixed mode: check if current time matches fixed time (within 5 min window)
+                    const [fixedHour, fixedMinute] = this.parseTime(preferences.fixedTime);
+
+                    if (currentHour === fixedHour && Math.abs(currentMinute - fixedMinute) <= 5) {
+                        shouldSendReminder = true;
+                    }
+                } else if (preferences.reminderMode === 'adaptive' || !preferences.reminderMode) {
+                    // Adaptive mode: check if current time matches last start time
+                    if (!user.lastStartTime) continue;
+
+                    const [lastHour, lastMinute] = user.lastStartTime.split(':').map(Number);
+
+                    if (currentHour === lastHour && Math.abs(currentMinute - lastMinute) <= 5) {
+                        shouldSendReminder = true;
+                    }
+                }
+
+                if (shouldSendReminder) {
+                    console.log(`📤 Sending reminder to user: ${doc.id} (mode: ${preferences.reminderMode || 'adaptive'})`);
                     const result = await this.sendConsistencyReminder(doc.id);
                     results.push({ userId: doc.id, ...result });
                 }
@@ -161,6 +239,79 @@ class NotificationService {
             };
         } catch (error) {
             console.error('Error checking reminders:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Parse time string in various formats (HH:MM, H:MM AM/PM)
+     * @param {string} timeStr - Time string
+     * @returns {[number, number]} - [hour, minute] in 24h format
+     */
+    parseTime(timeStr) {
+        if (!timeStr) return [0, 0];
+
+        // Check for AM/PM format
+        const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (ampmMatch) {
+            let hour = parseInt(ampmMatch[1]);
+            const minute = parseInt(ampmMatch[2]);
+            const period = ampmMatch[3].toUpperCase();
+
+            if (period === 'PM' && hour !== 12) hour += 12;
+            if (period === 'AM' && hour === 12) hour = 0;
+
+            return [hour, minute];
+        }
+
+        // 24-hour format
+        const parts = timeStr.split(':').map(Number);
+        return [parts[0] || 0, parts[1] || 0];
+    }
+
+    /**
+     * Send break reminder (for frequent commit pattern users)
+     * @param {string} userId - User's Clerk ID
+     * @param {number} inactiveMinutes - Minutes of inactivity
+     */
+    async sendBreakReminder(userId, inactiveMinutes = 90) {
+        try {
+            const userDoc = await collections.users().doc(userId).get();
+
+            if (!userDoc.exists) {
+                return { success: false, error: 'User not found' };
+            }
+
+            const user = userDoc.data();
+            const preferences = user.preferences || {};
+
+            // Only send if break detection is enabled
+            if (!preferences.breakDetection) {
+                return { success: false, error: 'Break detection disabled' };
+            }
+
+            // Only for frequent commit pattern users
+            if (preferences.commitPattern !== 'frequent') {
+                return { success: false, error: 'User uses end-only commit pattern' };
+            }
+
+            if (!user.fcmToken) {
+                return { success: false, error: 'No FCM token registered' };
+            }
+
+            const notification = {
+                title: '☕ Taking a break?',
+                body: `No commits detected for ${inactiveMinutes} minutes. Remember to mark your break if you're stepping away!`,
+            };
+
+            const data = {
+                type: 'break_reminder',
+                inactiveMinutes: String(inactiveMinutes),
+            };
+
+            return await this.sendNotification(user.fcmToken, notification, data);
+        } catch (error) {
+            console.error('Error sending break reminder:', error);
             return { success: false, error: error.message };
         }
     }
@@ -217,3 +368,4 @@ module.exports = {
     NotificationService,
     getNotificationService,
 };
+

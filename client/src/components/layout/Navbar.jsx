@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { UserButton } from '@clerk/clerk-react'
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import NotificationSettings from '../settings/NotificationSettings'
 
 const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -42,8 +43,30 @@ function SidebarIcon({ item, isActive }) {
     )
 }
 
+// Settings Icon Button
+function SettingsButton({ onClick }) {
+    return (
+        <motion.button
+            onClick={onClick}
+            className="w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-white/5 relative group"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+        >
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {/* Tooltip */}
+            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
+                opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                Settings
+            </div>
+        </motion.button>
+    )
+}
+
 // Desktop Sidebar
-function Sidebar() {
+function Sidebar({ onOpenSettings }) {
     const location = useLocation()
 
     return (
@@ -62,11 +85,11 @@ function Sidebar() {
             <Link to="/" className="mb-8">
                 <motion.div
                     className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 
-                        flex items-center justify-center shadow-lg shadow-purple-500/20"
+                        flex items-center justify-center shadow-lg shadow-purple-500/20 overflow-hidden"
                     whileHover={{ scale: 1.05, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    <span className="text-white font-bold text-xl">D</span>
+                    <img src="devtrack-BG.png" alt="DevTrack" className="w-10 h-10 object-contain" />
                 </motion.div>
             </Link>
 
@@ -84,8 +107,9 @@ function Sidebar() {
                 ))}
             </nav>
 
-            {/* User at bottom */}
-            <div className="mt-auto pt-4">
+            {/* Settings & User at bottom */}
+            <div className="mt-auto pt-4 flex flex-col items-center gap-2">
+                <SettingsButton onClick={onOpenSettings} />
                 <motion.div
                     className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden"
                     whileHover={{ scale: 1.05 }}
@@ -106,7 +130,7 @@ function Sidebar() {
 }
 
 // Mobile top navbar (pill-shaped)
-function MobileNavbar() {
+function MobileNavbar({ onOpenSettings }) {
     const location = useLocation()
 
     return (
@@ -149,6 +173,18 @@ function MobileNavbar() {
                     ))}
                 </div>
 
+                {/* Settings button */}
+                <motion.button
+                    onClick={onOpenSettings}
+                    className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10"
+                    whileTap={{ scale: 0.95 }}
+                >
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </motion.button>
+
                 {/* User */}
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-white/5 flex items-center justify-center ml-2">
                     <UserButton
@@ -167,10 +203,16 @@ function MobileNavbar() {
 }
 
 export default function Navbar() {
+    const [settingsOpen, setSettingsOpen] = useState(false)
+
     return (
         <>
-            <Sidebar />
-            <MobileNavbar />
+            <Sidebar onOpenSettings={() => setSettingsOpen(true)} />
+            <MobileNavbar onOpenSettings={() => setSettingsOpen(true)} />
+            <NotificationSettings
+                isOpen={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+            />
         </>
     )
 }

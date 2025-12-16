@@ -83,4 +83,18 @@ export const authApi = {
     getMe: () => api.get('/auth/me'),
 };
 
+export const preferencesApi = {
+    get: () => api.get('/preferences'),
+    save: (data) => api.post('/preferences', data),
+    update: (data) => api.put('/preferences', data),
+    skip: () => api.post('/preferences/skip'),
+};
+
+export const notificationsApi = {
+    getStatus: () => api.get('/notifications/status'),
+    registerToken: (token) => api.post('/notifications/register', { token }),
+    unregisterToken: () => api.delete('/notifications/register'),
+    sendTest: () => api.post('/notifications/test'),
+};
+
 export default api;

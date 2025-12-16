@@ -7,6 +7,7 @@ import Learning from './pages/Learning'
 import Projects from './pages/Projects'
 import Chat from './pages/Chat'
 import SystemInfo from './pages/SystemInfo'
+import Onboarding from './pages/Onboarding'
 
 function App() {
     return (
@@ -21,6 +22,13 @@ function App() {
                         <Navigate to="/dashboard" replace />
                     </SignedIn>
                 </>
+            } />
+
+            {/* Onboarding Route (Protected) */}
+            <Route path="/onboarding" element={
+                <SignedIn>
+                    <Onboarding />
+                </SignedIn>
             } />
 
             {/* Protected Routes */}
