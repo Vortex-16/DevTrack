@@ -74,12 +74,26 @@ export const requestNotificationPermission = async () => {
             return null;
         }
 
+        // Check if service workers are supported
+        if (!('serviceWorker' in navigator)) {
+            console.warn('Service Workers not supported in this browser');
+            return null;
+        }
+
+        // Check VAPID key
+        if (!VAPID_KEY) {
+            console.error('❌ VAPID key is not configured! Check VITE_FIREBASE_VAPID_KEY environment variable.');
+            return null;
+        }
+        console.log('🔑 VAPID key is configured');
+
         // Request permission
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
             console.log('Notification permission denied');
             return null;
         }
+        console.log('✅ Notification permission granted');
 
         // Get messaging instance
         const messagingInstance = getFirebaseMessaging();
@@ -88,28 +102,50 @@ export const requestNotificationPermission = async () => {
             return null;
         }
 
-        // Register service worker
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('✅ Service Worker registered');
+        // Register service worker with error handling
+        let registration;
+        try {
+            console.log('📝 Registering service worker...');
+            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log('✅ Service Worker registered:', registration.scope);
 
-        // Get FCM token
-        const token = await getToken(messagingInstance, {
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: registration,
-        });
+            // Wait for the service worker to be ready
+            await navigator.serviceWorker.ready;
+            console.log('✅ Service Worker is ready');
+        } catch (swError) {
+            console.error('❌ Service Worker registration failed:', swError);
+            return null;
+        }
 
-        if (token) {
-            console.log('✅ FCM Token obtained');
-            return token;
-        } else {
-            console.warn('No FCM token available');
+        // Get FCM token with detailed error handling
+        try {
+            console.log('📲 Getting FCM token...');
+            const token = await getToken(messagingInstance, {
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration,
+            });
+
+            if (token) {
+                console.log('✅ FCM Token obtained:', token.substring(0, 20) + '...');
+                return token;
+            } else {
+                console.warn('⚠️ No FCM token available - getToken returned null');
+                return null;
+            }
+        } catch (tokenError) {
+            console.error('❌ Error getting FCM token:', tokenError);
+            console.error('Token error details:', {
+                code: tokenError.code,
+                message: tokenError.message,
+            });
             return null;
         }
     } catch (error) {
-        console.error('Error getting FCM token:', error);
+        console.error('❌ Error in requestNotificationPermission:', error);
         return null;
     }
 };
+
 
 /**
  * Set up foreground message handler

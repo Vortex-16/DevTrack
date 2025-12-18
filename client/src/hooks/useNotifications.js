@@ -32,20 +32,42 @@ const useNotifications = () => {
     }, []);
 
     // Check if notifications are enabled for this user
+    // If enabled, also refresh the FCM token to ensure it's for the current domain
     useEffect(() => {
-        const checkStatus = async () => {
+        const checkStatusAndRefreshToken = async () => {
             if (!isSignedIn) return;
 
             try {
                 const response = await notificationsApi.getStatus();
-                setIsEnabled(response.data.data?.enabled || false);
+                const enabled = response.data.data?.enabled || false;
+                setIsEnabled(enabled);
+
+                // If notifications are enabled, refresh the FCM token
+                // This ensures the token is for the CURRENT domain (not localhost)
+                if (enabled && Notification.permission === 'granted') {
+                    console.log('🔄 Refreshing FCM token for current domain...');
+                    try {
+                        const token = await requestNotificationPermission();
+                        if (token) {
+                            console.log('✅ FCM Token refreshed, registering with backend...');
+                            await notificationsApi.registerToken(token);
+                            setFcmToken(token);
+                            console.log('✅ FCM Token registered successfully for this domain');
+                        } else {
+                            console.warn('⚠️ Could not get FCM token - service worker may not be registered');
+                        }
+                    } catch (tokenError) {
+                        console.error('❌ Error refreshing FCM token:', tokenError);
+                    }
+                }
             } catch (err) {
                 console.error('Error checking notification status:', err);
             }
         };
 
-        checkStatus();
+        checkStatusAndRefreshToken();
     }, [isSignedIn]);
+
 
     // Set up foreground message handler
     useEffect(() => {
