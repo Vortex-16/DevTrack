@@ -4,6 +4,7 @@ import { projectsApi, githubApi, geminiApi } from '../services/api'
 import LoadingText from '../components/ui/LoadingText'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import confetti from 'canvas-confetti'
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -62,7 +63,7 @@ function StatCard({ icon, label, value, color, delay = 0 }) {
 }
 
 // Project Card Component
-function ProjectCard({ project, onEdit, onDelete, onReanalyze, analyzing, delay = 0 }) {
+function ProjectCard({ project, onEdit, onDelete, onReanalyze, onComplete, onUndo, analyzing, delay = 0 }) {
     const statusColors = {
         Active: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
         Completed: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
@@ -70,7 +71,7 @@ function ProjectCard({ project, onEdit, onDelete, onReanalyze, analyzing, delay 
         'On Hold': { bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/30' },
     }
     const status = statusColors[project.status] || statusColors.Planning
-    const progress = project.aiAnalysis?.progressPercentage ?? project.progress ?? 0
+    const progress = project.status === 'Completed' ? 100 : (project.aiAnalysis?.progressPercentage ?? project.progress ?? 0)
 
     return (
         <motion.div
@@ -163,7 +164,29 @@ function ProjectCard({ project, onEdit, onDelete, onReanalyze, analyzing, delay 
                 {/* Footer */}
                 <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
                     <span className="text-sm text-slate-500">{project.commits || 0} commits</span>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2">
+                        {project.status === 'Completed' ? (
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                layout
+                                onClick={() => onUndo(project)}
+                                className="px-3 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 hover:text-orange-300 transition-colors text-xs font-medium border border-orange-500/20"
+                            >
+                                Undo
+                            </motion.button>
+                        ) : (
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                layout
+                                onClick={() => onComplete(project)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors text-xs font-medium border border-emerald-500/20"
+                            >
+                                Project Completed
+                            </motion.button>
+                        )}
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {project.repositoryUrl && (
                             <button
                                 onClick={() => onReanalyze(project)}
@@ -192,6 +215,7 @@ function ProjectCard({ project, onEdit, onDelete, onReanalyze, analyzing, delay 
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -565,6 +589,7 @@ export default function Projects() {
     const [editingProject, setEditingProject] = useState(null)
     const [analyzing, setAnalyzing] = useState(false)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [completeConfirm, setCompleteConfirm] = useState(null)
     const [stats, setStats] = useState({ totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 })
 
     const defaultFormData = { name: '', description: '', status: 'Planning', repositoryUrl: '', technologies: '' }
@@ -752,6 +777,48 @@ export default function Projects() {
         }
     }
 
+    const handleComplete = (project) => {
+        setCompleteConfirm(project)
+    }
+
+    const executeProjectCompletion = async () => {
+        if (!completeConfirm) return
+
+        try {
+            // Only update status, preserve progress for undo capability
+            await projectsApi.update(completeConfirm.id, {
+                status: 'Completed'
+            })
+            
+            // Trigger confetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            })
+
+            setCompleteConfirm(null)
+            fetchProjects()
+            fetchStats()
+        } catch (err) {
+            console.error('Error completing project:', err)
+            alert('Failed to update project status')
+        }
+    }
+
+    const handleUndo = async (project) => {
+        try {
+            await projectsApi.update(project.id, {
+                status: 'Active'
+            })
+            fetchProjects()
+            fetchStats()
+        } catch (err) {
+            console.error('Error undoing project completion:', err)
+            alert('Failed to undo project completion')
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -830,15 +897,19 @@ export default function Projects() {
                 {/* Projects Grid */}
                 {projects.length > 0 && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {projects.map((project, idx) => (
+                        {projects.map((project, index) => (
                             <ProjectCard
                                 key={project.id}
                                 project={project}
                                 onEdit={handleEdit}
-                                onDelete={(id) => setDeleteConfirm(id)}
+                                onDelete={() => {
+                                    setDeleteConfirm(project.id)
+                                }}
                                 onReanalyze={handleReanalyze}
+                                onComplete={handleComplete}
+                                onUndo={handleUndo}
                                 analyzing={analyzing}
-                                delay={0.1 + idx * 0.05}
+                                delay={index * 0.1}
                             />
                         ))}
                     </div>
@@ -853,6 +924,18 @@ export default function Projects() {
                     <div className="flex gap-4">
                         <Button variant="ghost" onClick={() => setDeleteConfirm(null)} className="flex-1">Cancel</Button>
                         <Button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-red-600 hover:bg-red-700">Delete</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Completion Confirmation Modal */}
+            <Modal isOpen={!!completeConfirm} onClose={() => setCompleteConfirm(null)} title="Finish Project?">
+                <div className="text-center">
+                    <div className="text-5xl mb-4">🎉</div>
+                    <p className="text-xl font-semibold text-white mb-6">Do you want to finish this project?</p>
+                    <div className="flex gap-4">
+                        <Button variant="ghost" onClick={() => setCompleteConfirm(null)} className="flex-1">No</Button>
+                        <Button onClick={executeProjectCompletion} className="flex-1 bg-emerald-600 hover:bg-emerald-700">Yes</Button>
                     </div>
                 </div>
             </Modal>
