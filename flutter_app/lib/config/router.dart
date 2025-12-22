@@ -11,7 +11,6 @@ import '../screens/projects/projects_screen.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/calendar/calendar_screen.dart';
 import '../screens/settings/settings_screen.dart';
-import '../providers/auth_provider.dart';
 import 'theme.dart';
 
 /// Route names as constants
@@ -34,7 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) => appRouter);
 final appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: true,
-  
+
   // Deep link path configuration
   routes: [
     // Splash screen
@@ -42,7 +41,7 @@ final appRouter = GoRouter(
       path: AppRoutes.splash,
       builder: (context, state) => const SplashScreen(),
     ),
-    
+
     // Auth routes
     GoRoute(
       path: AppRoutes.login,
@@ -52,7 +51,7 @@ final appRouter = GoRouter(
       path: AppRoutes.onboarding,
       builder: (context, state) => const OnboardingScreen(),
     ),
-    
+
     // Main app routes with bottom navigation shell
     ShellRoute(
       builder: (context, state, child) => MainShell(child: child),
@@ -79,13 +78,13 @@ final appRouter = GoRouter(
         ),
       ],
     ),
-    
+
     // Settings (outside shell for full screen)
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsScreen(),
     ),
-    
+
     // Deep link routes
     GoRoute(
       path: '/log/:id',
@@ -109,7 +108,7 @@ final appRouter = GoRouter(
       },
     ),
   ],
-  
+
   // Error page
   errorBuilder: (context, state) => ErrorScreen(error: state.error),
 );
@@ -117,9 +116,9 @@ final appRouter = GoRouter(
 /// Main shell with bottom navigation
 class MainShell extends StatefulWidget {
   final Widget child;
-  
+
   const MainShell({super.key, required this.child});
-  
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -199,9 +198,9 @@ class _MainShellState extends State<MainShell> {
 /// Error screen for navigation errors
 class ErrorScreen extends StatelessWidget {
   final Exception? error;
-  
+
   const ErrorScreen({super.key, this.error});
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

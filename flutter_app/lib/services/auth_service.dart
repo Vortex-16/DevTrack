@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -7,32 +6,34 @@ import '../models/user.dart';
 import 'api_service.dart';
 
 /// Service for authentication using Clerk (via web redirect)
-/// Since your backend uses Clerk, we need to handle auth via Clerk's hosted pages
+/// Since your backend uses Clerk, we need to handle auth via the web app
 class AuthService {
   final ApiService _api = ApiService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  /// The Clerk sign-in URL for your app
-  /// You'll need to configure this in your Clerk dashboard
-  static const String clerkSignInUrl = 'https://hip-seal-84.clerk.accounts.dev/sign-in';
-  static const String clerkSignUpUrl = 'https://hip-seal-84.clerk.accounts.dev/sign-up';
-  
+  /// The web app URL for sign-in (uses Clerk modal internally)
+  /// Opens the deployed DevTrack web app which has Clerk integrated
+  static const String webAppSignInUrl = 'https://devtrack-pwkj.onrender.com';
+
+  /// Alternative: Direct link if web app has a login route
+  static const String webAppLoginUrl = 'https://devtrack-pwkj.onrender.com';
+
   /// Redirect URL after Clerk auth (configure in Clerk dashboard)
-  static const String redirectUrl = 'http://localhost:5173'; // Your web app URL for testing
+  static const String redirectUrl = 'https://devtrack-pwkj.onrender.com';
 
   /// Login with GitHub via Clerk
-  /// This opens the Clerk sign-in page which handles GitHub OAuth
+  /// This opens the web app which handles OAuth via Clerk
   Future<bool> loginWithGitHub() async {
     try {
-      // For web/desktop, we open Clerk's hosted sign-in page
-      // The user will sign in via the web app, then we can use the session
-      final signInUrl = Uri.parse(clerkSignInUrl);
-      
+      // Open the deployed web app - user signs in via Clerk modal there
+      // After login, they copy the session token and paste it in the app
+      final signInUrl = Uri.parse(webAppSignInUrl);
+
       if (await canLaunchUrl(signInUrl)) {
         await launchUrl(signInUrl, mode: LaunchMode.externalApplication);
         return true;
       } else {
-        print('Could not launch Clerk sign-in URL');
+        print('Could not launch web app URL');
         return false;
       }
     } catch (e) {
@@ -47,14 +48,14 @@ class AuthService {
     try {
       // Store the token
       await _api.setAuthToken(sessionToken);
-      
+
       // Verify by getting user info
       final user = await getCurrentUser();
       if (user == null) {
         await _api.clearAuthToken();
         return null;
       }
-      
+
       return user;
     } catch (e) {
       await _api.clearAuthToken();
@@ -71,7 +72,7 @@ class AuthService {
 
       final response = await _api.get(ApiEndpoints.authMe);
       final data = response.data;
-      
+
       if (data['success'] == true && data['user'] != null) {
         return User.fromJson(data['user']);
       }

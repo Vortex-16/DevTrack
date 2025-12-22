@@ -9,10 +9,10 @@ class ConnectivityService {
   final Connectivity _connectivity = Connectivity();
   final StorageService _storage = StorageService();
   final ApiService _api = ApiService();
-  
-  StreamSubscription<ConnectivityResult>? _subscription;
+
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
   bool _isOnline = true;
-  
+
   /// Callbacks for connectivity changes
   final List<Function(bool)> _listeners = [];
 
@@ -28,21 +28,21 @@ class ConnectivityService {
   /// Initialize connectivity monitoring
   Future<void> initialize() async {
     await _storage.initialize();
-    
+
     // Check initial connectivity
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = result != ConnectivityResult.none;
-    
-    // Listen for changes (older API returns single result)
-    _subscription = _connectivity.onConnectivityChanged.listen((result) {
+    final results = await _connectivity.checkConnectivity();
+    _isOnline = !results.contains(ConnectivityResult.none);
+
+    // Listen for changes (new API returns List<ConnectivityResult>)
+    _subscription = _connectivity.onConnectivityChanged.listen((results) {
       final wasOnline = _isOnline;
-      _isOnline = result != ConnectivityResult.none;
-      
+      _isOnline = !results.contains(ConnectivityResult.none);
+
       if (!wasOnline && _isOnline) {
         print('📶 Back online - syncing offline data...');
         _syncOfflineQueue();
       }
-      
+
       // Notify listeners
       for (final listener in _listeners) {
         listener(_isOnline);
@@ -64,9 +64,9 @@ class ConnectivityService {
   Future<void> _syncOfflineQueue() async {
     final queue = _storage.getOfflineQueue();
     if (queue.isEmpty) return;
-    
+
     print('📤 Syncing ${queue.length} offline operations...');
-    
+
     for (int i = 0; i < queue.length; i++) {
       final operation = queue[i];
       try {
@@ -85,7 +85,7 @@ class ConnectivityService {
     final type = operation['type'];
     final data = operation['data'];
     final endpoint = operation['endpoint'];
-    
+
     switch (type) {
       case 'POST':
         await _api.post(endpoint, data: data);

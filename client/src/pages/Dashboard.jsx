@@ -4,6 +4,7 @@ import Button from '../components/ui/Button'
 import { logsApi, projectsApi, githubApi } from '../services/api'
 import LoadingText from '../components/ui/LoadingText'
 import Calendar from '../components/dashboard/Calendar'
+import MobileAppToken from '../components/MobileAppToken'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -693,6 +694,13 @@ export default function Dashboard() {
                             {/* Calendar - spans 5 cols */}
                             <div className="lg:col-span-5">
                                 <Calendar />
+                            </div>
+                        </div>
+
+                        {/* Row 3: Mobile App Token */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-3 mt-4">
+                            <div className="lg:col-span-4">
+                                <MobileAppToken />
                             </div>
                         </div>
                     </div>

@@ -69,7 +69,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(20),
@@ -81,18 +81,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.code,
-                        size: 48,
-                        color: Colors.white,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/images/DevTrack.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ).animate().scale(delay: 200.ms),
                     const SizedBox(height: 24),
                     Text(
                       'DevTrack',
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.displayMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ).animate().fadeIn(delay: 400.ms),
                     const SizedBox(height: 8),
                     Text(
@@ -127,13 +132,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 48),
 
-                // Login Button - Opens Clerk in browser
+                // Login Button - Opens web app in browser and shows token input
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: authState.isLoading
                         ? null
-                        : () => ref.read(authStateProvider.notifier).loginWithGitHub(),
+                        : () {
+                            ref
+                                .read(authStateProvider.notifier)
+                                .loginWithGitHub();
+                            // Show token input after opening web app
+                            setState(() => _showTokenInput = true);
+                          },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.white,
@@ -148,23 +159,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         : const Icon(Icons.code, size: 24),
                     label: const Text(
                       'Sign in with GitHub',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ).animate().fadeIn(delay: 1200.ms).slideY(begin: 0.2),
 
                 const SizedBox(height: 16),
 
-                // Token input option (for development)
-                TextButton(
-                  onPressed: () => setState(() => _showTokenInput = !_showTokenInput),
-                  child: Text(
-                    _showTokenInput ? 'Hide Token Input' : 'Already signed in? Enter token',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textMuted,
-                        ),
+                // Token input toggle
+                if (!_showTokenInput)
+                  TextButton(
+                    onPressed: () => setState(() => _showTokenInput = true),
+                    child: Text(
+                      'Already signed in? Enter token',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                    ),
                   ),
-                ),
 
                 if (_showTokenInput) ...[
                   const SizedBox(height: 16),
@@ -179,18 +192,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🔐 Manual Token Login',
+                          '🔐 Complete Sign-In',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '1. Sign in via the web app at localhost:5173\n'
-                          '2. Open browser DevTools → Application → Cookies\n'
-                          '3. Copy the "__session" cookie value\n'
-                          '4. Paste it below',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textMuted,
-                              ),
+                          '1. Sign in on the web app (just opened)\n'
+                          '2. Go to Dashboard, scroll down\n'
+                          '3. Find "📱 Mobile App Login" card\n'
+                          '4. Tap "Get Session Token" → "Copy"\n'
+                          '5. Paste here and tap Login',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textMuted,
+                                  ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
@@ -211,7 +226,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     if (_tokenController.text.isNotEmpty) {
                                       ref
                                           .read(authStateProvider.notifier)
-                                          .loginWithToken(_tokenController.text.trim());
+                                          .loginWithToken(
+                                              _tokenController.text.trim());
                                     }
                                   },
                             child: const Text('Login with Token'),
@@ -228,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 1400.ms),
-                
+
                 const SizedBox(height: 48),
               ],
             ),
