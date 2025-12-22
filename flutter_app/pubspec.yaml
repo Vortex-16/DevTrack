@@ -66,6 +66,13 @@ dev_dependencies:
   mockito: ^5.4.4
   integration_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/DevTrack.png"
+  min_sdk_android: 21 # android min sdk must be 21 or higher
 
 flutter:
   uses-material-design: true

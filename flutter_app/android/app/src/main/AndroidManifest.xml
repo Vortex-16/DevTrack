@@ -2,7 +2,8 @@
     <application
         android:label="devtrack_app"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon"
+        android:appCategory="education">
         <activity
             android:name=".MainActivity"
             android:exported="true"
