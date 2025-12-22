@@ -2,110 +2,177 @@ import '../config/api_config.dart';
 import '../models/task.dart';
 import 'api_service.dart';
 
-/// Service for task/calendar operations
+/// Service for calendar task operations
 class TaskService {
   final ApiService _api = ApiService();
 
-  /// Get all tasks
-  Future<List<Task>> getTasks({DateTime? startDate, DateTime? endDate}) async {
+  /// Get all tasks with optional date filter
+  Future<List<Task>> getTasks({DateTime? date, DateTime? startDate, DateTime? endDate}) async {
     try {
-      final queryParams = <String, dynamic>{};
+      Map<String, dynamic> params = {};
+      
+      if (date != null) {
+        params['date'] = date.toIso8601String().split('T')[0];
+      }
       if (startDate != null) {
-        queryParams['startDate'] = startDate.toIso8601String().split('T')[0];
+        params['startDate'] = startDate.toIso8601String().split('T')[0];
       }
       if (endDate != null) {
-        queryParams['endDate'] = endDate.toIso8601String().split('T')[0];
+        params['endDate'] = endDate.toIso8601String().split('T')[0];
       }
       
       final response = await _api.get(
         ApiEndpoints.tasks,
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        queryParameters: params.isNotEmpty ? params : null,
       );
-      final List<dynamic> data = response.data['tasks'] ?? response.data ?? [];
-      return data.map((e) => Task.fromJson(e)).toList();
+      
+      final data = response.data;
+      
+      // Backend returns { success: true, tasks: [...] } or { tasks: [...] }
+      List<dynamic> tasksData;
+      if (data is List) {
+        tasksData = data;
+      } else if (data is Map) {
+        tasksData = data['tasks'] ?? data['data'] ?? [];
+      } else {
+        return [];
+      }
+      
+      return tasksData.map((json) => Task.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching tasks: $e');
-      rethrow;
+      return [];
     }
   }
 
   /// Get tasks for a specific date
-  Future<List<Task>> getTasksByDate(DateTime date) async {
+  Future<List<Task>> getTasksForDate(DateTime date) async {
     try {
       final response = await _api.get(
         ApiEndpoints.tasks,
-        queryParameters: {
-          'date': date.toIso8601String().split('T')[0],
-        },
+        queryParameters: {'date': date.toIso8601String().split('T')[0]},
       );
-      final List<dynamic> data = response.data['tasks'] ?? response.data ?? [];
-      return data.map((e) => Task.fromJson(e)).toList();
+      
+      final data = response.data;
+      
+      List<dynamic> tasksData;
+      if (data is List) {
+        tasksData = data;
+      } else if (data is Map) {
+        tasksData = data['tasks'] ?? data['data'] ?? [];
+      } else {
+        return [];
+      }
+      
+      return tasksData.map((json) => Task.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching tasks for date: $e');
-      rethrow;
+      return [];
     }
   }
 
-  /// Get a single task by ID
-  Future<Task> getTaskById(String id) async {
+  /// Get a single task
+  Future<Task?> getTask(String id) async {
     try {
-      final response = await _api.get(ApiEndpoints.taskById(id));
-      return Task.fromJson(response.data);
+      final response = await _api.get('${ApiEndpoints.tasks}/$id');
+      final data = response.data;
+      
+      if (data is Map) {
+        final task = data['task'] ?? data['data'] ?? data;
+        return Task.fromJson(task);
+      }
+      return null;
     } catch (e) {
-      print('Error fetching task $id: $e');
-      rethrow;
+      print('Error fetching task: $e');
+      return null;
     }
   }
 
   /// Create a new task
-  Future<Task> createTask(Task task) async {
+  Future<Task?> createTask(Map<String, dynamic> taskData) async {
     try {
-      final response = await _api.post(
-        ApiEndpoints.tasks,
-        data: task.toRequestBody(),
-      );
-      return Task.fromJson(response.data);
+      final response = await _api.post(ApiEndpoints.tasks, data: taskData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final task = data['task'] ?? data['data'] ?? data;
+        return Task.fromJson(task);
+      }
+      return null;
     } catch (e) {
       print('Error creating task: $e');
-      rethrow;
+      return null;
     }
   }
 
-  /// Update an existing task
-  Future<Task> updateTask(String id, Task task) async {
+  /// Update a task
+  Future<Task?> updateTask(String id, Map<String, dynamic> taskData) async {
     try {
-      final response = await _api.put(
-        ApiEndpoints.taskById(id),
-        data: task.toRequestBody(),
-      );
-      return Task.fromJson(response.data);
+      final response = await _api.put('${ApiEndpoints.tasks}/$id', data: taskData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final task = data['task'] ?? data['data'] ?? data;
+        return Task.fromJson(task);
+      }
+      return null;
     } catch (e) {
-      print('Error updating task $id: $e');
-      rethrow;
+      print('Error updating task: $e');
+      return null;
     }
   }
 
-  /// Toggle task completion status
-  Future<Task> toggleTaskCompletion(String id, bool isCompleted) async {
+  /// Toggle task completion
+  Future<Task?> toggleComplete(String id) async {
     try {
-      final response = await _api.put(
-        ApiEndpoints.taskById(id),
-        data: {'isCompleted': isCompleted},
-      );
-      return Task.fromJson(response.data);
+      final response = await _api.put('${ApiEndpoints.tasks}/$id/toggle');
+      final data = response.data;
+      
+      if (data is Map) {
+        final task = data['task'] ?? data['data'] ?? data;
+        return Task.fromJson(task);
+      }
+      return null;
     } catch (e) {
-      print('Error toggling task $id: $e');
-      rethrow;
+      print('Error toggling task: $e');
+      return null;
     }
   }
 
   /// Delete a task
-  Future<void> deleteTask(String id) async {
+  Future<bool> deleteTask(String id) async {
     try {
-      await _api.delete(ApiEndpoints.taskById(id));
+      await _api.delete('${ApiEndpoints.tasks}/$id');
+      return true;
     } catch (e) {
-      print('Error deleting task $id: $e');
-      rethrow;
+      print('Error deleting task: $e');
+      return false;
+    }
+  }
+
+  /// Get upcoming tasks
+  Future<List<Task>> getUpcoming({int limit = 5}) async {
+    try {
+      final response = await _api.get(
+        '${ApiEndpoints.tasks}/upcoming',
+        queryParameters: {'limit': limit},
+      );
+      
+      final data = response.data;
+      
+      List<dynamic> tasksData;
+      if (data is List) {
+        tasksData = data;
+      } else if (data is Map) {
+        tasksData = data['tasks'] ?? data['data'] ?? [];
+      } else {
+        return [];
+      }
+      
+      return tasksData.map((json) => Task.fromJson(json)).toList();
+    } catch (e) {
+      print('Error fetching upcoming tasks: $e');
+      return [];
     }
   }
 }

@@ -10,74 +10,100 @@ class ProjectService {
   Future<List<Project>> getProjects() async {
     try {
       final response = await _api.get(ApiEndpoints.projects);
-      final List<dynamic> data = response.data['projects'] ?? response.data ?? [];
-      return data.map((e) => Project.fromJson(e)).toList();
+      final data = response.data;
+      
+      // Backend returns { success: true, projects: [...] } or { projects: [...] }
+      List<dynamic> projectsData;
+      if (data is List) {
+        projectsData = data;
+      } else if (data is Map) {
+        projectsData = data['projects'] ?? data['data'] ?? [];
+      } else {
+        return [];
+      }
+      
+      return projectsData.map((json) => Project.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching projects: $e');
-      rethrow;
+      return [];
     }
   }
 
-  /// Get a single project by ID
-  Future<Project> getProjectById(String id) async {
+  /// Get a single project
+  Future<Project?> getProject(String id) async {
     try {
-      final response = await _api.get(ApiEndpoints.projectById(id));
-      return Project.fromJson(response.data);
+      final response = await _api.get('${ApiEndpoints.projects}/$id');
+      final data = response.data;
+      
+      if (data is Map) {
+        final project = data['project'] ?? data['data'] ?? data;
+        return Project.fromJson(project);
+      }
+      return null;
     } catch (e) {
-      print('Error fetching project $id: $e');
-      rethrow;
+      print('Error fetching project: $e');
+      return null;
     }
   }
 
   /// Create a new project
-  Future<Project> createProject(Project project) async {
+  Future<Project?> createProject(Map<String, dynamic> projectData) async {
     try {
-      final response = await _api.post(
-        ApiEndpoints.projects,
-        data: project.toRequestBody(),
-      );
-      return Project.fromJson(response.data);
+      final response = await _api.post(ApiEndpoints.projects, data: projectData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final project = data['project'] ?? data['data'] ?? data;
+        return Project.fromJson(project);
+      }
+      return null;
     } catch (e) {
       print('Error creating project: $e');
-      rethrow;
+      return null;
     }
   }
 
-  /// Update an existing project
-  Future<Project> updateProject(String id, Project project) async {
+  /// Update a project
+  Future<Project?> updateProject(String id, Map<String, dynamic> projectData) async {
     try {
-      final response = await _api.put(
-        ApiEndpoints.projectById(id),
-        data: project.toRequestBody(),
-      );
-      return Project.fromJson(response.data);
+      final response = await _api.put('${ApiEndpoints.projects}/$id', data: projectData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final project = data['project'] ?? data['data'] ?? data;
+        return Project.fromJson(project);
+      }
+      return null;
     } catch (e) {
-      print('Error updating project $id: $e');
-      rethrow;
+      print('Error updating project: $e');
+      return null;
     }
   }
 
   /// Delete a project
-  Future<void> deleteProject(String id) async {
+  Future<bool> deleteProject(String id) async {
     try {
-      await _api.delete(ApiEndpoints.projectById(id));
+      await _api.delete('${ApiEndpoints.projects}/$id');
+      return true;
     } catch (e) {
-      print('Error deleting project $id: $e');
-      rethrow;
+      print('Error deleting project: $e');
+      return false;
     }
   }
 
-  /// Request AI analysis for project
-  Future<ProjectAnalysis> analyzeProject(String id) async {
+  /// Get AI analysis for a project
+  Future<Map<String, dynamic>?> getAIAnalysis(String id) async {
     try {
-      final response = await _api.post(
-        ApiEndpoints.analyzeProject,
-        data: {'projectId': id},
-      );
-      return ProjectAnalysis.fromJson(response.data);
+      final response = await _api.get('${ApiEndpoints.projects}/$id/analyze');
+      final data = response.data;
+      
+      if (data is Map) {
+        return data['analysis'] ?? data['data'] ?? Map<String, dynamic>.from(data);
+      }
+      return null;
     } catch (e) {
-      print('Error analyzing project $id: $e');
-      rethrow;
+      print('Error getting AI analysis: $e');
+      return null;
     }
   }
 }

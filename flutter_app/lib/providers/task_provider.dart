@@ -81,7 +81,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = state.copyWith(isLoading: true, selectedDate: date);
 
     try {
-      final tasks = await _taskService.getTasksByDate(date);
+      final tasks = await _taskService.getTasksForDate(date);
       // Merge with existing tasks
       final existingTaskIds = tasks.map((t) => t.id).toSet();
       final mergedTasks = [
@@ -104,11 +104,15 @@ class TaskNotifier extends StateNotifier<TaskState> {
   Future<void> addTask(Task task) async {
     state = state.copyWith(isLoading: true);
     try {
-      final newTask = await _taskService.createTask(task);
-      state = state.copyWith(
-        tasks: [...state.tasks, newTask],
-        isLoading: false,
-      );
+      final newTask = await _taskService.createTask(task.toJson());
+      if (newTask != null) {
+        state = state.copyWith(
+          tasks: [...state.tasks, newTask],
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -121,12 +125,16 @@ class TaskNotifier extends StateNotifier<TaskState> {
   Future<void> updateTask(String id, Task task) async {
     state = state.copyWith(isLoading: true);
     try {
-      final updated = await _taskService.updateTask(id, task);
-      final tasks = state.tasks.map((t) => t.id == id ? updated : t).toList();
-      state = state.copyWith(
-        tasks: tasks,
-        isLoading: false,
-      );
+      final updated = await _taskService.updateTask(id, task.toJson());
+      if (updated != null) {
+        final tasks = state.tasks.map((t) => t.id == id ? updated : t).toList();
+        state = state.copyWith(
+          tasks: tasks,
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -137,11 +145,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   /// Toggle task completion
   Future<void> toggleTaskCompletion(String id) async {
-    final task = state.tasks.firstWhere((t) => t.id == id);
     try {
-      final updated = await _taskService.toggleTaskCompletion(id, !task.isCompleted);
-      final tasks = state.tasks.map((t) => t.id == id ? updated : t).toList();
-      state = state.copyWith(tasks: tasks);
+      final updated = await _taskService.toggleComplete(id);
+      if (updated != null) {
+        final tasks = state.tasks.map((t) => t.id == id ? updated : t).toList();
+        state = state.copyWith(tasks: tasks);
+      }
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }

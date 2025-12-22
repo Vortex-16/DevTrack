@@ -59,11 +59,15 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
   Future<void> addProject(Project project) async {
     state = state.copyWith(isLoading: true);
     try {
-      final newProject = await _projectService.createProject(project);
-      state = state.copyWith(
-        projects: [...state.projects, newProject],
-        isLoading: false,
-      );
+      final newProject = await _projectService.createProject(project.toJson());
+      if (newProject != null) {
+        state = state.copyWith(
+          projects: [...state.projects, newProject],
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -76,13 +80,17 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
   Future<void> updateProject(String id, Project project) async {
     state = state.copyWith(isLoading: true);
     try {
-      final updated = await _projectService.updateProject(id, project);
-      final projects = state.projects.map((p) => p.id == id ? updated : p).toList();
-      state = state.copyWith(
-        projects: projects,
-        isLoading: false,
-        selectedProject: state.selectedProject?.id == id ? updated : state.selectedProject,
-      );
+      final updated = await _projectService.updateProject(id, project.toJson());
+      if (updated != null) {
+        final projects = state.projects.map((p) => p.id == id ? updated : p).toList();
+        state = state.copyWith(
+          projects: projects,
+          isLoading: false,
+          selectedProject: state.selectedProject?.id == id ? updated : state.selectedProject,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -108,17 +116,21 @@ class ProjectNotifier extends StateNotifier<ProjectState> {
   Future<void> analyzeProject(String id) async {
     state = state.copyWith(isLoading: true);
     try {
-      final analysis = await _projectService.analyzeProject(id);
-      final projects = state.projects.map((p) {
-        if (p.id == id) {
-          return p.copyWith(aiAnalysis: analysis);
-        }
-        return p;
-      }).toList();
-      state = state.copyWith(
-        projects: projects,
-        isLoading: false,
-      );
+      final analysis = await _projectService.getAIAnalysis(id);
+      if (analysis != null) {
+        final projects = state.projects.map((p) {
+          if (p.id == id) {
+            return p.copyWith(aiAnalysis: ProjectAnalysis.fromJson(analysis));
+          }
+          return p;
+        }).toList();
+        state = state.copyWith(
+          projects: projects,
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

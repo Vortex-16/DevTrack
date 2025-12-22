@@ -83,12 +83,15 @@ class LogNotifier extends StateNotifier<LogState> {
   Future<void> addLog(LogEntry entry) async {
     state = state.copyWith(isLoading: true);
     try {
-      final newEntry = await _logService.createLog(entry);
-      state = state.copyWith(
-        entries: [newEntry, ...state.entries],
-        isLoading: false,
-      );
-      // Refresh stats after adding
+      final newEntry = await _logService.createLog(entry.toJson());
+      if (newEntry != null) {
+        state = state.copyWith(
+          entries: [newEntry, ...state.entries],
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
       fetchStats();
     } catch (e) {
       state = state.copyWith(
@@ -102,12 +105,16 @@ class LogNotifier extends StateNotifier<LogState> {
   Future<void> updateLog(String id, LogEntry entry) async {
     state = state.copyWith(isLoading: true);
     try {
-      final updated = await _logService.updateLog(id, entry);
-      final entries = state.entries.map((e) => e.id == id ? updated : e).toList();
-      state = state.copyWith(
-        entries: entries,
-        isLoading: false,
-      );
+      final updated = await _logService.updateLog(id, entry.toJson());
+      if (updated != null) {
+        final entries = state.entries.map((e) => e.id == id ? updated : e).toList();
+        state = state.copyWith(
+          entries: entries,
+          isLoading: false,
+        );
+      } else {
+        state = state.copyWith(isLoading: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

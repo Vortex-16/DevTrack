@@ -6,7 +6,7 @@ import 'api_service.dart';
 class LogService {
   final ApiService _api = ApiService();
 
-  /// Get all learning entries (paginated)
+  /// Get all logs with pagination
   Future<List<LogEntry>> getLogs({int page = 1, int limit = 20}) async {
     try {
       final response = await _api.get(
@@ -14,71 +14,102 @@ class LogService {
         queryParameters: {'page': page, 'limit': limit},
       );
       
-      final List<dynamic> data = response.data['logs'] ?? response.data ?? [];
-      return data.map((e) => LogEntry.fromJson(e)).toList();
+      final data = response.data;
+      
+      // Backend returns { success: true, logs: [...] } or { logs: [...] }
+      List<dynamic> logsData;
+      if (data is List) {
+        logsData = data;
+      } else if (data is Map) {
+        logsData = data['logs'] ?? data['data'] ?? [];
+      } else {
+        return [];
+      }
+      
+      return logsData.map((json) => LogEntry.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching logs: $e');
-      rethrow;
+      return [];
     }
   }
 
-  /// Get a single log entry by ID
-  Future<LogEntry> getLogById(String id) async {
+  /// Get a single log entry
+  Future<LogEntry?> getLog(String id) async {
     try {
-      final response = await _api.get(ApiEndpoints.logById(id));
-      return LogEntry.fromJson(response.data);
+      final response = await _api.get('${ApiEndpoints.logs}/$id');
+      final data = response.data;
+      
+      if (data is Map) {
+        final logData = data['log'] ?? data['data'] ?? data;
+        return LogEntry.fromJson(logData);
+      }
+      return null;
     } catch (e) {
-      print('Error fetching log $id: $e');
-      rethrow;
+      print('Error fetching log: $e');
+      return null;
     }
   }
 
-  /// Create a new learning entry
-  Future<LogEntry> createLog(LogEntry entry) async {
+  /// Create a new log entry
+  Future<LogEntry?> createLog(Map<String, dynamic> logData) async {
     try {
-      final response = await _api.post(
-        ApiEndpoints.logs,
-        data: entry.toRequestBody(),
-      );
-      return LogEntry.fromJson(response.data);
+      final response = await _api.post(ApiEndpoints.logs, data: logData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final log = data['log'] ?? data['data'] ?? data;
+        return LogEntry.fromJson(log);
+      }
+      return null;
     } catch (e) {
       print('Error creating log: $e');
-      rethrow;
+      return null;
     }
   }
 
-  /// Update an existing learning entry
-  Future<LogEntry> updateLog(String id, LogEntry entry) async {
+  /// Update a log entry
+  Future<LogEntry?> updateLog(String id, Map<String, dynamic> logData) async {
     try {
-      final response = await _api.put(
-        ApiEndpoints.logById(id),
-        data: entry.toRequestBody(),
-      );
-      return LogEntry.fromJson(response.data);
+      final response = await _api.put('${ApiEndpoints.logs}/$id', data: logData);
+      final data = response.data;
+      
+      if (data is Map) {
+        final log = data['log'] ?? data['data'] ?? data;
+        return LogEntry.fromJson(log);
+      }
+      return null;
     } catch (e) {
-      print('Error updating log $id: $e');
-      rethrow;
+      print('Error updating log: $e');
+      return null;
     }
   }
 
-  /// Delete a learning entry
-  Future<void> deleteLog(String id) async {
+  /// Delete a log entry
+  Future<bool> deleteLog(String id) async {
     try {
-      await _api.delete(ApiEndpoints.logById(id));
+      await _api.delete('${ApiEndpoints.logs}/$id');
+      return true;
     } catch (e) {
-      print('Error deleting log $id: $e');
-      rethrow;
+      print('Error deleting log: $e');
+      return false;
     }
   }
 
-  /// Get learning statistics
-  Future<LogStats> getStats() async {
+  /// Get log statistics
+  Future<LogStats?> getStats() async {
     try {
       final response = await _api.get(ApiEndpoints.logsStats);
-      return LogStats.fromJson(response.data);
+      final data = response.data;
+      
+      if (data is Map) {
+        // Could be { success: true, stats: {...} } or just the stats object
+        final statsData = data['stats'] ?? data;
+        return LogStats.fromJson(Map<String, dynamic>.from(statsData));
+      }
+      return null;
     } catch (e) {
       print('Error fetching log stats: $e');
-      rethrow;
+      return null;
     }
   }
 }
