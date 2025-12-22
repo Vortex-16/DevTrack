@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { preferencesApi, notificationsApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
+import MobileAppToken from '../MobileAppToken';
 
 /**
  * Notification Settings Modal/Panel
@@ -108,7 +109,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                        <h2 className="text-xl font-bold text-white">Notification Settings</h2>
+                        <h2 className="text-xl font-bold text-white">Settings</h2>
                         <button
                             onClick={onClose}
                             className="text-slate-400 hover:text-white transition-colors"
@@ -159,8 +160,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 onClick={isEnabled ? unregisterFromNotifications : registerForNotifications}
                                                 disabled={notifLoading}
                                                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${isEnabled
-                                                        ? 'bg-slate-700 text-white hover:bg-slate-600'
-                                                        : 'bg-purple-600 text-white hover:bg-purple-500'
+                                                    ? 'bg-slate-700 text-white hover:bg-slate-600'
+                                                    : 'bg-purple-600 text-white hover:bg-purple-500'
                                                     }`}
                                             >
                                                 {notifLoading ? 'Loading...' : isEnabled ? 'Disable' : 'Enable'}
@@ -178,6 +179,12 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     )}
                                 </div>
 
+                                {/* Mobile App Token */}
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-3">Mobile Connectivity</h3>
+                                    <MobileAppToken />
+                                </div>
+
                                 {/* Reminder Mode */}
                                 <div>
                                     <h3 className="text-lg font-semibold text-white mb-3">Reminder Timing</h3>
@@ -185,8 +192,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={() => setPreferences({ ...preferences, reminderMode: 'adaptive' })}
                                             className={`p-4 rounded-xl border-2 text-left transition-all ${preferences.reminderMode === 'adaptive'
-                                                    ? 'border-purple-500 bg-purple-500/10'
-                                                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                                ? 'border-purple-500 bg-purple-500/10'
+                                                : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
                                             <p className="font-semibold text-white">🎯 Adaptive</p>
@@ -195,8 +202,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={() => setPreferences({ ...preferences, reminderMode: 'fixed' })}
                                             className={`p-4 rounded-xl border-2 text-left transition-all ${preferences.reminderMode === 'fixed'
-                                                    ? 'border-purple-500 bg-purple-500/10'
-                                                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                                ? 'border-purple-500 bg-purple-500/10'
+                                                : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
                                             <p className="font-semibold text-white">⏰ Fixed Time</p>
@@ -228,8 +235,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={() => setPreferences({ ...preferences, commitPattern: 'frequent' })}
                                             className={`p-4 rounded-xl border-2 text-left transition-all ${preferences.commitPattern === 'frequent'
-                                                    ? 'border-purple-500 bg-purple-500/10'
-                                                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                                ? 'border-purple-500 bg-purple-500/10'
+                                                : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
                                             <p className="font-semibold text-white">⚡ Frequent</p>
@@ -238,8 +245,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <button
                                             onClick={() => setPreferences({ ...preferences, commitPattern: 'end-only' })}
                                             className={`p-4 rounded-xl border-2 text-left transition-all ${preferences.commitPattern === 'end-only'
-                                                    ? 'border-purple-500 bg-purple-500/10'
-                                                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                                                ? 'border-purple-500 bg-purple-500/10'
+                                                : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
                                             <p className="font-semibold text-white">📦 End-only</p>
@@ -310,8 +317,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         className={`p-4 rounded-xl ${message.type === 'success'
-                                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
                                             }`}
                                     >
                                         {message.text}

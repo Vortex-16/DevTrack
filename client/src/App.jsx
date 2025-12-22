@@ -10,6 +10,7 @@ import Chat from './pages/Chat'
 import SystemInfo from './pages/SystemInfo'
 import Onboarding from './pages/Onboarding'
 import { preferencesApi } from './services/api'
+import useHeartbeat from './hooks/useHeartbeat'
 
 // Component that handles automatic onboarding redirect after signup
 function OnboardingRedirect({ children }) {
@@ -73,6 +74,8 @@ function OnboardingRedirect({ children }) {
 }
 
 function App() {
+    useHeartbeat()
+
     return (
         <Routes>
             {/* Public Routes */}

@@ -1,0 +1,14 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # runs every 10 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping DevTrack backend
+        run: |
+          curl -s https://devtrack-api.onrender.com/api/health > /dev/null

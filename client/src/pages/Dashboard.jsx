@@ -697,10 +697,12 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Row 3: Mobile App Token */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-3 mt-4">
-                            <div className="lg:col-span-4">
-                                <MobileAppToken />
+                        {/* Row 3: Mobile App Token (Mobile Only) */}
+                        <div className="block lg:hidden">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-3 mt-4">
+                                <div className="lg:col-span-4">
+                                    <MobileAppToken />
+                                </div>
                             </div>
                         </div>
                     </div>
