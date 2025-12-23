@@ -11,17 +11,21 @@ class ProjectService {
     try {
       final response = await _api.get(ApiEndpoints.projects);
       final data = response.data;
-      
-      // Backend returns { success: true, projects: [...] } or { projects: [...] }
-      List<dynamic> projectsData;
-      if (data is List) {
+
+      // Backend returns { success: true, data: { projects: [...], pagination: {...} } }
+      List<dynamic> projectsData = [];
+      if (data is Map) {
+        if (data['data'] != null && data['data']['projects'] != null) {
+          projectsData = data['data']['projects'];
+        } else if (data['projects'] != null) {
+          projectsData = data['projects'];
+        } else if (data['data'] is List) {
+          projectsData = data['data'];
+        }
+      } else if (data is List) {
         projectsData = data;
-      } else if (data is Map) {
-        projectsData = data['projects'] ?? data['data'] ?? [];
-      } else {
-        return [];
       }
-      
+
       return projectsData.map((json) => Project.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching projects: $e');
@@ -34,9 +38,9 @@ class ProjectService {
     try {
       final response = await _api.get('${ApiEndpoints.projects}/$id');
       final data = response.data;
-      
+
       if (data is Map) {
-        final project = data['project'] ?? data['data'] ?? data;
+        final project = data['data'] ?? data['project'] ?? data;
         return Project.fromJson(project);
       }
       return null;
@@ -49,11 +53,12 @@ class ProjectService {
   /// Create a new project
   Future<Project?> createProject(Map<String, dynamic> projectData) async {
     try {
-      final response = await _api.post(ApiEndpoints.projects, data: projectData);
+      final response =
+          await _api.post(ApiEndpoints.projects, data: projectData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final project = data['project'] ?? data['data'] ?? data;
+        final project = data['data'] ?? data['project'] ?? data;
         return Project.fromJson(project);
       }
       return null;
@@ -64,13 +69,15 @@ class ProjectService {
   }
 
   /// Update a project
-  Future<Project?> updateProject(String id, Map<String, dynamic> projectData) async {
+  Future<Project?> updateProject(
+      String id, Map<String, dynamic> projectData) async {
     try {
-      final response = await _api.put('${ApiEndpoints.projects}/$id', data: projectData);
+      final response =
+          await _api.put('${ApiEndpoints.projects}/$id', data: projectData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final project = data['project'] ?? data['data'] ?? data;
+        final project = data['data'] ?? data['project'] ?? data;
         return Project.fromJson(project);
       }
       return null;
@@ -96,9 +103,11 @@ class ProjectService {
     try {
       final response = await _api.get('${ApiEndpoints.projects}/$id/analyze');
       final data = response.data;
-      
+
       if (data is Map) {
-        return data['analysis'] ?? data['data'] ?? Map<String, dynamic>.from(data);
+        return data['data'] ??
+            data['analysis'] ??
+            Map<String, dynamic>.from(data);
       }
       return null;
     } catch (e) {

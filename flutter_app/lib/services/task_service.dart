@@ -7,10 +7,11 @@ class TaskService {
   final ApiService _api = ApiService();
 
   /// Get all tasks with optional date filter
-  Future<List<Task>> getTasks({DateTime? date, DateTime? startDate, DateTime? endDate}) async {
+  Future<List<Task>> getTasks(
+      {DateTime? date, DateTime? startDate, DateTime? endDate}) async {
     try {
       Map<String, dynamic> params = {};
-      
+
       if (date != null) {
         params['date'] = date.toIso8601String().split('T')[0];
       }
@@ -20,24 +21,28 @@ class TaskService {
       if (endDate != null) {
         params['endDate'] = endDate.toIso8601String().split('T')[0];
       }
-      
+
       final response = await _api.get(
         ApiEndpoints.tasks,
         queryParameters: params.isNotEmpty ? params : null,
       );
-      
+
       final data = response.data;
-      
-      // Backend returns { success: true, tasks: [...] } or { tasks: [...] }
-      List<dynamic> tasksData;
-      if (data is List) {
+
+      // Backend returns { success: true, data: { tasks: [...], pagination: {...} } }
+      List<dynamic> tasksData = [];
+      if (data is Map) {
+        if (data['data'] != null && data['data']['tasks'] != null) {
+          tasksData = data['data']['tasks'];
+        } else if (data['tasks'] != null) {
+          tasksData = data['tasks'];
+        } else if (data['data'] is List) {
+          tasksData = data['data'];
+        }
+      } else if (data is List) {
         tasksData = data;
-      } else if (data is Map) {
-        tasksData = data['tasks'] ?? data['data'] ?? [];
-      } else {
-        return [];
       }
-      
+
       return tasksData.map((json) => Task.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching tasks: $e');
@@ -52,18 +57,22 @@ class TaskService {
         ApiEndpoints.tasks,
         queryParameters: {'date': date.toIso8601String().split('T')[0]},
       );
-      
+
       final data = response.data;
-      
-      List<dynamic> tasksData;
-      if (data is List) {
+
+      List<dynamic> tasksData = [];
+      if (data is Map) {
+        if (data['data'] != null && data['data']['tasks'] != null) {
+          tasksData = data['data']['tasks'];
+        } else if (data['tasks'] != null) {
+          tasksData = data['tasks'];
+        } else if (data['data'] is List) {
+          tasksData = data['data'];
+        }
+      } else if (data is List) {
         tasksData = data;
-      } else if (data is Map) {
-        tasksData = data['tasks'] ?? data['data'] ?? [];
-      } else {
-        return [];
       }
-      
+
       return tasksData.map((json) => Task.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching tasks for date: $e');
@@ -76,9 +85,9 @@ class TaskService {
     try {
       final response = await _api.get('${ApiEndpoints.tasks}/$id');
       final data = response.data;
-      
+
       if (data is Map) {
-        final task = data['task'] ?? data['data'] ?? data;
+        final task = data['data'] ?? data['task'] ?? data;
         return Task.fromJson(task);
       }
       return null;
@@ -93,9 +102,9 @@ class TaskService {
     try {
       final response = await _api.post(ApiEndpoints.tasks, data: taskData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final task = data['task'] ?? data['data'] ?? data;
+        final task = data['data'] ?? data['task'] ?? data;
         return Task.fromJson(task);
       }
       return null;
@@ -108,11 +117,12 @@ class TaskService {
   /// Update a task
   Future<Task?> updateTask(String id, Map<String, dynamic> taskData) async {
     try {
-      final response = await _api.put('${ApiEndpoints.tasks}/$id', data: taskData);
+      final response =
+          await _api.put('${ApiEndpoints.tasks}/$id', data: taskData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final task = data['task'] ?? data['data'] ?? data;
+        final task = data['data'] ?? data['task'] ?? data;
         return Task.fromJson(task);
       }
       return null;
@@ -127,9 +137,9 @@ class TaskService {
     try {
       final response = await _api.put('${ApiEndpoints.tasks}/$id/toggle');
       final data = response.data;
-      
+
       if (data is Map) {
-        final task = data['task'] ?? data['data'] ?? data;
+        final task = data['data'] ?? data['task'] ?? data;
         return Task.fromJson(task);
       }
       return null;
@@ -157,18 +167,22 @@ class TaskService {
         '${ApiEndpoints.tasks}/upcoming',
         queryParameters: {'limit': limit},
       );
-      
+
       final data = response.data;
-      
-      List<dynamic> tasksData;
-      if (data is List) {
+
+      List<dynamic> tasksData = [];
+      if (data is Map) {
+        if (data['data'] != null && data['data']['tasks'] != null) {
+          tasksData = data['data']['tasks'];
+        } else if (data['tasks'] != null) {
+          tasksData = data['tasks'];
+        } else if (data['data'] is List) {
+          tasksData = data['data'];
+        }
+      } else if (data is List) {
         tasksData = data;
-      } else if (data is Map) {
-        tasksData = data['tasks'] ?? data['data'] ?? [];
-      } else {
-        return [];
       }
-      
+
       return tasksData.map((json) => Task.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching upcoming tasks: $e');

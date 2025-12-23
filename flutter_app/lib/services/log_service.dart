@@ -13,19 +13,23 @@ class LogService {
         ApiEndpoints.logs,
         queryParameters: {'page': page, 'limit': limit},
       );
-      
+
       final data = response.data;
-      
-      // Backend returns { success: true, logs: [...] } or { logs: [...] }
-      List<dynamic> logsData;
-      if (data is List) {
+
+      // Backend returns { success: true, data: { logs: [...], pagination: {...} } }
+      List<dynamic> logsData = [];
+      if (data is Map) {
+        if (data['data'] != null && data['data']['logs'] != null) {
+          logsData = data['data']['logs'];
+        } else if (data['logs'] != null) {
+          logsData = data['logs'];
+        } else if (data['data'] is List) {
+          logsData = data['data'];
+        }
+      } else if (data is List) {
         logsData = data;
-      } else if (data is Map) {
-        logsData = data['logs'] ?? data['data'] ?? [];
-      } else {
-        return [];
       }
-      
+
       return logsData.map((json) => LogEntry.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching logs: $e');
@@ -38,9 +42,9 @@ class LogService {
     try {
       final response = await _api.get('${ApiEndpoints.logs}/$id');
       final data = response.data;
-      
+
       if (data is Map) {
-        final logData = data['log'] ?? data['data'] ?? data;
+        final logData = data['data'] ?? data['log'] ?? data;
         return LogEntry.fromJson(logData);
       }
       return null;
@@ -55,9 +59,9 @@ class LogService {
     try {
       final response = await _api.post(ApiEndpoints.logs, data: logData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final log = data['log'] ?? data['data'] ?? data;
+        final log = data['data'] ?? data['log'] ?? data;
         return LogEntry.fromJson(log);
       }
       return null;
@@ -70,11 +74,12 @@ class LogService {
   /// Update a log entry
   Future<LogEntry?> updateLog(String id, Map<String, dynamic> logData) async {
     try {
-      final response = await _api.put('${ApiEndpoints.logs}/$id', data: logData);
+      final response =
+          await _api.put('${ApiEndpoints.logs}/$id', data: logData);
       final data = response.data;
-      
+
       if (data is Map) {
-        final log = data['log'] ?? data['data'] ?? data;
+        final log = data['data'] ?? data['log'] ?? data;
         return LogEntry.fromJson(log);
       }
       return null;
@@ -100,10 +105,10 @@ class LogService {
     try {
       final response = await _api.get(ApiEndpoints.logsStats);
       final data = response.data;
-      
+
       if (data is Map) {
-        // Could be { success: true, stats: {...} } or just the stats object
-        final statsData = data['stats'] ?? data;
+        // Backend returns { success: true, data: { totalLogs: 10, ... } }
+        final statsData = data['data'] ?? data['stats'] ?? data;
         return LogStats.fromJson(Map<String, dynamic>.from(statsData));
       }
       return null;

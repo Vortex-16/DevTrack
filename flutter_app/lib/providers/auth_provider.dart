@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 /// Authentication state model
 class AuthState {
@@ -29,16 +30,18 @@ class AuthState {
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
       user: user ?? this.user,
-      hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
       error: error,
     );
   }
 
   factory AuthState.initial() => const AuthState();
-  
+
   factory AuthState.loading() => const AuthState(isLoading: true);
-  
-  factory AuthState.authenticated(User user, {bool hasCompletedOnboarding = false}) {
+
+  factory AuthState.authenticated(User user,
+      {bool hasCompletedOnboarding = false}) {
     return AuthState(
       isAuthenticated: true,
       isLoading: false,
@@ -46,7 +49,7 @@ class AuthState {
       hasCompletedOnboarding: hasCompletedOnboarding,
     );
   }
-  
+
   factory AuthState.error(String message) {
     return AuthState(
       isAuthenticated: false,
@@ -59,7 +62,7 @@ class AuthState {
 /// Auth state notifier with AuthService integration
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService = AuthService();
-  
+
   AuthNotifier() : super(AuthState.initial());
 
   /// Initialize auth state from storage
@@ -95,7 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Login with GitHub via Clerk (opens browser)
   Future<void> loginWithGitHub() async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final success = await _authService.loginWithGitHub();
       // The browser will open - user needs to complete sign-in there
@@ -112,21 +115,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Login with session token (from Clerk cookie)
   Future<void> loginWithToken(String token) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final user = await _authService.loginWithToken(token);
-      
+
       if (user == null) {
         state = AuthState.error('Invalid or expired token');
         return;
       }
-      
+
       final hasCompletedOnboarding = await _authService.isOnboardingCompleted();
-      
+
       state = AuthState.authenticated(
         user,
         hasCompletedOnboarding: hasCompletedOnboarding,
       );
+
+      // Register FCM token after successful login
+      try {
+        await NotificationService().registerToken();
+        print('✅ FCM token registered after login');
+      } catch (e) {
+        print('⚠️ Failed to register FCM token: $e');
+      }
     } catch (e) {
       state = AuthState.error('Token login failed: $e');
     }
