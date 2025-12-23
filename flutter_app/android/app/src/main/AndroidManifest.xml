@@ -3,7 +3,7 @@
         android:label="DevTrack"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:appCategory="education">
+        android:appCategory="productivity">
         <activity
             android:name=".MainActivity"
             android:exported="true"
