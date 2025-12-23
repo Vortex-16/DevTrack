@@ -101,13 +101,22 @@ class AuthService {
     await _storage.write(
       key: 'onboarding_completed',
       value: completed.toString(),
+      aOptions: const AndroidOptions(encryptedSharedPreferences: true),
     );
   }
 
   /// Check if onboarding is completed
   Future<bool> isOnboardingCompleted() async {
-    final value = await _storage.read(key: 'onboarding_completed');
-    return value == 'true';
+    try {
+      final value = await _storage.read(
+        key: 'onboarding_completed',
+        aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+      );
+      return value == 'true';
+    } catch (e) {
+      print('Error reading onboarding status: $e');
+      return false;
+    }
   }
 
   /// Save user preferences

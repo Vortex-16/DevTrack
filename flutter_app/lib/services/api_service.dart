@@ -23,7 +23,7 @@ class ApiService {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // Add auth token to requests
-        final token = await _storage.read(key: 'auth_token');
+        final token = await _safeRead('auth_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -46,24 +46,60 @@ class ApiService {
     return _instance!;
   }
 
+  /// Helper to safely read from secure storage and handle PlatformExceptions
+  Future<String?> _safeRead(String key) async {
+    try {
+      return await _storage.read(
+        key: key,
+        aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+      );
+    } catch (e) {
+      print('⚠️ Secure storage read error for $key: $e');
+      // If we hit a decryption error, the storage is likely corrupted
+      if (e.toString().contains('BadPaddingException') ||
+          e.toString().contains('BAD_DECRYPT')) {
+        print('🧹 Decryption failed, clearing storage...');
+        await _storage.deleteAll(
+          aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+        );
+      }
+      return null;
+    }
+  }
+
   /// Store auth token securely
   Future<void> setAuthToken(String token) async {
-    await _storage.write(key: 'auth_token', value: token);
+    try {
+      await _storage.write(
+        key: 'auth_token',
+        value: token,
+        aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+      );
+    } catch (e) {
+      print('Error writing to secure storage: $e');
+    }
   }
 
   /// Get stored auth token
   Future<String?> getAuthToken() async {
-    return await _storage.read(key: 'auth_token');
+    return await _safeRead('auth_token');
   }
 
   /// Clear auth token on logout
   Future<void> clearAuthToken() async {
-    await _storage.delete(key: 'auth_token');
+    try {
+      await _storage.delete(
+        key: 'auth_token',
+        aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+      );
+    } catch (e) {
+      print('Error deleting from secure storage: $e');
+    }
   }
 
   /// Check if user is authenticated
   Future<bool> isAuthenticated() async {
-    final token = await getAuthToken();
+    final token = await _safeRead('auth_token');
     return token != null && token.isNotEmpty;
   }
 
