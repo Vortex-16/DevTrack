@@ -1276,7 +1276,12 @@ export default function Projects() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {isRefreshing && !stats.totalProjects && !stats.activeProjects ? (
-            <SkeletonStats />
+            <>
+              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+            </>
           ) : (
             <>
               <StatCard
