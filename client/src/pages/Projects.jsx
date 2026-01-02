@@ -5,6 +5,8 @@ import ProfessionalLoader from "../components/ui/ProfessionalLoader";
 import { useState, useEffect, useRef } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCache } from "../context/CacheContext";
+import Skeleton, { SkeletonCard, SkeletonStats } from "../components/ui/Skeleton";
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -136,9 +138,8 @@ function ProjectCard({
       className="group"
     >
       <div
-        className={`rounded-2xl p-6 border ${
-          isExpanded ? "border-purple-500/50" : "border-white/10"
-        } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
+        className={`rounded-2xl p-6 border ${isExpanded ? "border-purple-500/50" : "border-white/10"
+          } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
         style={{
           background:
             "linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))",
@@ -163,9 +164,8 @@ function ProjectCard({
               </motion.span>
             </div>
             <p
-              className={`text-slate-400 text-sm ${
-                isExpanded ? "" : "truncate"
-              }`}
+              className={`text-slate-400 text-sm ${isExpanded ? "" : "truncate"
+                }`}
             >
               {project.description || "No description"}
             </p>
@@ -643,11 +643,10 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: false })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
-              !newRepoData.isPrivate
-                ? "border-purple-500 bg-purple-500/10"
-                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-            }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${!newRepoData.isPrivate
+              ? "border-purple-500 bg-purple-500/10"
+              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+              }`}
           >
             <p className="font-medium text-white">🌍 Public</p>
             <p className="text-xs text-slate-400">Anyone can see</p>
@@ -655,11 +654,10 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: true })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
-              newRepoData.isPrivate
-                ? "border-purple-500 bg-purple-500/10"
-                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-            }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${newRepoData.isPrivate
+              ? "border-purple-500 bg-purple-500/10"
+              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+              }`}
           >
             <p className="font-medium text-white">🔒 Private</p>
             <p className="text-xs text-slate-400">Only you</p>
@@ -744,11 +742,10 @@ function ProjectForm({
               key={status}
               type="button"
               onClick={() => setFormData({ ...formData, status })}
-              className={`p-2 rounded-xl border text-xs font-medium transition-all ${
-                formData.status === status
-                  ? "bg-purple-500/20 border-purple-500 text-white"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
-              }`}
+              className={`p-2 rounded-xl border text-xs font-medium transition-all ${formData.status === status
+                ? "bg-purple-500/20 border-purple-500 text-white"
+                : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
+                }`}
             >
               {status}
             </button>
@@ -824,8 +821,8 @@ function ProjectForm({
           {analyzing
             ? "🔍 Analyzing..."
             : isEdit
-            ? "Save Changes"
-            : "Create Project"}
+              ? "Save Changes"
+              : "Create Project"}
         </Button>
       </div>
     </form>
@@ -834,92 +831,101 @@ function ProjectForm({
 
 // Success Tick Component (Google Pay Style)
 function SuccessTick() {
-    return (
-        <motion.div
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+    >
+      <div className="relative flex flex-col items-center justify-center transform -translate-y-8">
+        {/* Icon Container to ensure concentricity */}
+        <div className="relative flex items-center justify-center mb-8">
+          {/* Ripple Effect */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {[1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: [0, 0.6, 0],
+                  scale: [0.8, 2.5]
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  delay: i * 0.6,
+                  ease: "easeInOut"
+                }}
+                className="absolute w-28 h-28 bg-emerald-500/30 rounded-full"
+              />
+            ))}
+          </div>
+
+          {/* Main Circle Pop */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 20,
+              delay: 0.1
+            }}
+            className="w-28 h-28 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(16,185,129,0.6)] border-4 border-slate-900"
+          >
+            <svg className="w-14 h-14 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+              <motion.path
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.3, duration: 0.4, ease: "easeInOut" }}
+                d="M5 13l4 4L19 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </motion.div>
+        </div>
+
+        {/* Text below */}
+        <div className="text-center z-20">
+          <motion.h3
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-3xl font-bold text-white mb-2 tracking-tight"
+          >
+            Completed!
+          </motion.h3>
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
-        >
-            <div className="relative flex flex-col items-center justify-center transform -translate-y-8">
-                {/* Icon Container to ensure concentricity */}
-                <div className="relative flex items-center justify-center mb-8">
-                    {/* Ripple Effect */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        {[1, 2, 3].map((i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ 
-                                    opacity: [0, 0.6, 0], 
-                                    scale: [0.8, 2.5] 
-                                }}
-                                transition={{
-                                    duration: 2.5,
-                                    repeat: Infinity,
-                                    delay: i * 0.6,
-                                    ease: "easeInOut"
-                                }}
-                                className="absolute w-28 h-28 bg-emerald-500/30 rounded-full"
-                            />
-                        ))}
-                    </div>
-
-                    {/* Main Circle Pop */}
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 20,
-                            delay: 0.1
-                        }}
-                        className="w-28 h-28 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(16,185,129,0.6)] border-4 border-slate-900"
-                    >
-                        <svg className="w-14 h-14 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                            <motion.path
-                                initial={{ pathLength: 0 }}
-                                animate={{ pathLength: 1 }}
-                                transition={{ delay: 0.3, duration: 0.4, ease: "easeInOut" }}
-                                d="M5 13l4 4L19 7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </motion.div>
-                </div>
-
-                {/* Text below */}
-                <div className="text-center z-20">
-                    <motion.h3
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="text-3xl font-bold text-white mb-2 tracking-tight"
-                    >
-                        Completed!
-                    </motion.h3>
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                        className="text-slate-400 font-medium"
-                    >
-                        Project marked as done
-                    </motion.p>
-                </div>
-            </div>
-        </motion.div>
-    )
+            transition={{ delay: 0.6 }}
+            className="text-slate-400 font-medium"
+          >
+            Project marked as done
+          </motion.p>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { getCachedData, setCachedData, hasCachedData } = useCache();
+
+  // Initialize from cache
+  const cachedData = getCachedData('projects_data') || {};
+
+  const [projects, setProjects] = useState(cachedData.projects || []);
+  const [loading, setLoading] = useState(!hasCachedData('projects_data'));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [stats, setStats] = useState(cachedData.stats || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 });
+
+  const [showModal, setShowModal] = useState(false);
+
   const [expandedProjectId, setExpandedProjectId] = useState(null);
   const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -927,12 +933,6 @@ export default function Projects() {
   const [completeConfirm, setCompleteConfirm] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
-  const [stats, setStats] = useState({
-    totalProjects: 0,
-    activeProjects: 0,
-    completedProjects: 0,
-    totalCommits: 0,
-  });
 
   const defaultFormData = {
     name: "",
@@ -944,28 +944,38 @@ export default function Projects() {
   const [formData, setFormData] = useState(defaultFormData);
 
   useEffect(() => {
-    fetchProjects();
-    fetchStats();
+    fetchData();
   }, []);
 
-  const fetchProjects = async (silent = false) => {
+  const fetchData = async () => {
     try {
-      if (!silent) setLoading(true);
-      const response = await projectsApi.getAll({ limit: 50 });
-      setProjects(response.data.data.projects || []);
+      if (!hasCachedData('projects_data')) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+
+      const [projectsRes, statsRes] = await Promise.all([
+        projectsApi.getAll({ limit: 50 }),
+        projectsApi.getStats()
+      ]);
+
+      const newProjects = projectsRes.data.data.projects || [];
+      const newStats = statsRes.data.data || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 };
+
+      setProjects(newProjects);
+      setStats(newStats);
+
+      // Cache data
+      setCachedData('projects_data', {
+        projects: newProjects,
+        stats: newStats
+      });
     } catch (err) {
       setError(err.message);
     } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await projectsApi.getStats();
-      setStats(response.data.data || {});
-    } catch (err) {
-      console.error("Error fetching stats:", err);
+      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -1033,7 +1043,7 @@ export default function Projects() {
         .split(",")
         .map((t) => t.trim())
         .filter((t) => t);
-      
+
       // Basic project data
       let projectData = { ...formData, technologies: techArray };
       const hasRepo = !!formData.repositoryUrl;
@@ -1043,11 +1053,12 @@ export default function Projects() {
       const createResponse = await projectsApi.create(projectData);
       const newProjectId = createResponse.data?.data?.project?.id || createResponse.data?.data?.id;
 
-      // 2. Close modal and refresh list immediately
+      // 2. Close modal and refresh      // 4. Clean up
       setShowModal(false);
       setFormData(defaultFormData);
-      await fetchProjects(true);
-      fetchStats();
+
+      // 5. Fetch latest
+      await fetchData();
 
       // 3. If repo exists, perform AI analysis in background
       if (hasRepo && newProjectId) {
@@ -1058,16 +1069,15 @@ export default function Projects() {
             // Optional: Show some global global loading indicator or toast if needed
             // But for now we just update silently and refresh when done
             const analysisData = await analyzeWithGitHub(projectData.repositoryUrl);
-            
+
             if (analysisData) {
-               // Update the project with the analysis results
-               await projectsApi.update(newProjectId, {
-                  ...analysisData,
-                  technologies: analysisData.technologies.length > 0 ? analysisData.technologies : projectData.technologies
-               });
-               // Refresh list to show new data
-               fetchProjects(true);
-               fetchStats();
+              // Update the project with the analysis results
+              await projectsApi.update(newProjectId, {
+                ...analysisData,
+                technologies: analysisData.technologies.length > 0 ? analysisData.technologies : projectData.technologies
+              });
+              // Refresh list to show new data
+              fetchData();
             }
           } catch (bgErr) {
             console.error("Background analysis failed:", bgErr);
@@ -1080,8 +1090,8 @@ export default function Projects() {
       console.error("Error creating project:", err);
       alert("Failed to create project");
     } finally {
-        setLoading(false);
-        setAnalyzing(false);
+      setLoading(false);
+      setAnalyzing(false);
     }
   };
 
@@ -1099,7 +1109,7 @@ export default function Projects() {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    
+
     // 1. Prepare Data
     const techArray = formData.technologies
       .split(",")
@@ -1110,47 +1120,45 @@ export default function Projects() {
     const projectId = editingProject.id;
 
     try {
-        // 2. Trigger Full-Page "Loading..." Animation
-        setLoading(true);
+      // 2. Trigger Full-Page "Loading..." Animation
+      setLoading(true);
 
-        // 3. Perform Basic Update
-        await projectsApi.update(projectId, updateData);
-        
-        // 4. Clean up UI states
-        setShowEditModal(false);
-        setEditingProject(null);
-        setFormData(defaultFormData);
-        
-        // 5. Fetch latest data (still under loading state or silent)
-        await fetchProjects(true);
-        fetchStats();
+      // 3. Perform Basic Update
+      await projectsApi.update(projectId, updateData);
 
-        // 6. Stop Full-Page Loading
-        setLoading(false);
+      // 4. Clean up UI states
+      setShowEditModal(false);
+      setEditingProject(null);
+      setFormData(defaultFormData);
 
-        // 7. Background Analysis (if needed)
-        if (needsAnalysis) {
-             (async () => {
-                 try {
-                     setIsBackgroundProcessing(true);
-                     const analysisData = await analyzeWithGitHub(updateData.repositoryUrl);
-                     if (analysisData) {
-                         await projectsApi.update(projectId, analysisData);
-                         fetchProjects(true); 
-                         fetchStats();
-                     }
-                 } catch (err) {
-                     console.error("Background analysis failed:", err);
-                 } finally {
-                     setIsBackgroundProcessing(false);
-                 }
-             })();
-        }
+      // 5. Fetch latest data (still under loading state or silent)
+      await fetchData();
+
+      // 6. Stop Full-Page Loading
+      setLoading(false);
+
+      // 7. Background Analysis (if needed)
+      if (needsAnalysis) {
+        (async () => {
+          try {
+            setIsBackgroundProcessing(true);
+            const analysisData = await analyzeWithGitHub(updateData.repositoryUrl);
+            if (analysisData) {
+              await projectsApi.update(projectId, analysisData);
+              fetchData();
+            }
+          } catch (err) {
+            console.error("Background analysis failed:", err);
+          } finally {
+            setIsBackgroundProcessing(false);
+          }
+        })();
+      }
 
     } catch (err) {
-        console.error("Error updating project:", err);
-        alert("Failed to update project");
-        setLoading(false);
+      console.error("Error updating project:", err);
+      alert("Failed to update project");
+      setLoading(false);
     }
   };
 
@@ -1158,8 +1166,7 @@ export default function Projects() {
     try {
       await projectsApi.delete(projectId);
       setDeleteConfirm(null);
-      fetchProjects();
-      fetchStats();
+      fetchData();
     } catch (err) {
       console.error("Error deleting project:", err);
       alert("Failed to delete project");
@@ -1184,8 +1191,7 @@ export default function Projects() {
           progress: analysisData.progress,
           aiAnalysis: analysisData.aiAnalysis,
         });
-        fetchProjects();
-        fetchStats();
+        fetchData();
       }
     } catch (err) {
       console.error("Error re-analyzing project:", err);
@@ -1204,26 +1210,24 @@ export default function Projects() {
     // Optimistic UI: Show success immediately
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3500);
-    
+
     const projectId = completeConfirm.id;
     setCompleteConfirm(null);
 
     (async () => {
-        setIsBackgroundProcessing(true);
-        try {
-          // Only update status, preserve progress for undo capability
-          await projectsApi.update(projectId, {
-            status: "Completed",
-          });
-    
-          fetchProjects(true);
-          fetchStats();
-        } catch (err) {
-          console.error("Error completing project:", err);
-          alert("Failed to update project status");
-        } finally {
-            setIsBackgroundProcessing(false);
-        }
+      setIsBackgroundProcessing(true);
+      try {
+        // Only update status, preserve progress for undo capability
+        await projectsApi.update(projectId, {
+          status: "Completed",
+        });
+        fetchData();
+      } catch (err) {
+        console.error("Error completing project:", err);
+        alert("Failed to update project status");
+      } finally {
+        setIsBackgroundProcessing(false);
+      }
     })();
   };
 
@@ -1282,34 +1286,40 @@ export default function Projects() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            icon="📁"
-            label="Total Projects"
-            value={stats.totalProjects || 0}
-            color="purple"
-            delay={0.1}
-          />
-          <StatCard
-            icon="🚀"
-            label="Active"
-            value={stats.activeProjects || 0}
-            color="green"
-            delay={0.15}
-          />
-          <StatCard
-            icon="✅"
-            label="Completed"
-            value={stats.completedProjects || 0}
-            color="cyan"
-            delay={0.2}
-          />
-          <StatCard
-            icon="📊"
-            label="Total Commits"
-            value={stats.totalCommits || 0}
-            color="orange"
-            delay={0.25}
-          />
+          {isRefreshing && !stats.totalProjects && !stats.activeProjects ? (
+            <SkeletonStats />
+          ) : (
+            <>
+              <StatCard
+                icon="📁"
+                label="Total Projects"
+                value={stats.totalProjects || 0}
+                color="purple"
+                delay={0.1}
+              />
+              <StatCard
+                icon="🚀"
+                label="Active"
+                value={stats.activeProjects || 0}
+                color="green"
+                delay={0.15}
+              />
+              <StatCard
+                icon="✅"
+                label="Completed"
+                value={stats.completedProjects || 0}
+                color="cyan"
+                delay={0.2}
+              />
+              <StatCard
+                icon="📊"
+                label="Total Commits"
+                value={stats.totalCommits || 0}
+                color="orange"
+                delay={0.25}
+              />
+            </>
+          )}
         </div>
 
         {/* Error State */}
@@ -1355,7 +1365,13 @@ export default function Projects() {
         )}
 
         {/* Projects Grid */}
-        {projects.length > 0 && (
+        {isRefreshing && projects.length === 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        ) : projects.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {projects.map((project, index) => (
               <ProjectCard
@@ -1474,24 +1490,24 @@ export default function Projects() {
           analyzing={analyzing}
         />
       </Modal>
-        {/* Background Processing Indicator */}
-        <AnimatePresence>
-            {isBackgroundProcessing && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-white/10 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg backdrop-blur-md"
-                >
-                    <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm font-medium text-slate-300">Processing...</span>
-                </motion.div>
-            )}
-        </AnimatePresence>
+      {/* Background Processing Indicator */}
+      <AnimatePresence>
+        {isBackgroundProcessing && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-white/10 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg backdrop-blur-md"
+          >
+            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm font-medium text-slate-300">Processing...</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <AnimatePresence>
-            {showSuccess && <SuccessTick />}
-        </AnimatePresence>
+      <AnimatePresence>
+        {showSuccess && <SuccessTick />}
+      </AnimatePresence>
     </motion.div>
   );
 }

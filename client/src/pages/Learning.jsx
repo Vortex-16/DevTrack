@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/clerk-react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { useCache } from '../context/CacheContext'
 import { motion, AnimatePresence } from 'framer-motion'
+import Skeleton, { SkeletonStats, SkeletonActivity } from '../components/ui/Skeleton'
 
 // Helper to format dates
 const formatDate = (date) => {
@@ -224,13 +225,19 @@ function Modal({ isOpen, onClose, title, children }) {
 
 export default function Learning() {
     const { isLoaded, isSignedIn, getToken } = useAuth()
-    const { hasCachedData, setCachedData } = useCache()
-    const [learningEntries, setLearningEntries] = useState([])
-    const [loading, setLoading] = useState(!hasCachedData('learning'))
+    const { getCachedData, setCachedData, hasCachedData } = useCache()
+
+    // Initialize from cache
+    const cachedData = getCachedData('learning_data') || {}
+
+    const [learningEntries, setLearningEntries] = useState(cachedData.entries || [])
+    const [stats, setStats] = useState(cachedData.stats || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 })
+
+    const [loading, setLoading] = useState(!hasCachedData('learning_data'))
+    const [isRefreshing, setIsRefreshing] = useState(false)
     const [error, setError] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [editingEntry, setEditingEntry] = useState(null)
-    const [stats, setStats] = useState({ totalLogs: 0, currentStreak: 0, uniqueDays: 0 })
     const [deleteConfirm, setDeleteConfirm] = useState(null)
 
     const defaultFormData = {
@@ -246,42 +253,51 @@ export default function Learning() {
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-            fetchLogs()
-            fetchStats()
+            fetchData()
         }
     }, [isLoaded, isSignedIn])
 
-    const fetchLogs = async () => {
+    const fetchData = async () => {
         try {
-            if (!hasCachedData('learning')) setLoading(true)
+            if (!hasCachedData('learning_data')) {
+                setLoading(true)
+            } else {
+                setIsRefreshing(true)
+            }
+
             const token = await getToken({ skipCache: true })
             if (!token) {
                 setLoading(false)
+                setIsRefreshing(false)
                 return
             }
-            const response = await logsApi.getAll(
-                { limit: 50 },
-                { headers: { Authorization: `Bearer ${token}` } }
-            )
-            setLearningEntries(response.data.data.logs || [])
+
+            const [logsRes, statsRes] = await Promise.all([
+                logsApi.getAll(
+                    { limit: 50 },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                ),
+                logsApi.getStats({
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            ])
+
+            const newEntries = logsRes.data.data.logs || []
+            const newStats = statsRes.data.data || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 }
+
+            setLearningEntries(newEntries)
+            setStats(newStats)
+
+            // Cache data
+            setCachedData('learning_data', {
+                entries: newEntries,
+                stats: newStats
+            })
         } catch (err) {
             setError(err.message)
         } finally {
             setLoading(false)
-            if (!error) setCachedData('learning', true)
-        }
-    }
-
-    const fetchStats = async () => {
-        try {
-            const token = await getToken({ skipCache: true })
-            if (!token) return
-            const response = await logsApi.getStats({
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            setStats(response.data.data || {})
-        } catch (err) {
-            console.error('Error fetching stats:', err)
+            setIsRefreshing(false)
         }
     }
 
@@ -326,8 +342,7 @@ export default function Learning() {
             }
 
             closeModal()
-            fetchLogs()
-            fetchStats()
+            fetchData()
         } catch (err) {
             console.error('Error saving log:', err)
             alert(`Failed to ${editingEntry ? 'update' : 'create'} log entry`)
@@ -338,8 +353,7 @@ export default function Learning() {
         try {
             await logsApi.delete(id)
             setDeleteConfirm(null)
-            fetchLogs()
-            fetchStats()
+            fetchData()
         } catch (err) {
             console.error('Error deleting log:', err)
             alert('Failed to delete log entry')
@@ -384,9 +398,19 @@ export default function Learning() {
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <StatCard icon="📚" label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
-                    <StatCard icon="🔥" label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
-                    <StatCard icon="📅" label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
+                    {isRefreshing && !stats.totalLogs && !stats.currentStreak ? (
+                        <>
+                            <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+                            <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+                            <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+                        </>
+                    ) : (
+                        <>
+                            <StatCard icon="📚" label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
+                            <StatCard icon="🔥" label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
+                            <StatCard icon="📅" label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
+                        </>
+                    )}
                 </div>
 
                 {/* Error State */}
@@ -419,7 +443,16 @@ export default function Learning() {
                 )}
 
                 {/* Entries List */}
-                {learningEntries.length > 0 && (
+                {isRefreshing && learningEntries.length === 0 ? (
+                    <div className="space-y-4">
+                        <Skeleton variant="title" className="h-6 w-48 mb-6" />
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="rounded-2xl p-5 border border-white/10 bg-white/5">
+                                <SkeletonActivity />
+                            </div>
+                        ))}
+                    </div>
+                ) : learningEntries.length > 0 && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
@@ -547,8 +580,8 @@ export default function Learning() {
                                     type="button"
                                     onClick={() => setFormData({ ...formData, mood: mood.value })}
                                     className={`p-3 rounded-xl border transition-all ${formData.mood === mood.value
-                                            ? 'bg-purple-500/20 border-purple-500 text-white'
-                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                                        ? 'bg-purple-500/20 border-purple-500 text-white'
+                                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                                         }`}
                                 >
                                     <div className="text-xl mb-1">{mood.emoji}</div>
