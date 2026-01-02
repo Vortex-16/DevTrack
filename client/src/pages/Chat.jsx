@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import Lenis from 'lenis'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useUser } from '@clerk/clerk-react'
 
 // Custom styled markdown renderer
 const MarkdownMessage = ({ content }) => {
@@ -67,6 +68,7 @@ const MarkdownMessage = ({ content }) => {
 // Message Bubble Component
 function MessageBubble({ message, idx }) {
     const isUser = message.role === 'user'
+    const { user } = useUser()
 
     return (
         <motion.div
@@ -82,7 +84,9 @@ function MessageBubble({ message, idx }) {
                         ? 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/20 text-sm'
                         : 'bg-white/10 border border-white/10'}`}
                 >
-                    {isUser ? '👤' : <img src="/DevTrack.png" alt="AI" className="w-full h-full object-cover" />}
+                    {isUser
+                        ? (user?.imageUrl ? <img src={user.imageUrl} alt="User" className="w-full h-full object-cover" /> : '👤')
+                        : <img src="/DevTrack.png" alt="AI" className="w-full h-full object-cover" />}
                 </div>
 
                 {/* Message Content */}
