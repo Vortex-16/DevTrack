@@ -556,15 +556,7 @@ const Onboarding = () => {
             </div>
 
             <div className="w-full max-w-lg relative z-10">
-                {/* Skip button */}
-                {step > 0 && step < 6 && (
-                    <button
-                        onClick={handleSkip}
-                        className="absolute -top-12 right-0 text-slate-500 hover:text-slate-300 text-sm transition-colors"
-                    >
-                        Skip for now →
-                    </button>
-                )}
+
 
                 {/* Progress bar */}
                 {step > 0 && <ProgressBar currentStep={step - 1} totalSteps={6} />}
