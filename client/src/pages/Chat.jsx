@@ -8,6 +8,7 @@ import Lenis from 'lenis'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
+import { Plus, Target, BookOpen, Dumbbell, BarChart2, Zap, Send, User, ArrowDown, Bot } from 'lucide-react'
 
 // Custom styled markdown renderer
 const MarkdownMessage = ({ content }) => {
@@ -85,7 +86,7 @@ function MessageBubble({ message, idx }) {
                         : 'bg-white/10 border border-white/10'}`}
                 >
                     {isUser
-                        ? (user?.imageUrl ? <img src={user.imageUrl} alt="User" className="w-full h-full object-cover" /> : '👤')
+                        ? (user?.imageUrl ? <img src={user.imageUrl} alt="User" className="w-full h-full object-cover" /> : <User size={18} className="text-white" />)
                         : <img src="/DevTrack.png" alt="AI" className="w-full h-full object-cover" />}
                 </div>
 
@@ -107,20 +108,21 @@ function MessageBubble({ message, idx }) {
     )
 }
 
-// Quick Prompt Button
-function QuickPromptButton({ label, onClick, disabled }) {
+// Quick PromptButton
+function QuickPromptButton({ icon, label, onClick, disabled }) {
     return (
         <motion.button
             onClick={onClick}
             disabled={disabled}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2
                 ${disabled
                     ? 'bg-white/5 text-slate-500 cursor-not-allowed'
                     : 'bg-white/5 text-slate-300 hover:bg-purple-500/20 hover:text-purple-400 border border-white/10 hover:border-purple-500/30'}`}
             whileHover={!disabled ? { scale: 1.02 } : {}}
             whileTap={!disabled ? { scale: 0.98 } : {}}
         >
-            {label}
+            {icon}
+            <span>{label}</span>
         </motion.button>
     )
 }
@@ -377,10 +379,10 @@ export default function Chat() {
     }
 
     const quickPrompts = [
-        { label: '🎯 Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
-        { label: '📚 What to learn?', prompt: 'What should I learn next to improve my skills?' },
-        { label: '💪 Motivate me', prompt: 'Give me a motivational message based on my progress.' },
-        { label: '📊 Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
+        { icon: <Target size={16} className="text-purple-400" />, label: 'Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
+        { icon: <BookOpen size={16} className="text-blue-400" />, label: 'What to learn?', prompt: 'What should I learn next to improve my skills?' },
+        { icon: <Dumbbell size={16} className="text-emerald-400" />, label: 'Motivate me', prompt: 'Give me a motivational message based on my progress.' },
+        { icon: <BarChart2 size={16} className="text-orange-400" />, label: 'Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
     ]
 
     return (
@@ -426,7 +428,7 @@ export default function Chat() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2 border-white/5 hover:bg-white/10 bg-white/5 rounded-full px-4"
+                            className="flex items-center gap-2 border-white/5 hover:bg-white/10 bg-white/5 rounded-full px-4"
                             onClick={() => {
                                 setMessages([{
                                     role: 'assistant',
@@ -434,7 +436,8 @@ export default function Chat() {
                                 }]);
                             }}
                         >
-                            <span>➕</span> New Chat
+                            <Plus size={16} />
+                            <span>New Chat</span>
                         </Button>
                     </div>
                 </div>
@@ -444,6 +447,7 @@ export default function Chat() {
                     {quickPrompts.map((qp, idx) => (
                         <QuickPromptButton
                             key={idx}
+                            icon={qp.icon}
                             label={qp.label}
                             onClick={() => setInput(qp.prompt)}
                             disabled={loading}
@@ -478,9 +482,7 @@ export default function Chat() {
                             onClick={scrollToBottom}
                             className="absolute bottom-24 right-8 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg shadow-purple-900/50 border border-purple-400/30 z-20 transition-colors"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
+                            <ArrowDown size={20} />
                         </motion.button>
                     )}
                 </AnimatePresence>
@@ -508,12 +510,10 @@ export default function Chat() {
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                             >
-                                ⚡
+                                <Zap size={18} />
                             </motion.div>
                         ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
+                            <Send size={18} />
                         )}
                     </Button>
                 </form>
