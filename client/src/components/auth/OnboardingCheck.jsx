@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { preferencesApi } from '../../services/api';
+import ProfessionalLoader from '../ui/ProfessionalLoader';
 
 /**
  * OnboardingCheck Component
@@ -27,7 +28,7 @@ const OnboardingCheck = ({ children }) => {
     if (!checked && isSignedIn) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
+                <ProfessionalLoader size="lg" />
             </div>
         );
     }

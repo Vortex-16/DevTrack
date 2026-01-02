@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react"
 import { useEffect, useState } from 'react'
 import AppLayout from './components/layout/AppLayout'
+import ProfessionalLoader from './components/ui/ProfessionalLoader'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Learning from './pages/Learning'
@@ -60,10 +61,7 @@ function OnboardingRedirect({ children }) {
     if (checking && isSignedIn) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-                    <p className="text-slate-400">Loading...</p>
-                </div>
+                <ProfessionalLoader size="lg" />
             </div>
         )
     }

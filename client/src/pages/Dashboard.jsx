@@ -12,6 +12,7 @@ import { useUser } from '@clerk/clerk-react'
 import { Brain, Github, GitCommitHorizontal, Lightbulb } from 'lucide-react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { useCache } from '../context/CacheContext'
+import Skeleton, { SkeletonCard, SkeletonStats, SkeletonActivity } from '../components/ui/Skeleton'
 
 // Helper to format dates for display
 const formatDate = (date) => {
@@ -449,14 +450,20 @@ function GitHubIcon() {
 
 export default function Dashboard() {
     const { user, isLoaded, isSignedIn, getToken } = useUser()
-    const { hasCachedData, setCachedData } = useCache()
-    const [logStats, setLogStats] = useState(null)
-    const [projectStats, setProjectStats] = useState(null)
-    const [recentLogs, setRecentLogs] = useState([])
-    const [githubCommits, setGithubCommits] = useState([])
-    const [githubStreak, setGithubStreak] = useState(0)
+    const { getCachedData, setCachedData, hasCachedData } = useCache()
+
+    // Initialize from cache if available
+    const cachedData = getCachedData('dashboard_data') || {}
+
+    const [logStats, setLogStats] = useState(cachedData.logStats || null)
+    const [projectStats, setProjectStats] = useState(cachedData.projectStats || null)
+    const [recentLogs, setRecentLogs] = useState(cachedData.recentLogs || [])
+    const [githubCommits, setGithubCommits] = useState(cachedData.githubCommits || [])
+    const [githubStreak, setGithubStreak] = useState(cachedData.githubStreak || 0)
+
     const [githubUsername, setGithubUsername] = useState('')
-    const [loading, setLoading] = useState(!hasCachedData('dashboard'))
+    const [loading, setLoading] = useState(!hasCachedData('dashboard_data'))
+    const [isRefreshing, setIsRefreshing] = useState(false)
     const retriedGithub = useRef(false)
 
     useEffect(() => {
@@ -492,7 +499,12 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            if (!hasCachedData('dashboard')) setLoading(true)
+            if (!hasCachedData('dashboard_data')) {
+                setLoading(true)
+            } else {
+                setIsRefreshing(true)
+            }
+
             const [logStatsRes, projectStatsRes, logsRes, githubRes] = await Promise.all([
                 logsApi.getStats().catch(() => ({ data: { data: {} } })),
                 projectsApi.getStats().catch(() => ({ data: { data: {} } })),
@@ -500,18 +512,31 @@ export default function Dashboard() {
                 githubApi.getCommits(30).catch(() => ({ data: { data: { commits: [] } } }))
             ])
 
-            setLogStats(logStatsRes.data.data || {})
-            setProjectStats(projectStatsRes.data.data || {})
-            setRecentLogs(logsRes.data.data.logs || [])
-            setGithubCommits(githubRes.data?.data?.commits || [])
-            setGithubStreak(githubRes.data?.data?.streak || 0)
-            // Assuming activityData is derived or fetched elsewhere if needed for setStats
-            // For now, just setting cached data as per instruction
-            setCachedData('dashboard', true)
+            const newLogStats = logStatsRes.data.data || {}
+            const newProjectStats = projectStatsRes.data.data || {}
+            const newRecentLogs = logsRes.data.data.logs || []
+            const newGithubCommits = githubRes.data?.data?.commits || []
+            const newGithubStreak = githubRes.data?.data?.streak || 0
+
+            setLogStats(newLogStats)
+            setProjectStats(newProjectStats)
+            setRecentLogs(newRecentLogs)
+            setGithubCommits(newGithubCommits)
+            setGithubStreak(newGithubStreak)
+
+            // Cache the actual data object
+            setCachedData('dashboard_data', {
+                logStats: newLogStats,
+                projectStats: newProjectStats,
+                recentLogs: newRecentLogs,
+                githubCommits: newGithubCommits,
+                githubStreak: newGithubStreak
+            })
         } catch (error) {
             console.error("Dashboard: Error fetching data", error)
         } finally {
             setLoading(false)
+            setIsRefreshing(false)
         }
     }
 
@@ -612,11 +637,15 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
                             {/* Portfolio Card - spans 4 cols */}
                             <div className="lg:col-span-4">
-                                <PortfolioCard
-                                    totalLogs={logStats?.totalLogs || 0}
-                                    currentStreak={logStats?.currentStreak || 0}
-                                    logs={recentLogs}
-                                />
+                                {isRefreshing && !logStats ? (
+                                    <SkeletonCard />
+                                ) : (
+                                    <PortfolioCard
+                                        totalLogs={logStats?.totalLogs || 0}
+                                        currentStreak={logStats?.currentStreak || 0}
+                                        logs={recentLogs}
+                                    />
+                                )}
                             </div>
 
                             {/* Your Stats Section - spans 8 cols */}
@@ -624,43 +653,47 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-between mb-3">
                                     <h2 className="text-lg font-semibold text-white">Your Stats</h2>
                                 </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <AssetCard
-                                        icon={<Brain size={20} />}
-                                        title="Learning"
-                                        subtitle="Streak days"
-                                        value={logStats?.currentStreak || 0}
-                                        change={logStats?.currentStreak > 0 ? 14 : 0}
-                                        color="cyan"
-                                        delay={0.15}
-                                    />
-                                    <AssetCard
-                                        icon={<Github size={20} />}
-                                        title="GitHub"
-                                        subtitle="Commit streak"
-                                        value={githubStreak}
-                                        change={githubStreak > 0 ? 8 : 0}
-                                        color="purple"
-                                        delay={0.2}
-                                    />
-                                    <AssetCard
-                                        icon={<GitCommitHorizontal size={20} />}
-                                        title="Commits"
-                                        subtitle={`${projectStats?.totalProjects || 0} projects`}
-                                        value={projectStats?.totalCommits || 0}
-                                        change={27}
-                                        color="green"
-                                        delay={0.25}
-                                    />
-                                    <AssetCard
-                                        icon={<Lightbulb size={20} />}
-                                        title="Skills"
-                                        subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
-                                        value={uniqueTags.length}
-                                        color="orange"
-                                        delay={0.3}
-                                    />
-                                </div>
+                                {isRefreshing && !projectStats ? (
+                                    <SkeletonStats />
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <AssetCard
+                                            icon={<Brain size={20} />}
+                                            title="Learning"
+                                            subtitle="Streak days"
+                                            value={logStats?.currentStreak || 0}
+                                            change={logStats?.currentStreak > 0 ? 14 : 0}
+                                            color="cyan"
+                                            delay={0.15}
+                                        />
+                                        <AssetCard
+                                            icon={<Github size={20} />}
+                                            title="GitHub"
+                                            subtitle="Commit streak"
+                                            value={githubStreak}
+                                            change={githubStreak > 0 ? 8 : 0}
+                                            color="purple"
+                                            delay={0.2}
+                                        />
+                                        <AssetCard
+                                            icon={<GitCommitHorizontal size={20} />}
+                                            title="Commits"
+                                            subtitle={`${projectStats?.totalProjects || 0} projects`}
+                                            value={projectStats?.totalCommits || 0}
+                                            change={27}
+                                            color="green"
+                                            delay={0.25}
+                                        />
+                                        <AssetCard
+                                            icon={<Lightbulb size={20} />}
+                                            title="Skills"
+                                            subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
+                                            value={uniqueTags.length}
+                                            color="orange"
+                                            delay={0.3}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -668,7 +701,16 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
                             {/* Activity Table - spans 7 cols */}
                             <div className="lg:col-span-7">
-                                <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                {isRefreshing && recentLogs.length === 0 ? (
+                                    <div className="rounded-2xl p-4 border border-white/10 h-full bg-slate-900/50">
+                                        <Skeleton variant="title" className="mb-4" />
+                                        {[...Array(5)].map((_, i) => (
+                                            <SkeletonActivity key={i} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                )}
                             </div>
 
                             {/* Calendar - spans 5 cols */}
