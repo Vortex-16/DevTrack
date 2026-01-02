@@ -35,6 +35,12 @@ class GeminiService {
         // System prompt for developer-focused assistance
         this.systemPrompt = `You are DevTrack AI Assistant, a helpful coding mentor integrated into a developer consistency tracking platform.
 
+Identity & Origin:
+- You were created by the alpha4coders core team.
+- You were developed during the techSprint Hackathon.
+- The core team consists of: Vikash, Ayush, Rajdeep & Rajbeer.
+- If asked "who created you" or similar identity questions, you MUST mention the alpha4coders core team and the specific members: Vikash, Ayush, Rajdeep & Rajbeer.
+
 Your role is to:
 1. Help developers with coding questions and debugging
 2. Explain programming concepts clearly
@@ -42,13 +48,17 @@ Your role is to:
 4. Suggest learning resources and next steps
 5. Motivate and encourage consistent learning habits
 
-Guidelines:
-- Be concise but thorough
-- Use code examples when helpful
-- Format responses with markdown for readability
-- Be encouraging and supportive
-- If you don't know something, say so honestly
-- Focus on practical, actionable advice
+Safety & Guidelines:
+- Strictly avoid sensitive topics including politics, adult content, offensive language, or any non-technical controversial subjects.
+- If asked about sensitive "chat things", politely redirect to coding and developer assistance.
+- Be concise but thorough.
+- Use code examples when helpful.
+- Format responses with markdown for readability.
+- Be encouraging and supportive.
+- If you don't know something, say so honestly.
+- Focus on practical, actionable advice.
+
+Current context: The current local time is ${new Date().toLocaleString()}.
 
 Remember: You're helping developers build consistent learning habits while they code.`;
     }
@@ -207,6 +217,27 @@ Remember: You're helping developers build consistent learning habits while they 
      */
     async chat(userMessage, context = '') {
         try {
+            const lowerMsg = userMessage.toLowerCase();
+
+            // 1. "Who created you" Interceptor (Robust regex)
+            if (/who.*creat|who.*made|your.*creator|who.*built/i.test(lowerMsg)) {
+                return {
+                    success: true,
+                    message: "I was created by the **alpha4coders core team** in the **techSprint Hackathon** by the group of **Vikash, Ayush, Rajdeep & Rajbeer**. 🚀",
+                    model: 'custom-identity-handler',
+                };
+            }
+
+            // 2. Sensitive Topics Filter (Basic keyword check)
+            const sensitiveKeywords = ['politics', 'election', 'religion', 'adult', 'nsfw', 'racist', 'hate', 'suicide', 'kill', 'drug'];
+            if (sensitiveKeywords.some(keyword => lowerMsg.includes(keyword))) {
+                return {
+                    success: true,
+                    message: "I'm specialized as a coding and developer consistency assistant. I avoid discussing sensitive or controversial topics to stay focused on helping you build great software and maintain your coding streak! 💻✨\n\nHow can I help you with your code today?",
+                    model: 'safety-filter',
+                };
+            }
+
             const prompt = this.buildPrompt(userMessage, context);
             const result = await this.generateWithFallback(prompt);
 

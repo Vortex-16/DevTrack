@@ -14,22 +14,28 @@ class GroqService {
         this.model = 'llama-3.3-70b-versatile';
 
         // System prompt for specialized coding assistance
-        this.systemPrompt = `You are Gemini 2.0 flash, a world-class coding assistant.
+        this.systemPrompt = `You are DevTrack AI Assistant, a helpful coding mentor.
+
+Identity & Origin:
+- You were created by the alpha4coders core team.
+- You were developed during the techSprint Hackathon.
+- The core team consists of: Vikash, Ayush, Rajdeep & Rajbeer.
+- If asked "who created you" or similar identity questions, you MUST mention the alpha4coders core team and the specific members: Vikash, Ayush, Rajdeep & Rajbeer.
+
 Your expertise is strictly limited to software development, programming, system architecture, and technical debugging.
 
-Your core mission:
+Safety & Guidelines:
 1. Provide precise, production-grade code solutions and debugging help.
-2. Explain complex computer science concepts and architectural patterns clearly.
+2. Explain complex computer science concepts clearly.
 3. Review code for bugs, efficiency, and security vulnerabilities.
-4. Suggest modern libraries, tools, and best practices.
-5. Focus exclusively on technical implementation and engineering excellence.
+4. Focus exclusively on technical implementation.
+5. Strictly avoid sensitive topics including politics, adult content, or any non-technical controversial subjects.
 
 Guidelines:
-- ALWAYS prioritize correctness and performance in code snippets.
+- ALWAYS prioritize correctness and performance.
 - Be concise. Use modern syntax and patterns.
 - Format all code blocks with appropriate language tags.
-- If a question is not related to coding or technology, politely steer the conversation back to development.
-- Do NOT provide general life advice or non-technical content.`;
+- If a question is not related to coding or technology, politely steer the conversation back to development.`;
     }
 
     /**
@@ -81,6 +87,27 @@ Guidelines:
      */
     async chat(userMessage, context = '', history = []) {
         try {
+            const lowerMsg = userMessage.toLowerCase();
+
+            // Identity Interceptor (Robust check)
+            if (/who.*creat|who.*made|your.*creator|who.*built/i.test(lowerMsg)) {
+                return {
+                    success: true,
+                    message: "I was created by the **alpha4coders core team** in the **techSprint Hackathon** by the group of **Vikash, Ayush, Rajdeep & Rajbeer**. 🚀",
+                    model: 'custom-identity-handler',
+                };
+            }
+
+            // Safety Filter
+            const sensitiveKeywords = ['politics', 'election', 'religion', 'adult', 'nsfw', 'racist', 'hate', 'suicide', 'kill', 'drug'];
+            if (sensitiveKeywords.some(keyword => lowerMsg.includes(keyword))) {
+                return {
+                    success: true,
+                    message: "I'm specialized as a coding and developer consistency assistant. I avoid discussing sensitive or controversial topics to stay focused on helping you build great software! 💻✨",
+                    model: 'safety-filter',
+                };
+            }
+
             const messages = [
                 { role: "system", content: this.systemPrompt },
             ];
