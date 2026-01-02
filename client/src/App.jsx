@@ -12,6 +12,7 @@ import Onboarding from './pages/Onboarding'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
+import { CacheProvider } from './context/CacheContext'
 
 // Component that handles automatic onboarding redirect after signup
 function OnboardingRedirect({ children }) {
@@ -94,49 +95,51 @@ function App() {
     }, [])
 
     return (
-        <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={
-                <>
-                    <SignedOut>
-                        <Landing />
-                    </SignedOut>
+        <CacheProvider>
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={
+                    <>
+                        <SignedOut>
+                            <Landing />
+                        </SignedOut>
+                        <SignedIn>
+                            <OnboardingRedirect>
+                                <Navigate to="/dashboard" replace />
+                            </OnboardingRedirect>
+                        </SignedIn>
+                    </>
+                } />
+
+                {/* Onboarding Route (Protected) */}
+                <Route path="/onboarding" element={
+                    <SignedIn>
+                        <Onboarding />
+                    </SignedIn>
+                } />
+
+                {/* Protected Routes */}
+                <Route element={
                     <SignedIn>
                         <OnboardingRedirect>
-                            <Navigate to="/dashboard" replace />
+                            <AppLayout />
                         </OnboardingRedirect>
                     </SignedIn>
-                </>
-            } />
+                }>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/learning" element={<Learning />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/system-info" element={<SystemInfo />} />
+                </Route>
 
-            {/* Onboarding Route (Protected) */}
-            <Route path="/onboarding" element={
-                <SignedIn>
-                    <Onboarding />
-                </SignedIn>
-            } />
+                {/* Preview Landing Page (for testing while signed in) */}
+                <Route path="/preview-landing" element={<Landing />} />
 
-            {/* Protected Routes */}
-            <Route element={
-                <SignedIn>
-                    <OnboardingRedirect>
-                        <AppLayout />
-                    </OnboardingRedirect>
-                </SignedIn>
-            }>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/learning" element={<Learning />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/system-info" element={<SystemInfo />} />
-            </Route>
-
-            {/* Preview Landing Page (for testing while signed in) */}
-            <Route path="/preview-landing" element={<Landing />} />
-
-            {/* Catch all - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+                {/* Catch all - redirect to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </CacheProvider>
     )
 }
 

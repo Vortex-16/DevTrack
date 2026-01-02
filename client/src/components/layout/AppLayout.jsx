@@ -17,29 +17,12 @@ export default function AppLayout() {
                             <motion.main
                                 key={location.pathname}
                                 className="relative"
-                                initial="initial"
-                                animate="animate"
-                                exit="exit"
+                                initial={{ opacity: 0, scale: 0.99, filter: "blur(5px)" }}
+                                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                                exit={{ opacity: 0, scale: 1.01, filter: "blur(5px)" }}
+                                transition={{ duration: 0.25, ease: "easeOut" }}
                             >
-                                {/* Page Content Animation */}
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.98, filter: "blur(10px)" }}
-                                    animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                                    exit={{ opacity: 0, scale: 1.02, filter: "blur(10px)" }}
-                                    transition={{ duration: 0.4, ease: "easeInOut", delay: 0.1 }}
-                                >
-                                    <Outlet />
-                                </motion.div>
-
-                                {/* Curtain Wipe Overlay */}
-                                <motion.div
-                                    className="fixed inset-0 bg-primary-600/90 z-50 pointer-events-none"
-                                    initial={{ scaleY: 1 }}
-                                    animate={{ scaleY: 0 }}
-                                    exit={{ scaleY: 1 }}
-                                    style={{ originY: 0 }}
-                                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                                />
+                                <Outlet />
                             </motion.main>
                         </AnimatePresence>
                     </div>

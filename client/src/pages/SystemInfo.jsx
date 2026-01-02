@@ -2,6 +2,9 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 
 const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -42,6 +45,27 @@ function RuleItem({ number, title, description }) {
 }
 
 export default function SystemInfo() {
+    const { hasCachedData, setCachedData } = useCache()
+    const [loading, setLoading] = useState(!hasCachedData('system-info'))
+
+    useEffect(() => {
+        if (loading) {
+            const timer = setTimeout(() => {
+                setLoading(false)
+                setCachedData('system-info', true)
+            }, 800) // Small artificial delay for first load only
+            return () => clearTimeout(timer)
+        }
+    }, [loading, setCachedData])
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <ProfessionalLoader size="lg" />
+            </div>
+        )
+    }
+
     return (
         <motion.div
             className="space-y-8 max-w-4xl mx-auto"
