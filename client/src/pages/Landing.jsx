@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SignInButton } from "@clerk/clerk-react";
+import { Github, Linkedin } from "lucide-react";
+
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -131,19 +133,32 @@ const steps = [
 
 // Social links
 const socialLinks = [
-  { name: "GitHub", url: "https://github.com", icon: "⚡" },
-  { name: "Discord", url: "https://discord.gg/5Jyt4sQPR", icon: "💬" },
   {
-    name: "Website",
+    name: "GitHub",
+    url: "https://github.com",
+    icon: <Github className="w-4 h-4" />
+  },
+  {
+    name: "Discord",
+    url: "https://discord.gg/5Jyt4sQPR",
+    icon: (
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.947 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.086 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z" />
+      </svg>
+    )
+  },
+  {
+    name: "Alpha Coder",
     url: "https://alphacoders-official.vercel.app",
-    icon: "🌐",
+    icon: <img src="/AlphaCoders.jpg" alt="Alpha Coders" className="w-5 h-5 rounded-full object-cover" />,
   },
   {
     name: "LinkedIn",
     url: "https://www.linkedin.com/company/alpha4coders/",
-    icon: "💼",
+    icon: <Linkedin className="w-4 h-4" />,
   },
 ];
+
 
 // Floating code lines
 const codeLines = [
@@ -240,194 +255,194 @@ function NeonText({ children, color = "cyan" }) {
 
 const CodeAnimation = ({ size }) => (
   <div className="absolute right-4 bottom-4 w-32 h-24 pointer-events-none overflow-visible">
-     {/* Moving Terminal Window */}
-     <motion.div 
-        className="absolute bg-slate-900/5 border border-slate-700/20 rounded-lg overflow-hidden shadow-lg w-full h-full origin-bottom-right"
-        initial={{ y: 5, rotate: 2 }}
-        animate={{ 
-            y: [5, 0, 5],
-            rotate: [2, 0, 2],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-     >
-         {/* Header */}
-         <div className="h-5 bg-slate-800/20 flex items-center px-2 gap-1.5">
-             <div className="w-1.5 h-1.5 rounded-full bg-red-500/40" />
-             <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/40" />
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500/40" />
-         </div>
-         {/* Body */}
-         <div className="p-2 space-y-1.5 font-mono text-[8px] opacity-60">
-             <div className="flex items-center gap-1">
-                 <span className="text-green-400/60">➜</span>
-                 <span className="text-cyan-300/60">tracking...</span>
-             </div>
-             {/* Progress Bars */}
-             <div className="space-y-1">
-                 <div className="w-full h-1 bg-slate-700/20 rounded-full overflow-hidden">
-                     <motion.div className="h-full bg-green-500/50" animate={{ width: ["0%", "80%", "100%"] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
-                 </div>
-                 <div className="w-3/4 h-1 bg-slate-700/20 rounded-full overflow-hidden">
-                     <motion.div className="h-full bg-cyan-500/50" animate={{ width: ["0%", "60%", "90%"] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }} />
-                 </div>
-             </div>
-             <motion.div 
-                className="text-slate-400/60 text-[7px]"
-                animate={{ opacity: [0, 0.8, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-             >
-                 src/main.jsx linked
-             </motion.div>
-         </div>
-     </motion.div>
+    {/* Moving Terminal Window */}
+    <motion.div
+      className="absolute bg-slate-900/5 border border-slate-700/20 rounded-lg overflow-hidden shadow-lg w-full h-full origin-bottom-right"
+      initial={{ y: 5, rotate: 2 }}
+      animate={{
+        y: [5, 0, 5],
+        rotate: [2, 0, 2],
+      }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    >
+      {/* Header */}
+      <div className="h-5 bg-slate-800/20 flex items-center px-2 gap-1.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-red-500/40" />
+        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/40" />
+        <div className="w-1.5 h-1.5 rounded-full bg-green-500/40" />
+      </div>
+      {/* Body */}
+      <div className="p-2 space-y-1.5 font-mono text-[8px] opacity-60">
+        <div className="flex items-center gap-1">
+          <span className="text-green-400/60">➜</span>
+          <span className="text-cyan-300/60">tracking...</span>
+        </div>
+        {/* Progress Bars */}
+        <div className="space-y-1">
+          <div className="w-full h-1 bg-slate-700/20 rounded-full overflow-hidden">
+            <motion.div className="h-full bg-green-500/50" animate={{ width: ["0%", "80%", "100%"] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
+          </div>
+          <div className="w-3/4 h-1 bg-slate-700/20 rounded-full overflow-hidden">
+            <motion.div className="h-full bg-cyan-500/50" animate={{ width: ["0%", "60%", "90%"] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }} />
+          </div>
+        </div>
+        <motion.div
+          className="text-slate-400/60 text-[7px]"
+          animate={{ opacity: [0, 0.8, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          src/main.jsx linked
+        </motion.div>
+      </div>
+    </motion.div>
 
-     {/* Scanning Line Tracker */}
-     <motion.div
-        className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-400/50 to-transparent opacity-0 group-hover:opacity-100"
-        animate={{ top: ["10%", "90%", "10%"], opacity: [0, 1, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        style={{ boxShadow: "0 0 8px rgba(74, 222, 128, 0.3)" }}
-     />
+    {/* Scanning Line Tracker */}
+    <motion.div
+      className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-400/50 to-transparent opacity-0 group-hover:opacity-100"
+      animate={{ top: ["10%", "90%", "10%"], opacity: [0, 1, 0] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+      style={{ boxShadow: "0 0 8px rgba(74, 222, 128, 0.3)" }}
+    />
   </div>
 );
 
 const AIAnimation = () => (
   <div className="absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity duration-500">
-      <div className="relative w-full h-full">
-          {/* Robot Head */}
-          <motion.svg viewBox="0 0 100 100" className="w-full h-full text-purple-400">
-             <motion.path 
-                d="M20 40 Q 20 20 50 20 Q 80 20 80 40 V 80 H 20 Z" 
-                fill="none" stroke="currentColor" strokeWidth="2"
-             />
-             <motion.circle cx="35" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-             <motion.circle cx="65" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
-             <path d="M40 70 Q 50 80 60 70" fill="none" stroke="currentColor" strokeWidth="2" />
-             {/* Antenna */}
-             <line x1="50" y1="20" x2="50" y2="5" stroke="currentColor" strokeWidth="2" />
-             <circle cx="50" cy="5" r="3" fill="currentColor" />
-          </motion.svg>
-          
-          {/* Chat Bubble */}
-          <motion.div 
-            className="absolute -top-2 -right-2 bg-white text-black text-[6px] font-bold px-1.5 py-0.5 rounded-t-lg rounded-br-lg rounded-bl-none shadow-lg"
-            initial={{ scale: 0, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 1, type: "spring" }}
-          >
-             <div className="flex gap-0.5">
-                 <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity }} />
-                 <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }} />
-                 <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
-             </div>
-          </motion.div>
-      </div>
+    <div className="relative w-full h-full">
+      {/* Robot Head */}
+      <motion.svg viewBox="0 0 100 100" className="w-full h-full text-purple-400">
+        <motion.path
+          d="M20 40 Q 20 20 50 20 Q 80 20 80 40 V 80 H 20 Z"
+          fill="none" stroke="currentColor" strokeWidth="2"
+        />
+        <motion.circle cx="35" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+        <motion.circle cx="65" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
+        <path d="M40 70 Q 50 80 60 70" fill="none" stroke="currentColor" strokeWidth="2" />
+        {/* Antenna */}
+        <line x1="50" y1="20" x2="50" y2="5" stroke="currentColor" strokeWidth="2" />
+        <circle cx="50" cy="5" r="3" fill="currentColor" />
+      </motion.svg>
+
+      {/* Chat Bubble */}
+      <motion.div
+        className="absolute -top-2 -right-2 bg-white text-black text-[6px] font-bold px-1.5 py-0.5 rounded-t-lg rounded-br-lg rounded-bl-none shadow-lg"
+        initial={{ scale: 0, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1, type: "spring" }}
+      >
+        <div className="flex gap-0.5">
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity }} />
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }} />
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
+        </div>
+      </motion.div>
+    </div>
   </div>
 );
 
 const GitAnimation = () => (
   <div className="absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center opacity-30 group-hover:opacity-80 transition-opacity duration-500">
-      <div className="relative w-full h-full">
-          {/* Rotating Sync Circle */}
-          <motion.div 
-             className="absolute inset-2 border-2 border-t-cyan-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full"
-             animate={{ rotate: 360 }}
-             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          />
-          {/* Center Git Icon */}
-          <div className="absolute inset-0 flex items-center justify-center scale-75">
-              <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02a9.68 9.68 0 012.5-.34c.85.004 1.7.115 2.5.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
-              </svg>
-          </div>
-          {/* Particles exchanging */}
-          <motion.div 
-             className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full"
-             animate={{ y: [0, 80, 0], opacity: [0, 1, 0] }}
-             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div 
-             className="absolute bottom-0 right-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full"
-             animate={{ y: [0, -80, 0], opacity: [0, 1, 0] }}
-             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          />
+    <div className="relative w-full h-full">
+      {/* Rotating Sync Circle */}
+      <motion.div
+        className="absolute inset-2 border-2 border-t-cyan-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+      />
+      {/* Center Git Icon */}
+      <div className="absolute inset-0 flex items-center justify-center scale-75">
+        <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02a9.68 9.68 0 012.5-.34c.85.004 1.7.115 2.5.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
+        </svg>
       </div>
+      {/* Particles exchanging */}
+      <motion.div
+        className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full"
+        animate={{ y: [0, 80, 0], opacity: [0, 1, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-0 right-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full"
+        animate={{ y: [0, -80, 0], opacity: [0, 1, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      />
+    </div>
   </div>
 );
 
 
 
 const StreakAnimation = () => {
-    const [count, setCount] = useState(1);
-    
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCount(prev => prev < 30 ? prev + 1 : 1);
-        }, 200);
-        return () => clearInterval(interval);
-    }, []);
+  const [count, setCount] = useState(1);
 
-    return (
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(prev => prev < 30 ? prev + 1 : 1);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
     <div className="absolute right-4 bottom-4 w-28 h-28 opacity-20 group-hover:opacity-60 transition-opacity duration-500">
-        <div className="relative w-full h-full flex items-center justify-center">
-            {/* Realistic Layered Fire */}
-            <motion.div
-               className="absolute w-20 h-20 bg-red-500/30 blur-xl rounded-full translate-y-2"
-               animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-               transition={{ duration: 2, repeat: Infinity }}
-            />
-            {/* Orange core */}
-            <motion.div 
-                className="absolute w-16 h-16 bg-orange-500/40 blur-md rounded-t-full rounded-b-lg"
-                animate={{ scaleY: [1, 1.1, 1], y: [0, -5, 0] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-            />
-            {/* Inner flame */}
-            <motion.div 
-                className="absolute w-10 h-10 bg-yellow-400/40 blur-sm rounded-t-full rounded-b-lg translate-y-2"
-                animate={{ scale: [1, 0.9, 1], rotate: [-5, 5, -5] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-            />
-            
-            {/* Changing Number - Semi transparent */}
-            <div className="relative z-10 text-4xl font-black text-white/90 drop-shadow-lg">
-                {count}
-            </div>
+      <div className="relative w-full h-full flex items-center justify-center">
+        {/* Realistic Layered Fire */}
+        <motion.div
+          className="absolute w-20 h-20 bg-red-500/30 blur-xl rounded-full translate-y-2"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        {/* Orange core */}
+        <motion.div
+          className="absolute w-16 h-16 bg-orange-500/40 blur-md rounded-t-full rounded-b-lg"
+          animate={{ scaleY: [1, 1.1, 1], y: [0, -5, 0] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        />
+        {/* Inner flame */}
+        <motion.div
+          className="absolute w-10 h-10 bg-yellow-400/40 blur-sm rounded-t-full rounded-b-lg translate-y-2"
+          animate={{ scale: [1, 0.9, 1], rotate: [-5, 5, -5] }}
+          transition={{ duration: 0.6, repeat: Infinity }}
+        />
+
+        {/* Changing Number - Semi transparent */}
+        <div className="relative z-10 text-4xl font-black text-white/90 drop-shadow-lg">
+          {count}
         </div>
+      </div>
     </div>
-    );
+  );
 };
 
 const GrowthAnimation = () => (
-    <div className="absolute bottom-6 right-6 w-24 h-20 flex items-end justify-between gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-        {[30, 50, 40, 70, 90].map((h, i) => (
-            <motion.div
-                key={i}
-                className="w-3 bg-gradient-to-t from-emerald-500 to-transparent rounded-t"
-                initial={{ height: 0 }}
-                whileInView={{ height: `${h}%` }}
-                transition={{ duration: 1, delay: i * 0.1 }}
-                viewport={{ once: true }}
-                whileHover={{ height: `${h + 10}%` }}
-            />
-        ))}
-        {/* Trend Line */}
-        <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
-            <motion.path 
-               d="M0 70 L 25 50 L 50 60 L 75 30 L 100 10"
-               fill="none"
-               stroke="#34d399" // Emerald-400
-               strokeWidth="2"
-               initial={{ pathLength: 0 }}
-               whileInView={{ pathLength: 1 }}
-               transition={{ duration: 1.5, delay: 0.5 }}
-            />
-        </svg>
-    </div>
+  <div className="absolute bottom-6 right-6 w-24 h-20 flex items-end justify-between gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+    {[30, 50, 40, 70, 90].map((h, i) => (
+      <motion.div
+        key={i}
+        className="w-3 bg-gradient-to-t from-emerald-500 to-transparent rounded-t"
+        initial={{ height: 0 }}
+        whileInView={{ height: `${h}%` }}
+        transition={{ duration: 1, delay: i * 0.1 }}
+        viewport={{ once: true }}
+        whileHover={{ height: `${h + 10}%` }}
+      />
+    ))}
+    {/* Trend Line */}
+    <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
+      <motion.path
+        d="M0 70 L 25 50 L 50 60 L 75 30 L 100 10"
+        fill="none"
+        stroke="#34d399" // Emerald-400
+        strokeWidth="2"
+        initial={{ pathLength: 0 }}
+        whileInView={{ pathLength: 1 }}
+        transition={{ duration: 1.5, delay: 0.5 }}
+      />
+    </svg>
+  </div>
 );
 
 
-  // Feature card - Bento grid with unique sizes
+// Feature card - Bento grid with unique sizes
 function FeatureCard({ feature, index }) {
   const gradients = {
     cyan: "from-cyan-500/20 via-cyan-500/5 to-transparent",
@@ -457,14 +472,14 @@ function FeatureCard({ feature, index }) {
   };
 
   const renderAnimation = () => {
-      switch(feature.title) {
-          case "Daily Coding Tracker": return <CodeAnimation size={feature.size} />;
-          case "AI Error Assistance": return <AIAnimation />;
-          case "GitHub Sync": return <GitAnimation />;
-          case "Streak Calendar": return <StreakAnimation />;
-          case "Skill Growth": return <GrowthAnimation />;
-          default: return null;
-      }
+    switch (feature.title) {
+      case "Daily Coding Tracker": return <CodeAnimation size={feature.size} />;
+      case "AI Error Assistance": return <AIAnimation />;
+      case "GitHub Sync": return <GitAnimation />;
+      case "Streak Calendar": return <StreakAnimation />;
+      case "Skill Growth": return <GrowthAnimation />;
+      default: return null;
+    }
   };
 
   return (
@@ -474,11 +489,9 @@ function FeatureCard({ feature, index }) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       viewport={{ once: true, margin: "-50px" }}
       whileHover={{ scale: 1.02, y: -5, transition: { type: "spring", stiffness: 400, damping: 10 } }}
-      className={`relative p-6 md:p-8 rounded-2xl bg-gradient-to-br ${
-        gradients[feature.color]
-      } backdrop-blur-xl border ${borderColors[feature.color]} ${
-        sizeClasses[feature.size]
-      } transition-colors duration-300 group overflow-hidden`}
+      className={`relative p-6 md:p-8 rounded-2xl bg-gradient-to-br ${gradients[feature.color]
+        } backdrop-blur-xl border ${borderColors[feature.color]} ${sizeClasses[feature.size]
+        } transition-colors duration-300 group overflow-hidden`}
     >
       {/* Dynamic Background Animation */}
       {renderAnimation()}
@@ -489,9 +502,8 @@ function FeatureCard({ feature, index }) {
       <div className="relative z-10 h-full flex flex-col">
         {/* Icon */}
         <motion.div
-          className={`${
-            feature.size === "large" ? "md:text-6xl" : "md:text-4xl"
-          } text-4xl mb-4 w-fit`}
+          className={`${feature.size === "large" ? "md:text-6xl" : "md:text-4xl"
+            } text-4xl mb-4 w-fit`}
           initial={{ scale: 0, opacity: 0 }}
           whileInView={{ scale: 1, opacity: 1 }}
           whileHover={{ x: 15, scale: 1.1 }}
@@ -505,16 +517,14 @@ function FeatureCard({ feature, index }) {
           {feature.icon}
         </motion.div>
         <h3
-          className={`${
-            feature.size === "large" ? "md:text-2xl" : "md:text-lg"
-          } text-lg font-bold text-white mb-2`}
+          className={`${feature.size === "large" ? "md:text-2xl" : "md:text-lg"
+            } text-lg font-bold text-white mb-2`}
         >
           {feature.title}
         </h3>
         <p
-          className={`${
-            feature.size === "large" ? "md:text-base" : "md:text-sm"
-          } text-sm text-slate-400`}
+          className={`${feature.size === "large" ? "md:text-base" : "md:text-sm"
+            } text-sm text-slate-400`}
         >
           {feature.desc}
         </p>
@@ -643,8 +653,8 @@ function DashboardMockup() {
                         intensity > 0.7
                           ? "rgb(34 211 238)"
                           : intensity > 0.4
-                          ? "rgb(34 211 238 / 0.5)"
-                          : "rgb(34 211 238 / 0.15)",
+                            ? "rgb(34 211 238 / 0.5)"
+                            : "rgb(34 211 238 / 0.15)",
                     }}
                     initial={{ scale: 0, opacity: 0 }}
                     whileInView={{ scale: 1, opacity: 1 }}
@@ -661,20 +671,20 @@ function DashboardMockup() {
       {/* Floating code */}
       {/* Floating code */}
       {/* Floating code */}
-      <FloatingCode 
-        code={codeLines[0]} 
-        delay={0} 
-        className="right-[2%] top-[32%] md:left-[80%] md:top-[18%] md:right-auto" 
+      <FloatingCode
+        code={codeLines[0]}
+        delay={0}
+        className="right-[2%] top-[32%] md:left-[80%] md:top-[18%] md:right-auto"
       />
-      <FloatingCode 
-        code={codeLines[1]} 
-        delay={1} 
-        className="left-[5%] top-[65%] md:left-[5%] md:right-auto md:top-[75%] lg:left-[-10%] lg:right-auto lg:top-[70%]" 
+      <FloatingCode
+        code={codeLines[1]}
+        delay={1}
+        className="left-[5%] top-[65%] md:left-[5%] md:right-auto md:top-[75%] lg:left-[-10%] lg:right-auto lg:top-[70%]"
       />
-      <FloatingCode 
-        code={codeLines[2]} 
-        delay={2} 
-        className="right-[5%] bottom-[5%] md:left-[85%] md:top-[80%] md:bottom-auto md:right-auto" 
+      <FloatingCode
+        code={codeLines[2]}
+        delay={2}
+        className="right-[5%] bottom-[5%] md:left-[85%] md:top-[80%] md:bottom-auto md:right-auto"
       />
     </motion.div>
   );
@@ -937,9 +947,9 @@ export default function Landing() {
 
         {/* Scroll indicator */}
         <motion.div
-            className="mt-16 mb-8 relative flex justify-center w-full"
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
+          className="mt-16 mb-8 relative flex justify-center w-full"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
         >
           <div className="w-6 h-10 rounded-full border border-white/20 flex justify-center pt-2">
             <motion.div
