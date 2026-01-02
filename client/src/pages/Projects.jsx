@@ -1,7 +1,8 @@
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { projectsApi, githubApi, geminiApi } from '../services/api'
-import LoadingText from '../components/ui/LoadingText'
+import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -587,8 +588,9 @@ function ProjectForm({ formData, setFormData, onSubmit, onCancel, isEdit, analyz
 }
 
 export default function Projects() {
+    const { hasCachedData, setCachedData } = useCache()
     const [projects, setProjects] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(!hasCachedData('projects'))
     const [expandedProjectId, setExpandedProjectId] = useState(null)
     const [error, setError] = useState(null)
     const [showModal, setShowModal] = useState(false)
@@ -609,13 +611,14 @@ export default function Projects() {
 
     const fetchProjects = async () => {
         try {
-            setLoading(true)
+            if (!hasCachedData('projects')) setLoading(true)
             const response = await projectsApi.getAll({ limit: 50 })
             setProjects(response.data.data.projects || [])
         } catch (err) {
             setError(err.message)
         } finally {
             setLoading(false)
+            if (!error) setCachedData('projects', true)
         }
     }
 
@@ -818,7 +821,7 @@ export default function Projects() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <LoadingText />
+                <ProfessionalLoader size="lg" />
             </div>
         )
     }

@@ -10,6 +10,8 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
 import { Brain, Github, GitCommitHorizontal, Lightbulb } from 'lucide-react'
+import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 
 // Helper to format dates for display
 const formatDate = (date) => {
@@ -446,14 +448,15 @@ function GitHubIcon() {
 }
 
 export default function Dashboard() {
-    const { user } = useUser()
+    const { user, isLoaded, isSignedIn, getToken } = useUser()
+    const { hasCachedData, setCachedData } = useCache()
     const [logStats, setLogStats] = useState(null)
     const [projectStats, setProjectStats] = useState(null)
     const [recentLogs, setRecentLogs] = useState([])
     const [githubCommits, setGithubCommits] = useState([])
     const [githubStreak, setGithubStreak] = useState(0)
     const [githubUsername, setGithubUsername] = useState('')
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(!hasCachedData('dashboard'))
     const retriedGithub = useRef(false)
 
     useEffect(() => {
@@ -489,7 +492,7 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            setLoading(true)
+            if (!hasCachedData('dashboard')) setLoading(true)
             const [logStatsRes, projectStatsRes, logsRes, githubRes] = await Promise.all([
                 logsApi.getStats().catch(() => ({ data: { data: {} } })),
                 projectsApi.getStats().catch(() => ({ data: { data: {} } })),
@@ -502,8 +505,11 @@ export default function Dashboard() {
             setRecentLogs(logsRes.data.data.logs || [])
             setGithubCommits(githubRes.data?.data?.commits || [])
             setGithubStreak(githubRes.data?.data?.streak || 0)
-        } catch (err) {
-            console.error('Error fetching data:', err)
+            // Assuming activityData is derived or fetched elsewhere if needed for setStats
+            // For now, just setting cached data as per instruction
+            setCachedData('dashboard', true)
+        } catch (error) {
+            console.error("Dashboard: Error fetching data", error)
         } finally {
             setLoading(false)
         }
@@ -515,35 +521,8 @@ export default function Dashboard() {
 
     if (loading) {
         return (
-            <div className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
-                style={{
-                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                }}
-            >
-                {/* Header Skeleton */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
-                    <div className="h-10 w-36 bg-white/10 rounded-xl animate-pulse" />
-                </div>
-
-                {/* Stats Skeleton */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-                    <div className="lg:col-span-4 h-48 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
-                    <div className="lg:col-span-8">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[...Array(4)].map((_, i) => (
-                                <div key={i} className="h-28 bg-white/5 rounded-2xl animate-pulse border border-white/10" />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Activity + Calendar Skeleton */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-7 h-64 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
-                    <div className="lg:col-span-5 h-64 bg-white/5 rounded-3xl animate-pulse border border-white/10" />
-                </div>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <ProfessionalLoader size="lg" />
             </div>
         )
     }

@@ -3,7 +3,8 @@ import Button from '../components/ui/Button'
 import { logsApi } from '../services/api'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
-import LoadingText from '../components/ui/LoadingText'
+import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Helper to format dates
@@ -223,8 +224,9 @@ function Modal({ isOpen, onClose, title, children }) {
 
 export default function Learning() {
     const { isLoaded, isSignedIn, getToken } = useAuth()
+    const { hasCachedData, setCachedData } = useCache()
     const [learningEntries, setLearningEntries] = useState([])
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(!hasCachedData('learning'))
     const [error, setError] = useState(null)
     const [showModal, setShowModal] = useState(false)
     const [editingEntry, setEditingEntry] = useState(null)
@@ -251,7 +253,7 @@ export default function Learning() {
 
     const fetchLogs = async () => {
         try {
-            setLoading(true)
+            if (!hasCachedData('learning')) setLoading(true)
             const token = await getToken({ skipCache: true })
             if (!token) {
                 setLoading(false)
@@ -266,6 +268,7 @@ export default function Learning() {
             setError(err.message)
         } finally {
             setLoading(false)
+            if (!error) setCachedData('learning', true)
         }
     }
 
@@ -346,7 +349,7 @@ export default function Learning() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <LoadingText />
+                <ProfessionalLoader size="lg" />
             </div>
         )
     }

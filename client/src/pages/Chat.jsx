@@ -1,3 +1,6 @@
+import LoadingText from '../components/ui/LoadingText'
+import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 import Button from '../components/ui/Button'
 import { geminiApi, projectsApi, logsApi } from '../services/api'
 import { useState, useEffect, useRef } from 'react'
@@ -162,7 +165,10 @@ const RATE_LIMIT_MS = 10000
 export default function Chat() {
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
-    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [historyLoaded, setHistoryLoaded] = useState(false)
+    const { getCachedData, setCachedData, hasCachedData } = useCache()
+    const [loading, setLoading] = useState(!hasCachedData('chat-history'))
     const [projects, setProjects] = useState([])
     const [learningStats, setLearningStats] = useState({})
     const [cooldown, setCooldown] = useState(0)
@@ -177,18 +183,42 @@ export default function Chat() {
 
     const fetchHistory = async () => {
         try {
-            setLoading(true)
+            if (!hasCachedData('chat-history')) setLoading(true)
             const response = await geminiApi.getHistory()
-            if (response.data.success && response.data.data.history.length > 0) {
-                setMessages(response.data.data.history)
-            } else {
-                setMessages([{
-                    role: 'assistant',
-                    content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
-                }])
+            if (response.data?.data) {
+                const logs = response.data.data.history || []
+
+                // Only animate if not cached
+                if (!hasCachedData('chat-history')) {
+                    // Small delay for initial load animation
+                    await new Promise(r => setTimeout(r, 500))
+                }
+
+                setMessages(prev => {
+                    if (prev.length > 2) return prev // Don't overwrite if we have active chat
+
+                    const historyMessages = logs.map(log => ({
+                        id: log.id,
+                        role: log.role || (log.isUser ? 'user' : 'model'),
+                        content: log.content || log.message,
+                        timestamp: log.createdAt || log.timestamp
+                    }))
+
+                    return historyMessages.length > 0 ? historyMessages : [{
+                        role: 'assistant',
+                        content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+                    }]
+                })
+                setHistoryLoaded(true)
+                setCachedData('chat-history', true)
             }
         } catch (err) {
-            console.error('Error fetching history:', err)
+            console.error('Error fetching chat history:', err)
+            setError('Failed to load chat history.')
+            setMessages([{
+                role: 'assistant',
+                content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+            }])
         } finally {
             setLoading(false)
         }
@@ -314,8 +344,21 @@ export default function Chat() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="h-[calc(100vh-25px)] flex gap-4 lg:gap-6 overflow-hidden relative"
+            className="h-[calc(100vh-6rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
         >
+            {/* Loader Overlay */}
+            <AnimatePresence>
+                {loading && (
+                    <motion.div
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm rounded-3xl border border-white/5"
+                    >
+                        <ProfessionalLoader size="lg" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Sidebar (History) */}
             <AnimatePresence>
                 {isSidebarOpen && (
@@ -368,7 +411,7 @@ export default function Chat() {
                                     </div>
                                 </div>
                             ))}
-                            {messages.length === 0 && !loading && (
+                            {!historyLoaded && messages.length === 0 && !loading && (
                                 <p className="text-xs text-slate-600 px-3 py-2 italic text-center">No recent history</p>
                             )}
                         </div>
