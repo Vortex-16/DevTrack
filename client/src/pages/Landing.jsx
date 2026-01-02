@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SignInButton } from "@clerk/clerk-react";
-import { Github, Linkedin } from "lucide-react";
+import { Github, Linkedin, Lock, Code, BarChart3, Rocket, Zap, Bot, RefreshCw, Flame, TrendingUp } from "lucide-react";
+
 
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
@@ -68,39 +69,38 @@ const features = [
   {
     title: "Daily Coding Tracker",
     desc: "Track every line of code you write and monitor your daily progress with detailed insights",
-    icon: "⚡",
+    icon: <Zap className="w-full h-full" />,
     color: "cyan",
     size: "large",
   },
   {
     title: "AI Error Assistance",
     desc: "Smart suggestions when stuck",
-    icon: "🤖",
+    icon: <Bot className="w-full h-full" />,
     color: "purple",
     size: "small",
   },
   {
     title: "GitHub Sync",
     desc: "Auto-sync commits and PRs",
-    icon: "🔗",
+    icon: <RefreshCw className="w-full h-full" />,
     color: "blue",
     size: "small",
   },
   {
     title: "Streak Calendar",
     desc: "Visualize your coding consistency with beautiful heatmaps and streak tracking",
-    icon: "🔥",
+    icon: <Flame className="w-full h-full" />,
     color: "orange",
     size: "medium",
   },
   {
     title: "Skill Growth",
     desc: "Track skill progression",
-    icon: "📈",
+    icon: <TrendingUp className="w-full h-full" />,
     color: "green",
     size: "small",
   },
-  // { title: 'Analytics', desc: 'Beautiful visualizations', icon: '📊', color: 'pink', size: 'small' }
 ];
 
 // Steps
@@ -109,25 +109,25 @@ const steps = [
     num: "01",
     title: "Connect GitHub",
     desc: "Link your account in one click",
-    icon: "🔐",
+    icon: <Lock className="w-10 h-10 text-cyan-400" />,
   },
   {
     num: "02",
     title: "Start Coding",
     desc: "We track activity automatically",
-    icon: "💻",
+    icon: <Code className="w-10 h-10 text-purple-400" />,
   },
   {
     num: "03",
     title: "View Insights",
     desc: "See beautiful analytics",
-    icon: "📊",
+    icon: <BarChart3 className="w-10 h-10 text-blue-400" />,
   },
   {
     num: "04",
     title: "Grow Daily",
     desc: "Build consistency & improve",
-    icon: "🚀",
+    icon: <Rocket className="w-10 h-10 text-emerald-400" />,
   },
 ];
 
@@ -871,8 +871,8 @@ export default function Landing() {
           transition={{ duration: 0.5 }}
           className="mb-10"
         >
-          <div className="px-5 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-medium backdrop-blur-sm">
-            ⚡ Developer Productivity Tool
+          <div className="px-5 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-sm font-medium backdrop-blur-sm flex items-center gap-2">
+            <Zap className="w-4 h-4" /> Developer Productivity Tool
           </div>
         </motion.div>
 
