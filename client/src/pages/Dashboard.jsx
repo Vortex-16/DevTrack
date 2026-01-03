@@ -10,8 +10,9 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
+import Lenis from 'lenis'
 
 
 // Helper to format dates for display
@@ -271,6 +272,34 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
 
 // Activity Table - DARK themed with combined GitHub + Learning logs
 function ActivityTable({ logs, logStats, githubCommits, compact }) {
+    const activityContainerRef = useRef(null)
+    const activityContentRef = useRef(null)
+
+    useEffect(() => {
+        const lenis = new Lenis({
+            wrapper: activityContainerRef.current,
+            content: activityContentRef.current,
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+            smooth: true,
+            smoothTouch: false,
+            touchMultiplier: 2,
+        })
+
+        function raf(time) {
+            lenis.raf(time)
+            requestAnimationFrame(raf)
+        }
+
+        requestAnimationFrame(raf)
+
+        return () => {
+            lenis.destroy()
+        }
+    }, [])
+
     // Helper to parse date properly
     const parseDate = (date) => {
         if (!date) return new Date(0)
@@ -332,12 +361,17 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1">
-                            <Flame size={10} className="fill-purple-400" /> {logStats?.currentStreak || 0} days
-                        </span>
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                        <div className="p-2 rounded-lg text-purple-400 font-bold">
+                            <History size={20} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <h3 className="text-sm font-bold text-white">Recent Activity</h3>
+                             <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1">
+                                 <Flame size={10} className="fill-purple-400" /> {logStats?.currentStreak || 0} days
+                             </span>
+                        </div>
                     </div>
                     <Link to="/learning" className="text-purple-400 text-xs hover:text-purple-300 transition-colors">
                         View All →
@@ -345,53 +379,58 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
                 </div>
 
                 {/* Activity List */}
-                <div className="space-y-1.5 flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
-                    {topActivities.length === 0 ? (
-                        <p className="text-slate-500 text-sm text-center py-4">No recent activity</p>
-                    ) : (
-                        topActivities.map((activity, idx) => (
-                            <motion.div
-                                key={activity.id}
-                                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 + idx * 0.08 }}
-                            >
-                                {/* Icon */}
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg flex-shrink-0
-                                    ${activity.type === 'github'
-                                        ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
-                                        : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
-                                    }
-                                `}>
-                                    {activity.icon}
-                                </div>
+                <div 
+                    ref={activityContainerRef}
+                    className="flex-1 overflow-y-auto min-h-0 pl-2 pt-2 pr-6 -mr-2 scrollbar-hide relative"
+                >
+                    <div ref={activityContentRef} className="space-y-1.5 pb-2">
+                        {topActivities.length === 0 ? (
+                            <p className="text-slate-500 text-sm text-center py-4">No recent activity</p>
+                        ) : (
+                            topActivities.map((activity, idx) => (
+                                <motion.div
+                                    key={activity.id}
+                                    className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 + idx * 0.08 }}
+                                >
+                                    {/* Icon */}
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg flex-shrink-0
+                                        ${activity.type === 'github'
+                                            ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
+                                            : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
+                                        }
+                                    `}>
+                                        {activity.icon}
+                                    </div>
 
-                                {/* Content */}
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-white text-sm truncate">
-                                        {activity.title?.slice(0, 50)}{activity.title?.length > 50 ? '...' : ''}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {activity.type === 'github' && activity.repo && (
-                                            <span className="text-slate-400">{activity.repo} • </span>
-                                        )}
-                                        {formatDate(activity.date)}
-                                    </p>
-                                </div>
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-white text-sm truncate">
+                                            {activity.title?.slice(0, 50)}{activity.title?.length > 50 ? '...' : ''}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {activity.type === 'github' && activity.repo && (
+                                                <span className="text-slate-400">{activity.repo} • </span>
+                                            )}
+                                            {formatDate(activity.date)}
+                                        </p>
+                                    </div>
 
-                                {/* Type badge */}
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
-                                    ${activity.type === 'github'
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : 'bg-purple-500/20 text-purple-400'
-                                    }
-                                `}>
-                                    {activity.type === 'github' ? 'Commit' : 'Learning'}
-                                </span>
-                            </motion.div>
-                        ))
-                    )}
+                                    {/* Type badge */}
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
+                                        ${activity.type === 'github'
+                                            ? 'bg-gray-500/20 text-gray-400'
+                                            : 'bg-purple-500/20 text-purple-400'
+                                        }
+                                    `}>
+                                        {activity.type === 'github' ? 'Commit' : 'Learning'}
+                                    </span>
+                                </motion.div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
         </motion.div>
@@ -533,7 +572,7 @@ function CSTriviaCard({ compact }) {
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center">
+                <div className="flex-1 flex flex-col justify-start pt-2 pl-2 pr-2">
                     <AnimatePresence mode='wait'>
                         {loading ? (
                             <motion.div
@@ -561,12 +600,15 @@ function CSTriviaCard({ compact }) {
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
-                                            className="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30"
+                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                            className="overflow-hidden"
                                         >
-                                            <p className="text-xs text-slate-400 mb-1">Answer:</p>
-                                            <p className="text-cyan-400 text-sm font-semibold">
-                                                {trivia.answer}
-                                            </p>
+                                            <div className="mt-2 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-left">
+                                                <p className="text-xs text-slate-400 mb-1">Answer:</p>
+                                                <p className="text-cyan-400 text-sm font-semibold">
+                                                    {trivia.answer}
+                                                </p>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -575,7 +617,7 @@ function CSTriviaCard({ compact }) {
                     </AnimatePresence>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between pt-2">
                     <span className="text-[10px] text-slate-600 uppercase tracking-wider">
                         DevTrack Trivia
                     </span>

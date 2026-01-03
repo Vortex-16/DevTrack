@@ -249,7 +249,7 @@ export default function Calendar({ onExpand, compact }) {
                 <button
                     key={day}
                     onClick={() => handleDateClick(day)}
-                    className={`h-10 w-full rounded text-xs font-medium transition-all relative
+                    className={`h-9 w-[90%] mx-auto rounded-xl text-sm font-medium transition-all relative
                         ${isToday ? 'ring-1 ring-inset ring-purple-500' : ''}
                         ${isSelected ? 'bg-purple-500 text-white' : 'hover:bg-white/10 text-slate-300'}
                     `}
@@ -284,10 +284,13 @@ export default function Calendar({ onExpand, compact }) {
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
-                        <CalendarIcon className="w-4 h-4 text-purple-400" /> Calendar
-                    </h3>
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                        <div className="p-2 rounded-lg text-purple-400 font-bold">
+                            <CalendarIcon size={20} />
+                        </div>
+                        <h3 className="text-sm font-semibold text-white">Calendar</h3>
+                    </div>
                     <div className="flex items-center gap-1">
                         <button
                             onClick={prevMonth}
@@ -356,18 +359,18 @@ export default function Calendar({ onExpand, compact }) {
                         )}
                     </AnimatePresence>
                     {/* Calendar Grid Layer */}
-                    <div className="absolute inset-0 flex flex-col overflow-y-auto scrollbar-hide">
+                    <div className="absolute inset-0 flex flex-col overflow-y-auto scrollbar-hide px-2 pt-2">
                         {/* Day headers */}
-                        <div className="grid grid-cols-7 gap-0.5 mb-1 flex-shrink-0">
+                        <div className="grid grid-cols-7 gap-2 mb-1 flex-shrink-0">
                             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                <div key={day} className="text-center text-xs font-bold text-slate-500 py-1">
+                                <div key={day} className="text-center text-sm font-bold text-slate-500 py-1">
                                     {day}
                                 </div>
                             ))}
                         </div>
 
                         {/* Calendar grid */}
-                        <div className="grid grid-cols-7 gap-0.5 mb-3 flex-shrink-0">
+                        <div className="grid grid-cols-7 gap-2 mb-3 flex-shrink-0">
                             {renderDays()}
                         </div>
                     </div>
