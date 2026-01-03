@@ -112,7 +112,7 @@ function QuickPromptButton({ icon, label, onClick, disabled }) {
         <motion.button
             onClick={onClick}
             disabled={disabled}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2
+            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap
                 ${disabled
                     ? 'bg-white/5 text-slate-500 cursor-not-allowed'
                     : 'bg-white/5 text-slate-300 hover:bg-purple-500/20 hover:text-purple-400 border border-white/10 hover:border-purple-500/30'}`}
@@ -182,9 +182,22 @@ export default function Chat() {
     const lenisRef = useRef(null)
     const [showScrollBottom, setShowScrollBottom] = useState(false)
 
+    // Load chat state on mount
     useEffect(() => {
+        const savedMessages = sessionStorage.getItem('chat_messages')
+        if (savedMessages) {
+            try {
+                setMessages(JSON.parse(savedMessages))
+                setHistoryLoaded(true)
+                setLoading(false)
+            } catch (e) {
+                console.error("Failed to parse saved chat", e)
+                fetchHistory()
+            }
+        } else {
+            fetchHistory()
+        }
         fetchContext()
-        fetchHistory()
     }, [])
 
     useEffect(() => {
@@ -232,6 +245,13 @@ export default function Chat() {
             lenis.destroy()
         }
     }, [])
+
+    // Persist messages to session storage
+    useEffect(() => {
+        if (messages.length > 0) {
+            sessionStorage.setItem('chat_messages', JSON.stringify(messages))
+        }
+    }, [messages])
 
     const fetchHistory = async () => {
         try {
@@ -377,10 +397,10 @@ export default function Chat() {
     }
 
     const quickPrompts = [
-        { icon: <Target size={16} className="text-purple-400" />, label: 'Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
-        { icon: <BookOpen size={16} className="text-blue-400" />, label: 'What to learn?', prompt: 'What should I learn next to improve my skills?' },
-        { icon: <Dumbbell size={16} className="text-emerald-400" />, label: 'Motivate me', prompt: 'Give me a motivational message based on my progress.' },
-        { icon: <BarChart2 size={16} className="text-orange-400" />, label: 'Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
+        { icon: <Target size={14} className="text-purple-400" />, label: 'Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
+        { icon: <BookOpen size={14} className="text-blue-400" />, label: 'What to learn?', prompt: 'What should I learn next to improve my skills?' },
+        { icon: <Dumbbell size={14} className="text-emerald-400" />, label: 'Motivate me', prompt: 'Give me a motivational message based on my progress.' },
+        { icon: <BarChart2 size={14} className="text-orange-400" />, label: 'Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
     ]
 
     return (
@@ -416,6 +436,7 @@ export default function Chat() {
                             size="sm"
                             className="flex items-center gap-2 border-white/5 hover:bg-white/10 bg-white/5 rounded-full px-4"
                             onClick={() => {
+                                sessionStorage.removeItem('chat_messages');
                                 setMessages([{
                                     role: 'assistant',
                                     content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
@@ -429,7 +450,7 @@ export default function Chat() {
                 </div>
 
                 {/* Quick Prompts */}
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
                     {quickPrompts.map((qp, idx) => (
                         <QuickPromptButton
                             key={idx}
@@ -493,10 +514,19 @@ export default function Chat() {
                     >
                         {loading ? (
                             <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                animate={{ 
+                                    x: [0, 15, -15, 0], 
+                                    y: [0, -15, 15, 0],
+                                    opacity: [1, 0, 0, 1] 
+                                }}
+                                transition={{ 
+                                    duration: 1, 
+                                    repeat: Infinity, 
+                                    ease: ["easeIn", "linear", "easeOut"],
+                                    times: [0, 0.45, 0.45, 1]
+                                }}
                             >
-                                <Zap size={18} />
+                                <Send size={18} />
                             </motion.div>
                         ) : (
                             <Send size={18} />
