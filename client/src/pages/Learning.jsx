@@ -1,11 +1,12 @@
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { logsApi } from '../services/api'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { useCache } from '../context/CacheContext'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
+import Lenis from 'lenis'
 import { ReactLenis, useLenis } from 'lenis/react'
 import DatePicker from '../components/ui/DatePicker'
 import TimePicker from '../components/ui/TimePicker'
@@ -138,41 +139,41 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
-            className="group"
+            className="group h-full"
         >
             <div
-                className="rounded-2xl p-5 border border-white/10 hover:border-purple-500/30 transition-all duration-300"
+                className="rounded-2xl p-4 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
                 }}
             >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 flex-1">
                     {/* Date badge */}
                     <div className="flex-shrink-0">
-                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
-                            <Icon className="w-7 h-7 text-white" />
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
+                            <Icon className="w-5 h-5 text-white" />
                         </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-white">{formatDate(entry.date)}</h3>
-                            <span className="text-slate-500 text-sm flex items-center gap-1">
-                                <Clock size={14} />
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <h3 className="text-sm font-semibold text-white whitespace-nowrap">{formatDate(entry.date)}</h3>
+                            <span className="text-slate-500 text-[10px] flex items-center gap-1 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded-full">
+                                <Clock size={10} />
                                 {entry.startTime} - {entry.endTime}
                             </span>
                         </div>
-                        <p className="text-slate-300 mb-3 line-clamp-2">{entry.learnedToday}</p>
+                        <p className="text-xs text-slate-300 mb-3 line-clamp-2 leading-relaxed">{entry.learnedToday}</p>
 
                         {/* Tags */}
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                             {(entry.tags || []).map((tag, i) => (
                                 <span
                                     key={i}
-                                    className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-xs font-medium flex items-center gap-1"
+                                    className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1 border border-purple-500/10"
                                 >
-                                    <Tag size={10} />
+                                    <Tag size={8} />
                                     {tag}
                                 </span>
                             ))}
@@ -180,18 +181,18 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={() => onEdit(entry)}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                         >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={() => onDelete(entry.id)}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>
@@ -398,19 +399,54 @@ export default function Learning() {
         }
     }
 
+    const learningContainerRef = useRef(null);
+    const learningContentRef = useRef(null);
+    const lenisRef = useRef(null);
+
+    // Initialize Lenis for smooth scrolling
+    useEffect(() => {
+        if (!learningContainerRef.current || !learningContentRef.current) return;
+
+        const lenis = new Lenis({
+            wrapper: learningContainerRef.current,
+            content: learningContentRef.current,
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            touchMultiplier: 2,
+        });
+
+        lenisRef.current = lenis;
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
+        const rafId = requestAnimationFrame(raf);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            lenis.destroy();
+        };
+    }, [learningEntries]);
+
     return (
         <PixelTransition loading={loading}>
             <motion.div>
             {/* Main Container */}
             <div
-                className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+                className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
                 style={{
                     background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 }}
             >
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
                         <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
@@ -422,7 +458,7 @@ export default function Learning() {
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 flex-shrink-0">
                     <>
                         <StatCard icon={<BookOpen size={24} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
                         <StatCard icon={<Flame size={24} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
@@ -430,20 +466,26 @@ export default function Learning() {
                     </>
                 </div>
 
-                {/* Error State */}
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
-                    >
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle className="text-red-400" size={20} />
-                            <p className="text-red-400 flex-1">Error: {error}</p>
-                            <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
-                        </div>
-                    </motion.div>
-                )}
+                {/* Scrollable Content Area */}
+                <div 
+                    ref={learningContainerRef}
+                    className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-2 relative"
+                >
+                    <div ref={learningContentRef} className="pb-4">
+                        {/* Error State */}
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <AlertTriangle className="text-red-400" size={20} />
+                                    <p className="text-red-400 flex-1">Error: {error}</p>
+                                    <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
+                                </div>
+                            </motion.div>
+                        )}
 
                 {/* Empty State */}
                 {!loading && learningEntries.length === 0 && !error && (
@@ -481,6 +523,8 @@ export default function Learning() {
                         </div>
                     </div>
                 )}
+                    </div>
+                </div>
             </div>
 
             {/* Delete Confirmation Modal */}
