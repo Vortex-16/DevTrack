@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-import Skeleton, { SkeletonCard, SkeletonStats } from "../components/ui/Skeleton";
+
 import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket } from 'lucide-react';
 
 // Animated counter
@@ -1275,14 +1275,6 @@ export default function Projects() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {isRefreshing && !stats.totalProjects && !stats.activeProjects ? (
-            <>
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-            </>
-          ) : (
             <>
               <StatCard
                 icon={<Folder className="w-6 h-6" />}
@@ -1313,7 +1305,6 @@ export default function Projects() {
                 delay={0.25}
               />
             </>
-          )}
         </div>
 
         {/* Error State */}
@@ -1361,13 +1352,7 @@ export default function Projects() {
         )}
 
         {/* Projects Grid */}
-        {isRefreshing && projects.length === 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : projects.length > 0 && (
+        {projects.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {projects.map((project, index) => (
               <ProjectCard

@@ -12,7 +12,7 @@ import { useUser } from '@clerk/clerk-react'
 import { Brain, Github, GitCommitHorizontal, Lightbulb } from 'lucide-react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { useCache } from '../context/CacheContext'
-import Skeleton, { SkeletonCard, SkeletonStats, SkeletonActivity } from '../components/ui/Skeleton'
+
 
 // Helper to format dates for display
 const formatDate = (date) => {
@@ -641,15 +641,11 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
                             {/* Portfolio Card - spans 4 cols */}
                             <div className="lg:col-span-4">
-                                {isRefreshing && !logStats ? (
-                                    <SkeletonCard />
-                                ) : (
                                     <PortfolioCard
                                         totalLogs={logStats?.totalLogs || 0}
                                         currentStreak={logStats?.currentStreak || 0}
                                         logs={recentLogs}
                                     />
-                                )}
                             </div>
 
                             {/* Your Stats Section - spans 8 cols */}
@@ -657,9 +653,6 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-between mb-3">
                                     <h2 className="text-lg font-semibold text-white">Your Stats</h2>
                                 </div>
-                                {isRefreshing && !projectStats ? (
-                                    <SkeletonStats />
-                                ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                         <AssetCard
                                             icon={<Brain size={20} />}
@@ -698,7 +691,6 @@ export default function Dashboard() {
                                             delay={0.3}
                                         />
                                     </div>
-                                )}
                             </div>
                         </div>
 
@@ -706,16 +698,7 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
                             {/* Activity Table - spans 7 cols */}
                             <div className="lg:col-span-7">
-                                {isRefreshing && recentLogs.length === 0 ? (
-                                    <div className="rounded-2xl p-4 border border-white/10 h-full bg-slate-900/50">
-                                        <Skeleton variant="title" className="mb-4" />
-                                        {[...Array(5)].map((_, i) => (
-                                            <SkeletonActivity key={i} />
-                                        ))}
-                                    </div>
-                                ) : (
                                     <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
-                                )}
                             </div>
 
                             {/* Calendar - spans 5 cols */}
