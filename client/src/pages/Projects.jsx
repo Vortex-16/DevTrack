@@ -1,13 +1,12 @@
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import { projectsApi, githubApi, geminiApi } from "../services/api";
-import ProfessionalLoader from "../components/ui/ProfessionalLoader";
 import { useState, useEffect, useRef } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-
 import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare } from 'lucide-react';
+import PixelTransition from '../components/ui/PixelTransition';
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -1240,20 +1239,9 @@ export default function Projects() {
     })();
   };
 
-  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <ProfessionalLoader size="lg" />
-      </div>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+      <PixelTransition loading={loading}>
+        <motion.div>
       {/* Main Container */}
       <div
         className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
@@ -1498,5 +1486,6 @@ export default function Projects() {
         {showSuccess && <SuccessTick />}
       </AnimatePresence>
     </motion.div>
+    </PixelTransition>
   );
 }

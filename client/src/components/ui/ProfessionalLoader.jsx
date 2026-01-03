@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-export default function ProfessionalLoader({ className = "", size = "md" }) {
+export default function ProfessionalLoader({ className = "", size = "md", showText = true }) {
     const sizeClasses = {
         sm: "w-6 h-6",
         md: "w-10 h-10",
@@ -32,7 +32,7 @@ export default function ProfessionalLoader({ className = "", size = "md" }) {
                 />
             </div>
             
-            {size !== 'sm' && (
+            {showText && size !== 'sm' && (
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

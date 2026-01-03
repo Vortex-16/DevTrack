@@ -7,10 +7,10 @@ import Calendar from '../components/dashboard/Calendar'
 import MobileAppToken from '../components/MobileAppToken'
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Trophy, Rocket } from 'lucide-react'
-import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
 
 
@@ -555,21 +555,14 @@ export default function Dashboard() {
         setIsScrollable(true)
     }
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <ProfessionalLoader size="lg" />
-            </div>
-        )
-    }
-
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className={isScrollable ? "" : "h-auto lg:h-[calc(100vh-4rem)] lg:overflow-hidden"}
-        >
+        <PixelTransition loading={loading}>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className={isScrollable ? "" : "h-auto lg:h-[calc(100vh-4rem)] lg:overflow-hidden"}
+            >
             {/* Main Container with rounded border */}
             <div
                 className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
@@ -617,14 +610,15 @@ export default function Dashboard() {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
+                            className="flex-1 flex flex-col items-center justify-center min-h-[400px]"
                         >
-                            <Card className="text-center py-16 border-2 border-dashed border-purple-500/30">
+                            <Card className="text-center py-20 border-2 border-dashed border-purple-500/30 w-full max-w-5xl">
                                 <motion.div
                                     className="flex justify-center mb-6"
                                     animate={{ y: [0, -10, 0] }}
                                     transition={{ duration: 2, repeat: Infinity }}
                                 >
-                                    <Trophy size={64} className="text-purple-500" strokeWidth={1.5} />
+                                    <Anchor size={64} className="text-purple-500" strokeWidth={1.5} />
                                 </motion.div>
                                 <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
                                 <p className="text-slate-400 mb-8 max-w-lg mx-auto">
@@ -739,5 +733,6 @@ export default function Dashboard() {
                 )}
             </div>
         </motion.div>
-    )
+    </PixelTransition>
+  );
 }

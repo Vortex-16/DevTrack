@@ -1,5 +1,5 @@
 import LoadingText from '../components/ui/LoadingText'
-import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import PixelTransition from '../components/ui/PixelTransition'
 import { useCache } from '../context/CacheContext'
 import Button from '../components/ui/Button'
 import { geminiApi, projectsApi, logsApi } from '../services/api'
@@ -384,24 +384,12 @@ export default function Chat() {
     ]
 
     return (
+        <PixelTransition loading={loading && messages.length === 0}>
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
             className="h-[calc(100vh-6rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
         >
-            {/* Loader Overlay (Only for initial load, not for AI response) */}
-            <AnimatePresence>
-                {loading && messages.length === 0 && (
-                    <motion.div
-                        initial={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm rounded-3xl border border-white/5"
-                    >
-                        <ProfessionalLoader size="lg" />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Loader Overlay removed - replaced by PixelTransition */}
+
 
             {/* Sidebar Removed */}
 
@@ -517,5 +505,6 @@ export default function Chat() {
                 </form>
             </div>
         </motion.div>
+        </PixelTransition>
     )
 }

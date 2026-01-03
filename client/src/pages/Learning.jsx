@@ -3,9 +3,13 @@ import Button from '../components/ui/Button'
 import { logsApi } from '../services/api'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
-import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { useCache } from '../context/CacheContext'
+import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ReactLenis, useLenis } from 'lenis/react'
+import DatePicker from '../components/ui/DatePicker'
+import TimePicker from '../components/ui/TimePicker'
+
 
 import {
     BookOpen,
@@ -197,6 +201,22 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
+    const lenis = useLenis()
+
+    useEffect(() => {
+        if (isOpen) {
+            lenis?.stop()
+            document.body.style.overflow = 'hidden'
+        } else {
+            lenis?.start()
+            document.body.style.overflow = 'unset'
+        }
+        return () => {
+            lenis?.start()
+            document.body.style.overflow = 'unset'
+        }
+    }, [isOpen, lenis])
+
     if (!isOpen) return null
 
     return (
@@ -209,7 +229,7 @@ function Modal({ isOpen, onClose, title, children }) {
                 onClick={onClose}
             >
                 <motion.div
-                    className="w-full max-w-lg rounded-3xl border border-white/10 overflow-hidden"
+                    className="w-full max-w-lg rounded-3xl border border-white/10 overflow-hidden flex flex-col max-h-[85vh]"
                     style={{
                         background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.98), rgba(20, 25, 40, 0.99))',
                         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
@@ -219,7 +239,7 @@ function Modal({ isOpen, onClose, title, children }) {
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="flex justify-between items-center p-6 border-b border-white/10">
+                    <div className="flex justify-between items-center p-6 border-b border-white/10 flex-shrink-0">
                         <h2 className="text-xl font-bold text-white">{title}</h2>
                         <button
                             onClick={onClose}
@@ -230,9 +250,9 @@ function Modal({ isOpen, onClose, title, children }) {
                             </svg>
                         </button>
                     </div>
-                    <div className="p-6">
+                    <ReactLenis root={false} className="p-6 overflow-y-auto flex-1 min-h-0">
                         {children}
-                    </div>
+                    </ReactLenis>
                 </motion.div>
             </motion.div>
         </AnimatePresence>
@@ -376,20 +396,9 @@ export default function Learning() {
         }
     }
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <ProfessionalLoader size="lg" />
-            </div>
-        )
-    }
-
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-        >
+        <PixelTransition loading={loading}>
+            <motion.div>
             {/* Main Container */}
             <div
                 className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
@@ -457,15 +466,17 @@ export default function Learning() {
                             <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
                             <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
                         </div>
-                        {learningEntries.map((entry, idx) => (
-                            <EntryCard
-                                key={entry.id}
-                                entry={entry}
-                                onEdit={openEditModal}
-                                onDelete={(id) => setDeleteConfirm(id)}
-                                delay={0.1 + idx * 0.05}
-                            />
-                        ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {learningEntries.map((entry, idx) => (
+                                <EntryCard
+                                    key={entry.id}
+                                    entry={entry}
+                                    onEdit={openEditModal}
+                                    onDelete={(id) => setDeleteConfirm(id)}
+                                    delay={0.1 + idx * 0.05}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -486,7 +497,7 @@ export default function Learning() {
                         <Button
                             variant="ghost"
                             onClick={() => setDeleteConfirm(null)}
-                            className="flex-1"
+                            className="flex-1 border border-white/10"
                         >
                             Cancel
                         </Button>
@@ -509,36 +520,28 @@ export default function Learning() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Date */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2">Date</label>
-                        <input
-                            type="date"
+                        <DatePicker
+                            label="Date"
                             value={formData.date}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
-                            required
+                            onChange={(date) => setFormData({ ...formData, date })}
                         />
                     </div>
 
                     {/* Time */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm text-slate-400 mb-2">Start Time</label>
-                            <input
-                                type="time"
+                            <TimePicker
+                                label="Start Time"
                                 value={formData.startTime}
-                                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
-                                required
+                                onChange={(time) => setFormData({ ...formData, startTime: time })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-slate-400 mb-2">End Time</label>
-                            <input
-                                type="time"
+                            <TimePicker
+                                label="End Time"
                                 value={formData.endTime}
-                                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
-                                required
+                                onChange={(time) => setFormData({ ...formData, endTime: time })}
+                                minTime={formData.startTime}
                             />
                         </div>
                     </div>
@@ -601,7 +604,7 @@ export default function Learning() {
 
                     {/* Submit */}
                     <div className="flex gap-4 pt-2">
-                        <Button type="button" variant="ghost" onClick={closeModal} className="flex-1">
+                        <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 border border-white/10">
                             Cancel
                         </Button>
                         <Button type="submit" className="flex-1">
@@ -611,5 +614,6 @@ export default function Learning() {
                 </form>
             </Modal>
         </motion.div>
-    )
+    </PixelTransition>
+  );
 }
