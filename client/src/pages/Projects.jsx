@@ -2,7 +2,9 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import { projectsApi, githubApi, geminiApi } from "../services/api";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Lenis from "lenis";
+import { useLenis } from "lenis/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
 import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare } from 'lucide-react';
@@ -352,7 +354,24 @@ function ProjectCard({
 function Modal({ isOpen, onClose, title, children }) {
   const modalRef = useRef(null);
   const contentRef = useRef(null);
+  const globalLenis = useLenis();
 
+  // Global Scroll Lock
+  useEffect(() => {
+    if (isOpen) {
+        globalLenis?.stop()
+        document.body.style.overflow = 'hidden'
+    } else {
+        globalLenis?.start()
+        document.body.style.overflow = 'unset'
+    }
+    return () => {
+        globalLenis?.start()
+        document.body.style.overflow = 'unset'
+    }
+  }, [isOpen, globalLenis])
+
+  // Local Scroll (inside modal)
   useEffect(() => {
     if (!isOpen || !modalRef.current || !contentRef.current) return;
 
@@ -389,7 +408,7 @@ function Modal({ isOpen, onClose, title, children }) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -430,7 +449,8 @@ function Modal({ isOpen, onClose, title, children }) {
           </motion.div>
         </div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

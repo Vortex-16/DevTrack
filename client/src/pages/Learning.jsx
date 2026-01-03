@@ -11,6 +11,7 @@ import DatePicker from '../components/ui/DatePicker'
 import TimePicker from '../components/ui/TimePicker'
 
 
+import { createPortal } from 'react-dom'
 import {
     BookOpen,
     Flame,
@@ -219,7 +220,7 @@ function Modal({ isOpen, onClose, title, children }) {
 
     if (!isOpen) return null
 
-    return (
+    return createPortal(
         <AnimatePresence>
             <motion.div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -255,7 +256,8 @@ function Modal({ isOpen, onClose, title, children }) {
                     </ReactLenis>
                 </motion.div>
             </motion.div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     )
 }
 
