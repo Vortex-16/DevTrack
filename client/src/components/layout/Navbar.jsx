@@ -104,7 +104,7 @@ function Sidebar({ onOpenSettings }) {
 
     return (
         <motion.aside
-            className="hidden md:flex flex-col items-center py-6 px-3 h-screen fixed left-0 top-0 z-40"
+            className="hidden md:flex flex-col items-center py-6 px-3 h-screen fixed left-0 top-0 z-[10000]"
             style={{
                 width: '80px',
                 background: 'linear-gradient(180deg, #1a1b2e 0%, #0f1021 100%)',
@@ -168,7 +168,7 @@ function MobileNavbar({ onOpenSettings }) {
 
     return (
         <motion.nav
-            className="md:hidden sticky top-4 z-50 mx-auto max-w-4xl px-4"
+            className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-4"
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
