@@ -58,6 +58,16 @@ const getRawDate = (date) => {
     return new Date().toISOString().split('T')[0]
 }
 
+// Helper to format time to AM/PM
+const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    const h = parseInt(hours, 10);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${minutes}${suffix}`;
+}
+
 // Animated counter
 function AnimatedCounter({ value }) {
     const [count, setCount] = useState(0)
@@ -142,38 +152,39 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
             className="group h-full"
         >
             <div
-                className="rounded-2xl p-3 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
+                className="rounded-2xl p-5 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
                 }}
             >
-                <div className="flex items-start gap-2.5 flex-1">
+                <div className="flex items-start gap-4 flex-1">
                     {/* Date badge */}
                     <div className="flex-shrink-0">
-                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
-                            <Icon className="w-4.5 h-4.5 text-white" />
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
+                            <Icon className="w-6 h-6 text-white" />
                         </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                            <h3 className="text-lg font-semibold text-white whitespace-nowrap">{formatDate(entry.date)}</h3>
-                            <span className="text-purple-300 text-sm flex items-center gap-1 whitespace-nowrap bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md">
+                    <div className="flex-1 min-w-0 flex flex-col h-full">
+
+                        <div className="flex flex-row items-center justify-between gap-2 lg:gap-5 mb-2">
+                            <h3 className="text-xs lg:text-sm font-bold text-white leading-tight whitespace-nowrap min-w-0 truncate">{formatDate(entry.date)}</h3>
+                            <span className="bg-white/10 backdrop-blur-md border border-white/10 px-2 py-1 rounded-xl text-slate-400 text-[10px] lg:text-xs flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                                 <Clock size={12} />
-                                {entry.startTime} - {entry.endTime}
+                                {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
                             </span>
                         </div>
-                        <p className="text-base text-slate-300 mb-2 line-clamp-2 leading-relaxed">{entry.learnedToday}</p>
+                        <p className="text-slate-300 text-sm mb-3 flex-1 truncate">{entry.learnedToday}</p>
 
                         {/* Tags */}
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2 mt-auto">
                             {(entry.tags || []).map((tag, i) => (
                                 <span
                                     key={i}
-                                    className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-sm font-medium flex items-center gap-1 border border-purple-500/10"
+                                    className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1"
                                 >
-                                    <Tag size={12} />
+                                    <Tag size={10} />
                                     {tag}
                                 </span>
                             ))}
@@ -181,7 +192,7 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 md:flex-col lg:flex-row opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={() => onEdit(entry)}
                             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
@@ -469,7 +480,7 @@ export default function Learning() {
                 {/* Scrollable Content Area */}
                 <div 
                     ref={learningContainerRef}
-                    className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-2 relative"
+                    className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-6 relative"
                 >
                     <div ref={learningContentRef} className="pb-4">
                         {/* Error State */}
@@ -510,7 +521,7 @@ export default function Learning() {
                             <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
                             <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
                             {learningEntries.map((entry, idx) => (
                                 <EntryCard
                                     key={entry.id}
