@@ -439,6 +439,155 @@ function PromoCard() {
     )
 }
 
+// CS Trivia Card - Fetches from Open Trivia DB (Computer Science)
+function CSTriviaCard({ compact }) {
+    const [trivia, setTrivia] = useState({ question: '', answer: '' })
+    const [loading, setLoading] = useState(true)
+    const [showAnswer, setShowAnswer] = useState(false)
+
+    useEffect(() => {
+        fetchTrivia()
+    }, [])
+
+    // Decode HTML entities
+    const decodeHTML = (html) => {
+        const txt = document.createElement('textarea')
+        txt.innerHTML = html
+        return txt.value
+    }
+
+    const fetchTrivia = async () => {
+        setLoading(true)
+        setShowAnswer(false)
+        try {
+            const response = await fetch('https://opentdb.com/api.php?amount=1&category=18&type=multiple')
+            if (!response.ok) throw new Error('Failed to fetch trivia')
+            const data = await response.json()
+            if (data.results && data.results.length > 0) {
+                const result = data.results[0]
+                setTrivia({
+                    question: decodeHTML(result.question),
+                    answer: decodeHTML(result.correct_answer),
+                    difficulty: result.difficulty
+                })
+            }
+        } catch (err) {
+            console.error('Error fetching CS trivia:', err)
+            // Fallback trivia
+            setTrivia({
+                question: "What does CPU stand for?",
+                answer: "Central Processing Unit",
+                difficulty: "easy"
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleClick = () => {
+        if (!showAnswer) {
+            setShowAnswer(true)
+        } else {
+            fetchTrivia()
+        }
+    }
+
+    const getDifficultyColor = (difficulty) => {
+        switch (difficulty?.toLowerCase()) {
+            case 'easy': return 'text-emerald-400'
+            case 'medium': return 'text-yellow-400'
+            case 'hard': return 'text-red-400'
+            default: return 'text-slate-400'
+        }
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="h-full"
+        >
+            <div
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full border border-white/10 flex flex-col relative overflow-hidden group cursor-pointer`}
+                style={{
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
+                }}
+                onClick={handleClick}
+            >
+                {/* Background decoration */}
+                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500" />
+
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1">
+                        <div className="p-2 rounded-lg text-cyan-400 font-bold">
+                            <Brain size={20} />
+                        </div>
+                        <h3 className="text-sm font-bold text-white">CS Trivia</h3>
+                    </div>
+                    {trivia.difficulty && (
+                        <span className={`text-[10px] font-semibold uppercase ${getDifficultyColor(trivia.difficulty)}`}>
+                            {trivia.difficulty}
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex-1 flex flex-col justify-center">
+                    <AnimatePresence mode='wait'>
+                        {loading ? (
+                            <motion.div
+                                key="loader"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="h-20 flex items-center justify-center"
+                            >
+                                <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key={trivia.question}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                            >
+                                <p className="text-slate-200 text-sm leading-relaxed font-medium mb-3">
+                                    {trivia.question}
+                                </p>
+                                <AnimatePresence>
+                                    {showAnswer && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30"
+                                        >
+                                            <p className="text-xs text-slate-400 mb-1">Answer:</p>
+                                            <p className="text-cyan-400 text-sm font-semibold">
+                                                {trivia.answer}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-600 uppercase tracking-wider">
+                        DevTrack Trivia
+                    </span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
+                        {showAnswer ? 'Next' : 'Reveal'}
+                    </span>
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
 // GitHub Icon component
 function GitHubIcon() {
     return (
@@ -563,67 +712,67 @@ export default function Dashboard() {
                 transition={{ duration: 0.5 }}
                 className={isScrollable ? "" : "h-auto lg:h-[calc(100vh-4rem)] lg:overflow-hidden"}
             >
-            {/* Main Container with rounded border */}
-            <div
-                className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
+                {/* Main Container with rounded border */}
+                <div
+                    className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
                     ${isScrollable ? 'h-full overflow-hidden' : 'h-auto lg:h-full lg:overflow-hidden'}`}
-                style={{
-                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                }}
-            >
-                {/* Header Row */}
-                <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Overview</h1>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* GitHub Link */}
-                        {githubUsername ? (
-                            <a
-                                href={`https://github.com/${githubUsername}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                            >
-                                <GitHubIcon />
-                                <span className="text-sm text-white font-medium hidden sm:block">{githubUsername}</span>
-                            </a>
-                        ) : (
-                            <a
-                                href="https://github.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
-                            >
-                                <GitHubIcon />
-                                <span className="text-sm font-medium hidden sm:block">Connect GitHub</span>
-                            </a>
-                        )}
-                    </div>
-                </div>
-
-                {/* Empty State */}
-                <AnimatePresence>
-                    {hasNoData && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="flex-1 flex flex-col items-center justify-center min-h-[400px]"
-                        >
-                            <Card className="text-center py-20 border-2 border-dashed border-purple-500/30 w-full max-w-5xl">
-                                <motion.div
-                                    className="flex justify-center mb-6"
-                                    animate={{ y: [0, -10, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{
+                        background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                    }}
+                >
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                        <div>
+                            <h1 className="text-2xl font-bold text-white">Overview</h1>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {/* GitHub Link */}
+                            {githubUsername ? (
+                                <a
+                                    href={`https://github.com/${githubUsername}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
                                 >
-                                    <Anchor size={64} className="text-purple-500" strokeWidth={1.5} />
-                                </motion.div>
-                                <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
-                                <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-                                    Start your developer journey by adding a project or logging your first learning session.
-                                </p>
+                                    <GitHubIcon />
+                                    <span className="text-sm text-white font-medium hidden sm:block">{githubUsername}</span>
+                                </a>
+                            ) : (
+                                <a
+                                    href="https://github.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                                >
+                                    <GitHubIcon />
+                                    <span className="text-sm font-medium hidden sm:block">Connect GitHub</span>
+                                </a>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Empty State */}
+                    <AnimatePresence>
+                        {hasNoData && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="flex-1 flex flex-col items-center justify-center min-h-[400px]"
+                            >
+                                <Card className="text-center py-20 border-2 border-dashed border-purple-500/30 w-full max-w-5xl">
+                                    <motion.div
+                                        className="flex justify-center mb-6"
+                                        animate={{ y: [0, -10, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    >
+                                        <Anchor size={64} className="text-purple-500" strokeWidth={1.5} />
+                                    </motion.div>
+                                    <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
+                                    <p className="text-slate-400 mb-8 max-w-lg mx-auto">
+                                        Start your developer journey by adding a project or logging your first learning session.
+                                    </p>
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                         <Link to="/projects">
                                             <Button size="lg" className="flex items-center gap-2">
@@ -638,101 +787,106 @@ export default function Dashboard() {
                                             </Button>
                                         </Link>
                                     </div>
-                            </Card>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                </Card>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                {/* Main Dashboard Grid */}
-                {!hasNoData && (
-                    <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'}`}>
-                        {/* Row 1: Portfolio + Assets */}
-                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
-                            {/* Portfolio Card - spans 4 cols */}
-                            <div className="lg:col-span-4">
-                                <PortfolioCard
-                                    totalLogs={logStats?.totalLogs || 0}
-                                    currentStreak={logStats?.currentStreak || 0}
-                                    logs={recentLogs}
-                                    compact={!isScrollable}
-                                />
-                            </div>
-
-                            {/* Your Stats Section - spans 8 cols */}
-                            <div className="lg:col-span-8 flex flex-col justify-center">
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <h2 className="text-sm font-semibold text-white">Your Stats</h2>
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <AssetCard
-                                        icon={<Brain size={isScrollable ? 20 : 16} />}
-                                        title="Learning"
-                                        subtitle="Streak days"
-                                        value={logStats?.currentStreak || 0}
-                                        change={logStats?.weeklyGrowth || 0}
-                                        color="cyan"
-                                        delay={0.15}
-                                        compact={!isScrollable}
-                                    />
-                                    <AssetCard
-                                        icon={<Github size={isScrollable ? 20 : 16} />}
-                                        title="GitHub"
-                                        subtitle="Commit streak"
-                                        value={githubStreak}
-                                        change={githubStats?.streakGrowth || 0}
-                                        color="purple"
-                                        delay={0.2}
-                                        compact={!isScrollable}
-                                    />
-                                    <AssetCard
-                                        icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
-                                        title="Commits"
-                                        subtitle={`${projectStats?.totalProjects || 0} projects`}
-                                        value={projectStats?.totalCommits || 0}
-                                        change={projectStats?.totalCommitGrowth || 0}
-                                        color="green"
-                                        delay={0.25}
-                                        compact={!isScrollable}
-                                    />
-                                    <AssetCard
-                                        icon={<Lightbulb size={isScrollable ? 20 : 16} />}
-                                        title="Skills"
-                                        subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
-                                        value={uniqueTags.length}
-                                        change={uniqueTags.length > 0 ? 5 : 0}
-                                        color="orange"
-                                        delay={0.3}
-                                        compact={!isScrollable}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Row 2: Activity Table + Calendar */}
-                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0`}>
-                            {/* Activity Table - spans 7 cols */}
-                            <div className="lg:col-span-7">
-                                <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
-                            </div>
-
-                            {/* Calendar - spans 5 cols */}
-                            <div className="lg:col-span-5 h-[350px] lg:h-full">
-                                <Calendar onExpand={handleExpandView} compact={!isScrollable} />
-                            </div>
-                        </div>
-
-                        {/* Row 3: Mobile App Token (Mobile Only) */}
-                        <div className="block lg:hidden flex-shrink-0">
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-4">
+                    {/* Main Dashboard Grid */}
+                    {!hasNoData && (
+                        <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'}`}>
+                            {/* Row 1: Portfolio + Assets */}
+                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
+                                {/* Portfolio Card - spans 4 cols */}
                                 <div className="lg:col-span-4">
-                                    <MobileAppToken />
+                                    <PortfolioCard
+                                        totalLogs={logStats?.totalLogs || 0}
+                                        currentStreak={logStats?.currentStreak || 0}
+                                        logs={recentLogs}
+                                        compact={!isScrollable}
+                                    />
+                                </div>
+
+                                {/* Your Stats Section - spans 8 cols */}
+                                <div className="lg:col-span-8 flex flex-col justify-center">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <h2 className="text-sm font-semibold text-white">Your Stats</h2>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <AssetCard
+                                            icon={<Brain size={isScrollable ? 20 : 16} />}
+                                            title="Learning"
+                                            subtitle="Streak days"
+                                            value={logStats?.currentStreak || 0}
+                                            change={logStats?.weeklyGrowth || 0}
+                                            color="cyan"
+                                            delay={0.15}
+                                            compact={!isScrollable}
+                                        />
+                                        <AssetCard
+                                            icon={<Github size={isScrollable ? 20 : 16} />}
+                                            title="GitHub"
+                                            subtitle="Commit streak"
+                                            value={githubStreak}
+                                            change={githubStats?.streakGrowth || 0}
+                                            color="purple"
+                                            delay={0.2}
+                                            compact={!isScrollable}
+                                        />
+                                        <AssetCard
+                                            icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
+                                            title="Commits"
+                                            subtitle={`${projectStats?.totalProjects || 0} projects`}
+                                            value={projectStats?.totalCommits || 0}
+                                            change={projectStats?.totalCommitGrowth || 0}
+                                            color="green"
+                                            delay={0.25}
+                                            compact={!isScrollable}
+                                        />
+                                        <AssetCard
+                                            icon={<Lightbulb size={isScrollable ? 20 : 16} />}
+                                            title="Skills"
+                                            subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
+                                            value={uniqueTags.length}
+                                            change={uniqueTags.length > 0 ? 5 : 0}
+                                            color="orange"
+                                            delay={0.3}
+                                            compact={!isScrollable}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Row 2: Activity Table + Calendar */}
+                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0`}>
+                                {/* Activity Table - spans 4 cols */}
+                                <div className="lg:col-span-4">
+                                    <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                </div>
+
+                                {/* Calendar - spans 5 cols */}
+                                <div className="lg:col-span-5 h-[350px] lg:h-full">
+                                    <Calendar onExpand={handleExpandView} compact={!isScrollable} />
+                                </div>
+
+                                {/* CS Trivia - spans 3 cols */}
+                                <div className="hidden lg:block lg:col-span-3 h-[350px] lg:h-full">
+                                    <CSTriviaCard compact={!isScrollable} />
+                                </div>
+                            </div>
+
+                            {/* Row 3: Mobile App Token (Mobile Only) */}
+                            <div className="block lg:hidden flex-shrink-0">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-4">
+                                    <div className="lg:col-span-4">
+                                        <MobileAppToken />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    </PixelTransition>
-  );
+                    )}
+                </div>
+            </motion.div>
+        </PixelTransition>
+    );
 }

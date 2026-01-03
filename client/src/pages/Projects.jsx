@@ -7,8 +7,22 @@ import Lenis from "lenis";
 import { useLenis } from "lenis/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare } from 'lucide-react';
+import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare, PartyPopper } from 'lucide-react';
 import PixelTransition from '../components/ui/PixelTransition';
+
+// SVG Icon Components
+const GeminiIcon = ({ className = "w-5 h-5" }) => (
+    <svg className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path
+            d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z"
+            fill="currentColor"
+        />
+    </svg>
+)
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -216,7 +230,7 @@ function ProjectCard({
                 {project.aiAnalysis && (
                   <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Bot size={14} className="text-purple-400" />
+                      <GeminiIcon className="w-3.5 h-3.5 text-purple-400" />
                       <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
                         AI Status Report
                       </span>
@@ -1295,12 +1309,47 @@ export default function Projects() {
     })();
   };
 
+  const projectsContainerRef = useRef(null);
+  const projectsContentRef = useRef(null);
+  const lenisRef = useRef(null);
+
+  // Initialize Lenis for smooth scrolling
+  useEffect(() => {
+    if (!projectsContainerRef.current || !projectsContentRef.current) return;
+
+    const lenis = new Lenis({
+      wrapper: projectsContainerRef.current,
+      content: projectsContentRef.current,
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    });
+
+    lenisRef.current = lenis;
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    const rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, [projects]); // Re-init if projects change/load
+
   return (
     <PixelTransition loading={loading}>
       <motion.div>
         {/* Main Container */}
         <div
-          className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+          className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
           style={{
             background:
               "linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))",
@@ -1309,7 +1358,7 @@ export default function Projects() {
           }}
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0">
             <div>
               <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
               <p className="text-slate-400 text-sm">
@@ -1326,7 +1375,7 @@ export default function Projects() {
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 flex-shrink-0">
             <>
               <StatCard
                 icon={<Folder className="w-6 h-6" />}
@@ -1359,75 +1408,83 @@ export default function Projects() {
             </>
           </div>
 
-          {/* Error State */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-red-400">⚠️</span>
-                <p className="text-red-400 flex-1">Error: {error}</p>
-                <Button
-                  variant="ghost"
-                  onClick={fetchProjects}
-                  className="text-sm"
+          {/* Scrollable Content Area */}
+          <div 
+            ref={projectsContainerRef}
+            className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-2 relative"
+          > 
+            <div ref={projectsContentRef} className="pb-4">
+              {/* Error State */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
                 >
-                  Retry
-                </Button>
-              </div>
-            </motion.div>
-          )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-red-400">⚠️</span>
+                    <p className="text-red-400 flex-1">Error: {error}</p>
+                    <Button
+                      variant="ghost"
+                      onClick={fetchProjects}
+                      className="text-sm"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
 
-          {/* Empty State */}
-          {!loading && projects.length === 0 && !error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30"
-            >
-              <div className="flex justify-center mb-4">
-                <Rocket className="w-16 h-16 text-purple-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                No Projects Yet
-              </h3>
-              <p className="text-slate-400 mb-6 max-w-md mx-auto">
-                Track your coding projects, link your GitHub repos, and let AI
-                analyze your progress!
-              </p>
-              <Button onClick={() => setShowModal(true)} size="lg">
-                Create Your First Project
-              </Button>
-            </motion.div>
-          )}
+              {/* Empty State */}
+              {!loading && projects.length === 0 && !error && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30"
+                >
+                  <div className="flex justify-center mb-4">
+                    <Rocket className="w-16 h-16 text-purple-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    No Projects Yet
+                  </h3>
+                  <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                    Track your coding projects, link your GitHub repos, and let AI
+                    analyze your progress!
+                  </p>
+                  <Button onClick={() => setShowModal(true)} size="lg">
+                    Create Your First Project
+                  </Button>
+                </motion.div>
+              )}
 
-          {/* Projects Grid */}
-          {projects.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {projects.map((project, index) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  isExpanded={expandedProjectId === project.id}
-                  onToggle={() =>
-                    setExpandedProjectId(
-                      expandedProjectId === project.id ? null : project.id
-                    )
-                  }
-                  onEdit={handleEdit}
-                  onDelete={() => {
-                    setDeleteConfirm(project.id);
-                  }}
-                  onReanalyze={handleReanalyze}
-                  onComplete={handleComplete}
-                  analyzing={analyzing}
-                  delay={index * 0.1}
-                />
-              ))}
+              {/* Projects Grid */}
+              {projects.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                  {projects.map((project, index) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      isExpanded={expandedProjectId === project.id}
+                      onToggle={() =>
+                        setExpandedProjectId(
+                          expandedProjectId === project.id ? null : project.id
+                        )
+                      }
+                      onEdit={handleEdit}
+                      onDelete={() => {
+                        setDeleteConfirm(project.id);
+                      }}
+                      onReanalyze={handleReanalyze}
+                      onComplete={handleComplete}
+                      analyzing={analyzing}
+                      delay={index * 0.1}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Delete Confirmation Modal */}
@@ -1464,7 +1521,9 @@ export default function Projects() {
           title="Finish Project?"
         >
           <div className="text-center">
-            <div className="text-5xl mb-4">🎉</div>
+            <div className="flex justify-center mb-4">
+              <PartyPopper className="w-16 h-16 text-yellow-500" />
+            </div>
             <p className="text-xl font-semibold text-white mb-6">
               Do you want to finish this project?
             </p>
