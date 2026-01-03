@@ -143,7 +143,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
             className="h-full"
         >
             <div
-                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-4'} h-full relative overflow-hidden border border-white/10`}
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full relative overflow-hidden border border-white/10`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
@@ -152,29 +152,29 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
                 {/* Background glow */}
                 <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
 
-                <div className="flex items-start justify-between mb-1">
+                <div className="flex items-start justify-between mb-0.5">
                     <div>
-                        <h3 className="text-2xl font-bold text-white">
+                        <h3 className={`${compact ? 'text-xl' : 'text-2xl'} font-bold text-white`}>
                             <AnimatedCounter value={totalLogs} />
                         </h3>
-                        <p className="text-slate-400 text-xs">Total Learning Logs</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider">Total Logs</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-base font-semibold text-purple-400">{periodLogs.length}</p>
-                        <p className="text-xs text-slate-500">This {selectedPeriod}</p>
+                        <p className="text-sm font-semibold text-purple-400">{periodLogs.length}</p>
+                        <p className="text-[10px] text-slate-500">This {selectedPeriod}</p>
                     </div>
                 </div>
 
                 {/* Streak badge */}
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1">
-                        <Flame size={12} className="fill-emerald-400" /> {currentStreak} day streak
+                <div className="flex items-center gap-2 mb-1.5">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-medium flex items-center gap-1">
+                        <Flame size={10} className="fill-emerald-400" /> {currentStreak} day streak
                     </span>
                 </div>
 
                 {/* Chart */}
                 <div className="mt-auto">
-                    <svg viewBox="0 0 200 50" className="w-full h-14">
+                    <svg viewBox="0 0 200 50" className={`w-full ${compact ? 'h-10' : 'h-14'}`}>
                         <defs>
                             <linearGradient id="portfolioGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                                 <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
@@ -202,15 +202,15 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
                     </svg>
 
                     {/* Time range tabs - FUNCTIONAL */}
-                    <div className="flex items-center gap-1 mt-2 p-1 rounded-xl bg-white/5">
+                    <div className="flex items-center gap-1 mt-1 p-0.5 rounded-lg bg-white/5">
                         {['1D', '1W', '1M', '3M', '1Y', 'All'].map((period) => (
                             <button
                                 key={period}
                                 onClick={() => setSelectedPeriod(period)}
-                                className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-lg transition-all duration-200
+                                className={`flex-1 px-1 py-1 text-[9px] font-medium rounded transition-all duration-200
                                     ${selectedPeriod === period
-                                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                        ? 'bg-purple-500 text-white shadow-lg'
+                                        : 'text-slate-500 hover:text-white hover:bg-white/10'}`}
                             >
                                 {period}
                             </button>
@@ -240,20 +240,20 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
             className="flex-1 min-w-[140px]"
         >
             <div
-                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-4'} h-full border ${c.border} backdrop-blur-sm`}
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full border ${c.border} backdrop-blur-sm`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
                 }}
             >
-                <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}>
                         {icon}
                     </div>
                     <div>
-                        <p className="font-bold text-white text-lg">
+                        <p className={`font-bold text-white ${compact ? 'text-base' : 'text-lg'}`}>
                             {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
                         </p>
-                        <p className="text-slate-400 text-xs">{title}</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-wider">{title}</p>
                     </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -314,8 +314,8 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
     // Sort by parsed date (most recent first)
     combinedActivities.sort((a, b) => b.parsedDate - a.parsedDate)
 
-    // Take top 5
-    const topActivities = combinedActivities.slice(0, 5)
+    // Take top 4
+    const topActivities = combinedActivities.slice(0, 4)
 
     return (
         <motion.div
@@ -332,11 +332,11 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                <div className="flex items-center justify-between mb-2 flex-shrink-0">
                     <div className="flex items-center gap-2">
-                        <h3 className="text-base font-semibold text-white">Recent Activity</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium flex items-center gap-1">
-                            <Flame size={12} className="fill-purple-400" /> {logStats?.currentStreak || 0} days
+                        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1">
+                            <Flame size={10} className="fill-purple-400" /> {logStats?.currentStreak || 0} days
                         </span>
                     </div>
                     <Link to="/learning" className="text-purple-400 text-xs hover:text-purple-300 transition-colors">
@@ -352,7 +352,7 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
                         topActivities.map((activity, idx) => (
                             <motion.div
                                 key={activity.id}
-                                className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors"
+                                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.4 + idx * 0.08 }}
@@ -568,21 +568,21 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className={isScrollable ? "" : "h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] overflow-hidden"}
+            className={isScrollable ? "" : "h-auto lg:h-[calc(100vh-4rem)] lg:overflow-hidden"}
         >
             {/* Main Container with rounded border */}
             <div
-                className={`rounded-[2rem] p-4 lg:p-8 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
-                    ${isScrollable ? 'h-auto overflow-y-auto' : 'h-full overflow-hidden'}`}
+                className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
+                    ${isScrollable ? 'h-full overflow-hidden' : 'h-auto lg:h-full lg:overflow-hidden'}`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 }}
             >
                 {/* Header Row */}
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
                     <div>
-                        <h1 className="text-3xl font-bold text-white">Overview</h1>
+                        <h1 className="text-2xl font-bold text-white">Overview</h1>
                     </div>
                     <div className="flex items-center gap-4">
                         {/* GitHub Link */}
@@ -645,9 +645,9 @@ export default function Dashboard() {
 
                 {/* Main Dashboard Grid */}
                 {!hasNoData && (
-                    <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-5' : 'space-y-4 lg:space-y-4 flex-1 flex flex-col min-h-0'}`}>
+                    <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'}`}>
                         {/* Row 1: Portfolio + Assets */}
-                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-5' : 'gap-4 lg:gap-4 flex-shrink-0'}`}>
+                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
                             {/* Portfolio Card - spans 4 cols */}
                             <div className="lg:col-span-4">
                                 <PortfolioCard
@@ -659,13 +659,13 @@ export default function Dashboard() {
                             </div>
 
                             {/* Your Stats Section - spans 8 cols */}
-                            <div className="lg:col-span-8 flex flex-col justify-center h-full pb-10">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h2 className="text-base font-semibold text-white">Your Stats</h2>
+                            <div className="lg:col-span-8 flex flex-col justify-center">
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <h2 className="text-sm font-semibold text-white">Your Stats</h2>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     <AssetCard
-                                        icon={<Brain size={isScrollable ? 20 : 18} />}
+                                        icon={<Brain size={isScrollable ? 20 : 16} />}
                                         title="Learning"
                                         subtitle="Streak days"
                                         value={logStats?.currentStreak || 0}
@@ -675,7 +675,7 @@ export default function Dashboard() {
                                         compact={!isScrollable}
                                     />
                                     <AssetCard
-                                        icon={<Github size={isScrollable ? 20 : 18} />}
+                                        icon={<Github size={isScrollable ? 20 : 16} />}
                                         title="GitHub"
                                         subtitle="Commit streak"
                                         value={githubStreak}
@@ -685,7 +685,7 @@ export default function Dashboard() {
                                         compact={!isScrollable}
                                     />
                                     <AssetCard
-                                        icon={<GitCommitHorizontal size={isScrollable ? 20 : 18} />}
+                                        icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
                                         title="Commits"
                                         subtitle={`${projectStats?.totalProjects || 0} projects`}
                                         value={projectStats?.totalCommits || 0}
@@ -695,7 +695,7 @@ export default function Dashboard() {
                                         compact={!isScrollable}
                                     />
                                     <AssetCard
-                                        icon={<Lightbulb size={isScrollable ? 20 : 18} />}
+                                        icon={<Lightbulb size={isScrollable ? 20 : 16} />}
                                         title="Skills"
                                         subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
                                         value={uniqueTags.length}
@@ -709,20 +709,20 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 2: Activity Table + Calendar */}
-                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-5' : 'gap-4 lg:gap-4 flex-1 min-h-0'}`}>
+                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0`}>
                             {/* Activity Table - spans 7 cols */}
                             <div className="lg:col-span-7">
                                 <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
                             </div>
 
                             {/* Calendar - spans 5 cols */}
-                            <div className="lg:col-span-12 xl:col-span-5 h-full">
+                            <div className="lg:col-span-5 h-[350px] lg:h-full">
                                 <Calendar onExpand={handleExpandView} compact={!isScrollable} />
                             </div>
                         </div>
 
                         {/* Row 3: Mobile App Token (Mobile Only) */}
-                        <div className="block lg:hidden">
+                        <div className="block lg:hidden flex-shrink-0">
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-4">
                                 <div className="lg:col-span-4">
                                     <MobileAppToken />

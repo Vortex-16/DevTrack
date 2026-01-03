@@ -247,9 +247,9 @@ export default function Calendar({ onExpand, compact }) {
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                    <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                        <CalendarIcon className="w-5 h-5 text-purple-400" /> Calendar
+                <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <CalendarIcon className="w-4 h-4 text-purple-400" /> Calendar
                     </h3>
                     <div className="flex items-center gap-1">
                         <button
