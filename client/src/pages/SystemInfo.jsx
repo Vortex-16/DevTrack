@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useCache } from '../context/CacheContext'
 import { Flame, Lightbulb, BarChart3, BookOpen, TrendingUp, Calendar, Zap, ArrowLeft } from 'lucide-react'
 import PixelTransition from '../components/ui/PixelTransition'
+import Lenis from 'lenis'
 
 const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -54,6 +55,24 @@ export default function SystemInfo() {
         setLoading(false);
         setCachedData('system-info', true);
     }, [setCachedData])
+
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
+        })
+
+        function raf(time) {
+            lenis.raf(time)
+            requestAnimationFrame(raf)
+        }
+
+        requestAnimationFrame(raf)
+
+        return () => {
+            lenis.destroy()
+        }
+    }, [])
 
 
 

@@ -142,38 +142,38 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
             className="group h-full"
         >
             <div
-                className="rounded-2xl p-4 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
+                className="rounded-2xl p-3 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
                 }}
             >
-                <div className="flex items-start gap-3 flex-1">
+                <div className="flex items-start gap-2.5 flex-1">
                     {/* Date badge */}
                     <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
-                            <Icon className="w-5 h-5 text-white" />
+                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
+                            <Icon className="w-4.5 h-4.5 text-white" />
                         </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <h3 className="text-sm font-semibold text-white whitespace-nowrap">{formatDate(entry.date)}</h3>
-                            <span className="text-slate-500 text-[10px] flex items-center gap-1 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded-full">
-                                <Clock size={10} />
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="text-lg font-semibold text-white whitespace-nowrap">{formatDate(entry.date)}</h3>
+                            <span className="text-purple-300 text-sm flex items-center gap-1 whitespace-nowrap bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md">
+                                <Clock size={12} />
                                 {entry.startTime} - {entry.endTime}
                             </span>
                         </div>
-                        <p className="text-xs text-slate-300 mb-3 line-clamp-2 leading-relaxed">{entry.learnedToday}</p>
+                        <p className="text-base text-slate-300 mb-2 line-clamp-2 leading-relaxed">{entry.learnedToday}</p>
 
                         {/* Tags */}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                             {(entry.tags || []).map((tag, i) => (
                                 <span
                                     key={i}
-                                    className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1 border border-purple-500/10"
+                                    className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-sm font-medium flex items-center gap-1 border border-purple-500/10"
                                 >
-                                    <Tag size={8} />
+                                    <Tag size={12} />
                                     {tag}
                                 </span>
                             ))}

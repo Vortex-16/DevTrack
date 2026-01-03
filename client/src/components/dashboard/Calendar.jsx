@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tasksApi } from '../../services/api'
 import { Calendar as CalendarIcon, ArrowLeft, ChevronDown, X } from 'lucide-react'
+
+import Lenis from 'lenis'
 
 // Calendar Component with Task Management
 export default function Calendar({ onExpand, compact }) {
@@ -14,6 +16,8 @@ export default function Calendar({ onExpand, compact }) {
     const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' })
     const [saving, setSaving] = useState(false)
     const [notificationPermission, setNotificationPermission] = useState('default')
+    
+    const monthPickerRef = useRef(null)
 
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -29,6 +33,35 @@ export default function Calendar({ onExpand, compact }) {
     const getDateString = (y, m, d) => {
         return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     }
+
+    // Initialize Lenis for month picker
+    useEffect(() => {
+        if (showMonthPicker && monthPickerRef.current) {
+            const lenis = new Lenis({
+                wrapper: monthPickerRef.current,
+                content: monthPickerRef.current.firstElementChild, // first child is the grid
+                duration: 1.2,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                direction: 'vertical',
+                gestureDirection: 'vertical',
+                smooth: true,
+                mouseMultiplier: 1,
+                smoothTouch: false,
+                touchMultiplier: 2,
+            })
+
+            function raf(time) {
+                lenis.raf(time)
+                requestAnimationFrame(raf)
+            }
+
+            requestAnimationFrame(raf)
+
+            return () => {
+                lenis.destroy()
+            }
+        }
+    }, [showMonthPicker])
 
     // Request notification permission on mount
     useEffect(() => {
@@ -300,6 +333,7 @@ export default function Calendar({ onExpand, compact }) {
                                 </div>
                                 
                                 <div 
+                                    ref={monthPickerRef}
                                     className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-hide flex-1"
                                     data-lenis-prevent // Prevent parent scrolling
                                 >
