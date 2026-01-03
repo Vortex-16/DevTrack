@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tasksApi } from '../../services/api'
-import { Calendar as CalendarIcon, ArrowLeft } from 'lucide-react'
+import { Calendar as CalendarIcon, ArrowLeft, ChevronDown, X } from 'lucide-react'
 
 // Calendar Component with Task Management
 export default function Calendar({ onExpand, compact }) {
@@ -10,6 +10,7 @@ export default function Calendar({ onExpand, compact }) {
     const [tasks, setTasks] = useState([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [showMonthPicker, setShowMonthPicker] = useState(false)
     const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' })
     const [saving, setSaving] = useState(false)
     const [notificationPermission, setNotificationPermission] = useState('default')
@@ -118,6 +119,12 @@ export default function Calendar({ onExpand, compact }) {
     const handleDateClick = (day) => {
         const dateStr = getDateString(year, month, day)
         setSelectedDate(dateStr)
+    }
+
+    // Handle month select
+    const handleMonthSelect = (newMonthIndex) => {
+        setCurrentDate(new Date(year, newMonthIndex, 1))
+        setShowMonthPicker(false)
     }
 
     // Add new task
@@ -255,9 +262,13 @@ export default function Calendar({ onExpand, compact }) {
                         >
                             ←
                         </button>
-                        <span className="text-xs font-medium text-white min-w-[100px] text-center">
+                        <button
+                            onClick={() => setShowMonthPicker(!showMonthPicker)}
+                            className="flex items-center gap-1 text-xs font-bold text-white min-w-[100px] justify-center px-2 py-1 rounded-lg hover:bg-white/10 transition-colors"
+                        >
                             {monthNames[month]} {year}
-                        </span>
+                            <ChevronDown size={12} className={`transition-transform duration-300 ${showMonthPicker ? 'rotate-180' : ''}`} />
+                        </button>
                         <button
                             onClick={nextMonth}
                             className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors text-sm"
@@ -268,6 +279,48 @@ export default function Calendar({ onExpand, compact }) {
                 </div>
 
                 <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
+                    {/* Month Picker Overlay */}
+                    <AnimatePresence>
+                        {showMonthPicker && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-md rounded-xl p-4 flex flex-col"
+                            >
+                                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                                    <h4 className="text-sm font-bold text-white">Select Month</h4>
+                                    <button 
+                                        onClick={() => setShowMonthPicker(false)}
+                                        className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                
+                                <div 
+                                    className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-hide flex-1"
+                                    data-lenis-prevent // Prevent parent scrolling
+                                >
+                                    {monthNames.map((m, idx) => (
+                                        <button
+                                            key={m}
+                                            onClick={() => handleMonthSelect(idx)}
+                                            className={`p-3 rounded-xl text-sm font-medium transition-all text-left
+                                                ${idx === month 
+                                                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' 
+                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                                                }
+                                            `}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                     {/* Calendar Grid Layer */}
                     <div className="absolute inset-0 flex flex-col overflow-y-auto scrollbar-hide">
                         {/* Day headers */}
