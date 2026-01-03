@@ -233,14 +233,18 @@ function ProjectCard({
 
                 {/* Technologies */}
                 <div className="flex flex-wrap gap-1.5">
-                  {(project.technologies || []).map((tech, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 rounded-lg bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5"
-                    >
-                      {tech}
-                    </span>
-                  ))}
+                  {(project.technologies || []).map((tech, i) => {
+                    // Handle both string and object formats
+                    const techName = typeof tech === 'string' ? tech : (tech?.name || String(tech));
+                    return (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-lg bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5"
+                      >
+                        {techName}
+                      </span>
+                    );
+                  })}
                 </div>
 
                 {/* Detailed Stats Row */}
@@ -359,15 +363,15 @@ function Modal({ isOpen, onClose, title, children }) {
   // Global Scroll Lock
   useEffect(() => {
     if (isOpen) {
-        globalLenis?.stop()
-        document.body.style.overflow = 'hidden'
+      globalLenis?.stop()
+      document.body.style.overflow = 'hidden'
     } else {
-        globalLenis?.start()
-        document.body.style.overflow = 'unset'
+      globalLenis?.start()
+      document.body.style.overflow = 'unset'
     }
     return () => {
-        globalLenis?.start()
-        document.body.style.overflow = 'unset'
+      globalLenis?.start()
+      document.body.style.overflow = 'unset'
     }
   }, [isOpen, globalLenis])
 
@@ -942,10 +946,39 @@ function SuccessTick() {
 export default function Projects() {
   const { getCachedData, setCachedData, hasCachedData } = useCache();
 
-  // Initialize from cache
-  const cachedData = getCachedData('projects_data') || {};
+  // Helper function to sanitize project data
+  const sanitizeProjects = (projects) => {
+    if (!Array.isArray(projects)) return [];
 
-  const [projects, setProjects] = useState(cachedData.projects || []);
+    return projects.map(project => {
+      const sanitized = { ...project };
+
+      // Fix openIssues if it's an array instead of a number
+      if (sanitized.githubData?.openIssues) {
+        if (Array.isArray(sanitized.githubData.openIssues)) {
+          sanitized.githubData = {
+            ...sanitized.githubData,
+            openIssues: sanitized.githubData.openIssues.length
+          };
+        }
+      }
+
+      // Fix technologies if it contains objects instead of strings
+      if (Array.isArray(sanitized.technologies)) {
+        sanitized.technologies = sanitized.technologies.map(tech =>
+          typeof tech === 'string' ? tech : (tech?.name || String(tech))
+        );
+      }
+
+      return sanitized;
+    });
+  };
+
+  // Initialize from cache with sanitization
+  const cachedData = getCachedData('projects_data') || {};
+  const sanitizedCachedProjects = sanitizeProjects(cachedData.projects || []);
+
+  const [projects, setProjects] = useState(sanitizedCachedProjects);
   const [loading, setLoading] = useState(!hasCachedData('projects_data'));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState(cachedData.stats || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 });
@@ -988,8 +1021,11 @@ export default function Projects() {
         projectsApi.getStats()
       ]);
 
-      const newProjects = projectsRes.data.data.projects || [];
+      const rawProjects = projectsRes.data.data.projects || [];
       const newStats = statsRes.data.data || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 };
+
+      // Sanitize project data to fix legacy data structures
+      const newProjects = sanitizeProjects(rawProjects);
 
       setProjects(newProjects);
       setStats(newStats);
@@ -1031,7 +1067,7 @@ export default function Projects() {
         githubData: {
           stars: repoInfo.stars,
           forks: repoInfo.forks,
-          openIssues: repoInfo.openIssuesCount || repoInfo.openIssues,
+          openIssues: repoInfo.openIssuesCount || (Array.isArray(repoInfo.openIssues) ? repoInfo.openIssues.length : 0),
           languages: repoInfo.languages,
           totalCommits: repoInfo.totalCommits,
         },
@@ -1259,253 +1295,253 @@ export default function Projects() {
     })();
   };
 
-    return (
-      <PixelTransition loading={loading}>
-        <motion.div>
-      {/* Main Container */}
-      <div
-        className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
-        style={{
-          background:
-            "linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))",
-          boxShadow:
-            "0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
-        }}
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
-            <p className="text-slate-400 text-sm">
-              Track your development projects and milestones
-            </p>
+  return (
+    <PixelTransition loading={loading}>
+      <motion.div>
+        {/* Main Container */}
+        <div
+          className="rounded-[2rem] p-6 lg:p-8 border border-white/10"
+          style={{
+            background:
+              "linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))",
+            boxShadow:
+              "0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+          }}
+        >
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
+              <p className="text-slate-400 text-sm">
+                Track your development projects and milestones
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              New Project
+            </Button>
           </div>
-          <Button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            New Project
-          </Button>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <>
+              <StatCard
+                icon={<Folder className="w-6 h-6" />}
+                label="Total Projects"
+                value={stats.totalProjects || 0}
+                color="purple"
+                delay={0.1}
+              />
+              <StatCard
+                icon={<Activity className="w-6 h-6" />}
+                label="Active"
+                value={stats.activeProjects || 0}
+                color="cyan"
+                delay={0.15}
+              />
+              <StatCard
+                icon={<CheckCircle className="w-6 h-6" />}
+                label="Completed"
+                value={stats.completedProjects || 0}
+                color="green"
+                delay={0.2}
+              />
+              <StatCard
+                icon={<GitCommitHorizontal className="w-6 h-6" />}
+                label="Total Commits"
+                value={stats.totalCommits || 0}
+                color="orange"
+                delay={0.25}
+              />
+            </>
+          </div>
+
+          {/* Error State */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-red-400">⚠️</span>
+                <p className="text-red-400 flex-1">Error: {error}</p>
+                <Button
+                  variant="ghost"
+                  onClick={fetchProjects}
+                  className="text-sm"
+                >
+                  Retry
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Empty State */}
+          {!loading && projects.length === 0 && !error && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30"
+            >
+              <div className="flex justify-center mb-4">
+                <Rocket className="w-16 h-16 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No Projects Yet
+              </h3>
+              <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                Track your coding projects, link your GitHub repos, and let AI
+                analyze your progress!
+              </p>
+              <Button onClick={() => setShowModal(true)} size="lg">
+                Create Your First Project
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Projects Grid */}
+          {projects.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {projects.map((project, index) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  isExpanded={expandedProjectId === project.id}
+                  onToggle={() =>
+                    setExpandedProjectId(
+                      expandedProjectId === project.id ? null : project.id
+                    )
+                  }
+                  onEdit={handleEdit}
+                  onDelete={() => {
+                    setDeleteConfirm(project.id);
+                  }}
+                  onReanalyze={handleReanalyze}
+                  onComplete={handleComplete}
+                  analyzing={analyzing}
+                  delay={index * 0.1}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <>
-            <StatCard
-              icon={<Folder className="w-6 h-6" />}
-              label="Total Projects"
-              value={stats.totalProjects || 0}
-              color="purple"
-              delay={0.1}
-            />
-            <StatCard
-              icon={<Activity className="w-6 h-6" />}
-              label="Active"
-              value={stats.activeProjects || 0}
-              color="cyan"
-              delay={0.15}
-            />
-            <StatCard
-              icon={<CheckCircle className="w-6 h-6" />}
-              label="Completed"
-              value={stats.completedProjects || 0}
-              color="green"
-              delay={0.2}
-            />
-            <StatCard
-              icon={<GitCommitHorizontal className="w-6 h-6" />}
-              label="Total Commits"
-              value={stats.totalCommits || 0}
-              color="orange"
-              delay={0.25}
-            />
-          </>
-        </div>
-
-        {/* Error State */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-red-400">⚠️</span>
-              <p className="text-red-400 flex-1">Error: {error}</p>
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          title="Delete Project?"
+        >
+          <div className="text-center">
+            <div className="text-5xl mb-4">⚠️</div>
+            <p className="text-slate-400 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-4">
               <Button
                 variant="ghost"
-                onClick={fetchProjects}
-                className="text-sm"
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1"
               >
-                Retry
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                Delete
               </Button>
             </div>
-          </motion.div>
-        )}
+          </div>
+        </Modal>
 
-        {/* Empty State */}
-        {!loading && projects.length === 0 && !error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30"
-          >
-            <div className="flex justify-center mb-4">
-              <Rocket className="w-16 h-16 text-purple-500" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              No Projects Yet
-            </h3>
-            <p className="text-slate-400 mb-6 max-w-md mx-auto">
-              Track your coding projects, link your GitHub repos, and let AI
-              analyze your progress!
+        {/* Completion Confirmation Modal */}
+        <Modal
+          isOpen={!!completeConfirm}
+          onClose={() => setCompleteConfirm(null)}
+          title="Finish Project?"
+        >
+          <div className="text-center">
+            <div className="text-5xl mb-4">🎉</div>
+            <p className="text-xl font-semibold text-white mb-6">
+              Do you want to finish this project?
             </p>
-            <Button onClick={() => setShowModal(true)} size="lg">
-              Create Your First Project
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Projects Grid */}
-        {projects.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            {projects.map((project, index) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                isExpanded={expandedProjectId === project.id}
-                onToggle={() =>
-                  setExpandedProjectId(
-                    expandedProjectId === project.id ? null : project.id
-                  )
-                }
-                onEdit={handleEdit}
-                onDelete={() => {
-                  setDeleteConfirm(project.id);
-                }}
-                onReanalyze={handleReanalyze}
-                onComplete={handleComplete}
-                analyzing={analyzing}
-                delay={index * 0.1}
-              />
-            ))}
+            <div className="flex gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => setCompleteConfirm(null)}
+                className="flex-1 border border-white/20 hover:border-white/40"
+              >
+                No
+              </Button>
+              <Button
+                onClick={executeProjectCompletion}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                Yes
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+        </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        title="Delete Project?"
-      >
-        <div className="text-center">
-          <div className="text-5xl mb-4">⚠️</div>
-          <p className="text-slate-400 mb-6">This action cannot be undone.</p>
-          <div className="flex gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteConfirm(null)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => handleDelete(deleteConfirm)}
-              className="flex-1 bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        {/* Create Modal */}
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title="New Project"
+        >
+          <ProjectForm
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowModal(false)}
+            isEdit={false}
+            analyzing={analyzing}
+          />
+        </Modal>
 
-      {/* Completion Confirmation Modal */}
-      <Modal
-        isOpen={!!completeConfirm}
-        onClose={() => setCompleteConfirm(null)}
-        title="Finish Project?"
-      >
-        <div className="text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <p className="text-xl font-semibold text-white mb-6">
-            Do you want to finish this project?
-          </p>
-          <div className="flex gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => setCompleteConfirm(null)}
-              className="flex-1 border border-white/20 hover:border-white/40"
-            >
-              No
-            </Button>
-            <Button
-              onClick={executeProjectCompletion}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-            >
-              Yes
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Create Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="New Project"
-      >
-        <ProjectForm
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-          onCancel={() => setShowModal(false)}
-          isEdit={false}
-          analyzing={analyzing}
-        />
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingProject(null);
-        }}
-        title="Edit Project"
-      >
-        <ProjectForm
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleEditSubmit}
-          onCancel={() => {
+        {/* Edit Modal */}
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => {
             setShowEditModal(false);
             setEditingProject(null);
           }}
-          isEdit={true}
-          analyzing={analyzing}
-        />
-      </Modal>
-      {/* Background Processing Indicator */}
-      <AnimatePresence>
-        {isBackgroundProcessing && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-white/10 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg backdrop-blur-md"
-          >
-            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm font-medium text-slate-300">Processing...</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          title="Edit Project"
+        >
+          <ProjectForm
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleEditSubmit}
+            onCancel={() => {
+              setShowEditModal(false);
+              setEditingProject(null);
+            }}
+            isEdit={true}
+            analyzing={analyzing}
+          />
+        </Modal>
+        {/* Background Processing Indicator */}
+        <AnimatePresence>
+          {isBackgroundProcessing && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-white/10 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg backdrop-blur-md"
+            >
+              <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm font-medium text-slate-300">Processing...</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {showSuccess && <SuccessTick />}
-      </AnimatePresence>
-    </motion.div>
+        <AnimatePresence>
+          {showSuccess && <SuccessTick />}
+        </AnimatePresence>
+      </motion.div>
     </PixelTransition>
   );
 }
