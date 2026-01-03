@@ -92,12 +92,10 @@ function MessageBubble({ message, idx }) {
 
                 {/* Message Content */}
                 <div
-                    className={`rounded-2xl px-4 py-3 ${isUser
-                        ? 'bg-gradient-to-br from-purple-500/90 to-purple-600/90 text-white'
-                        : 'bg-white/5 border border-white/10'}`}
-                    style={!isUser ? {
-                        background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))'
-                    } : {}}
+                    className={`relative px-4 py-2 shadow-sm max-w-[calc(100%-3rem)] ${isUser
+                        ? 'rounded-lg rounded-tr-none bg-purple-600 text-white after:content-[""] after:absolute after:top-0 after:-right-[10px] after:w-0 after:h-0 after:border-t-[10px] after:border-t-purple-600 after:border-r-[10px] after:border-r-transparent'
+                        : 'rounded-lg rounded-tl-none bg-[#1e293b] text-slate-200 before:content-[""] before:absolute before:top-0 before:-left-[10px] before:w-0 before:h-0 before:border-t-[10px] before:border-t-[#1e293b] before:border-l-[10px] before:border-l-transparent'}`}
+                    style={{}}
                 >
                     <div className="prose prose-invert prose-sm max-w-none">
                         <MarkdownMessage content={message.content} />
