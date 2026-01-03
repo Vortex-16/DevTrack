@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Smartphone, Loader2, Key, CheckCircle2, Copy, CircleDot } from 'lucide-react'
 
 /**
  * Component that shows a "Get Token for Mobile App" button
@@ -50,7 +51,7 @@ export default function MobileAppToken() {
     return (
         <div className="p-4 rounded-xl bg-gradient-to-br from-purple-900/30 to-purple-800/20 border border-purple-500/30">
             <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">📱</span>
+                <Smartphone className="text-purple-400" size={24} />
                 <div>
                     <h3 className="text-white font-semibold">Mobile App Login</h3>
                     <p className="text-xs text-slate-400">Get token for DevTrack mobile app</p>
@@ -65,12 +66,12 @@ export default function MobileAppToken() {
                 >
                     {loading ? (
                         <>
-                            <span className="animate-spin">⏳</span>
+                            <Loader2 className="animate-spin" size={16} />
                             Getting Token...
                         </>
                     ) : (
                         <>
-                            <span>🔑</span>
+                            <Key size={16} />
                             Get Session Token
                         </>
                     )}
@@ -94,19 +95,19 @@ export default function MobileAppToken() {
                         <button
                             onClick={handleCopy}
                             className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2
-                                ${copied 
-                                    ? 'bg-emerald-500 text-white' 
+                                ${copied
+                                    ? 'bg-emerald-500 text-white'
                                     : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
                                 }`}
                         >
                             {copied ? (
                                 <>
-                                    <span>✅</span>
+                                    <CheckCircle2 size={16} />
                                     Copied! Paste in Mobile App
                                 </>
                             ) : (
                                 <>
-                                    <span>📋</span>
+                                    <Copy size={16} />
                                     Copy Token
                                 </>
                             )}
@@ -114,9 +115,9 @@ export default function MobileAppToken() {
 
                         {/* Instructions */}
                         <div className="text-xs text-slate-400 space-y-1">
-                            <p>📌 Open DevTrack mobile app</p>
-                            <p>📌 Tap "Already signed in? Enter token"</p>
-                            <p>📌 Paste this token and tap Login</p>
+                            <p className="flex items-center gap-2"><CircleDot size={10} className="text-purple-500" /> Open DevTrack mobile app</p>
+                            <p className="flex items-center gap-2"><CircleDot size={10} className="text-purple-500" /> Tap "Already signed in? Enter token"</p>
+                            <p className="flex items-center gap-2"><CircleDot size={10} className="text-purple-500" /> Paste this token and tap Login</p>
                         </div>
 
                         {/* Hide button */}

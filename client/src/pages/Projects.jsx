@@ -6,8 +6,8 @@ import { useState, useEffect, useRef } from "react";
 import Lenis from "lenis";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-import Skeleton, { SkeletonCard, SkeletonStats } from "../components/ui/Skeleton";
-import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket } from 'lucide-react';
+
+import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare } from 'lucide-react';
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -215,7 +215,7 @@ function ProjectCard({
                 {project.aiAnalysis && (
                   <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm">🤖</span>
+                      <Bot size={14} className="text-purple-400" />
                       <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
                         AI Status Report
                       </span>
@@ -249,24 +249,24 @@ function ProjectCard({
                       <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
                         Stars
                       </span>
-                      <span className="text-white font-medium">
-                        ⭐ {project.githubData?.stars || 0}
+                      <span className="text-white font-medium flex items-center gap-1">
+                        <Star size={10} className="text-yellow-500 fill-yellow-500" /> {project.githubData?.stars || 0}
                       </span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
                         Commits
                       </span>
-                      <span className="text-white font-medium">
-                        📝 {project.commits || 0}
+                      <span className="text-white font-medium flex items-center gap-1">
+                        <FileText size={10} className="text-blue-400" /> {project.commits || 0}
                       </span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
                         Issues
                       </span>
-                      <span className="text-white font-medium">
-                        🐞 {project.githubData?.openIssues || 0}
+                      <span className="text-white font-medium flex items-center gap-1">
+                        <Bug size={10} className="text-red-400" /> {project.githubData?.openIssues || 0}
                       </span>
                     </div>
                   </div>
@@ -278,7 +278,7 @@ function ProjectCard({
                       className="p-2 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
                       title="Re-analyze Repository"
                     >
-                      {analyzing ? "⏳" : "🔄"}
+                      {analyzing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
                     </button>
                   )}
                 </div>
@@ -542,7 +542,9 @@ function ProjectForm({
     return (
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-3">📁</div>
+          <div className="flex justify-center mb-3">
+            <Folder size={48} className="text-purple-500" />
+          </div>
           <h3 className="text-xl font-semibold text-white mb-2">
             Do you have a GitHub repository?
           </h3>
@@ -554,9 +556,11 @@ function ProjectForm({
         <div className="grid grid-cols-2 gap-4">
           <button
             onClick={() => setHasRepo("yes")}
-            className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-purple-500 hover:bg-purple-500/10 transition-all text-left"
+            className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-purple-500 hover:bg-purple-500/10 transition-all text-left group"
           >
-            <div className="text-2xl mb-2">✅</div>
+            <div className="mb-2">
+              <CheckCircle size={32} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+            </div>
             <p className="font-semibold text-white">Yes, I have a repo</p>
             <p className="text-xs text-slate-400 mt-1">
               Link your existing repository
@@ -565,9 +569,11 @@ function ProjectForm({
 
           <button
             onClick={() => setHasRepo("no")}
-            className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-left"
+            className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-left group"
           >
-            <div className="text-2xl mb-2">🆕</div>
+            <div className="mb-2">
+              <PlusSquare size={32} className="text-cyan-500 group-hover:scale-110 transition-transform" />
+            </div>
             <p className="font-semibold text-white">No, create one</p>
             <p className="text-xs text-slate-400 mt-1">
               We'll create a repo for you
@@ -599,7 +605,9 @@ function ProjectForm({
         </button>
 
         <div className="text-center mb-6">
-          <div className="text-4xl mb-3">🚀</div>
+          <div className="flex justify-center mb-3">
+            <Rocket size={48} className="text-cyan-500" />
+          </div>
           <h3 className="text-xl font-semibold text-white mb-2">
             Create a New Repository
           </h3>
@@ -777,7 +785,7 @@ function ProjectForm({
         {/* Show fetched languages */}
         {fetchingLanguages && (
           <p className="text-purple-400 text-xs mt-2 flex items-center gap-2">
-            <span className="animate-spin">⏳</span> Fetching languages...
+            <Loader2 size={12} className="animate-spin" /> Fetching languages...
           </p>
         )}
         {fetchedLanguages.length > 0 && (
@@ -1275,45 +1283,36 @@ export default function Projects() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {isRefreshing && !stats.totalProjects && !stats.activeProjects ? (
-            <>
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
-            </>
-          ) : (
-            <>
-              <StatCard
-                icon={<Folder className="w-6 h-6" />}
-                label="Total Projects"
-                value={stats.totalProjects || 0}
-                color="purple"
-                delay={0.1}
-              />
-              <StatCard
-                icon={<Activity className="w-6 h-6" />}
-                label="Active"
-                value={stats.activeProjects || 0}
-                color="cyan"
-                delay={0.15}
-              />
-              <StatCard
-                icon={<CheckCircle className="w-6 h-6" />}
-                label="Completed"
-                value={stats.completedProjects || 0}
-                color="green"
-                delay={0.2}
-              />
-              <StatCard
-                icon={<GitCommitHorizontal className="w-6 h-6" />}
-                label="Total Commits"
-                value={stats.totalCommits || 0}
-                color="orange"
-                delay={0.25}
-              />
-            </>
-          )}
+          <>
+            <StatCard
+              icon={<Folder className="w-6 h-6" />}
+              label="Total Projects"
+              value={stats.totalProjects || 0}
+              color="purple"
+              delay={0.1}
+            />
+            <StatCard
+              icon={<Activity className="w-6 h-6" />}
+              label="Active"
+              value={stats.activeProjects || 0}
+              color="cyan"
+              delay={0.15}
+            />
+            <StatCard
+              icon={<CheckCircle className="w-6 h-6" />}
+              label="Completed"
+              value={stats.completedProjects || 0}
+              color="green"
+              delay={0.2}
+            />
+            <StatCard
+              icon={<GitCommitHorizontal className="w-6 h-6" />}
+              label="Total Commits"
+              value={stats.totalCommits || 0}
+              color="orange"
+              delay={0.25}
+            />
+          </>
         </div>
 
         {/* Error State */}
@@ -1361,13 +1360,7 @@ export default function Projects() {
         )}
 
         {/* Projects Grid */}
-        {isRefreshing && projects.length === 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : projects.length > 0 && (
+        {projects.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {projects.map((project, index) => (
               <ProjectCard

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { useCache } from '../context/CacheContext'
+import { Flame, Lightbulb, BarChart3, BookOpen, TrendingUp, Calendar, Zap, ArrowLeft } from 'lucide-react'
 
 const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -21,7 +22,7 @@ function InfoSection({ title, icon, children, delay = 0 }) {
         >
             <Card className="overflow-hidden">
                 <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl">{icon}</span>
+                    <span className="text-white">{icon}</span>
                     <h2 className="text-xl font-bold text-white">{title}</h2>
                 </div>
                 {children}
@@ -81,7 +82,7 @@ export default function SystemInfo() {
             </motion.div>
 
             {/* Streak Counter */}
-            <InfoSection title="Streak Counter" icon="🔥" delay={0.1}>
+            <InfoSection title="Streak Counter" icon={<Flame className="text-orange-500 fill-orange-500" size={32} />} delay={0.1}>
                 <p className="text-slate-300 mb-4">
                     Your streak measures consecutive days of learning activity. Here's how it works:
                 </p>
@@ -109,7 +110,7 @@ export default function SystemInfo() {
 
                 <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
                     <p className="text-amber-400 text-sm flex items-start gap-2">
-                        <span>💡</span>
+                        <Lightbulb size={18} className="text-amber-400 shrink-0" />
                         <span>
                             <strong>Tip:</strong> To maintain your streak, log at least one learning entry every day.
                             Even a small 15-minute session counts!
@@ -119,7 +120,7 @@ export default function SystemInfo() {
             </InfoSection>
 
             {/* Progress Tracking */}
-            <InfoSection title="Project Progress" icon="📊" delay={0.2}>
+            <InfoSection title="Project Progress" icon={<BarChart3 className="text-blue-400" size={32} />} delay={0.2}>
                 <p className="text-slate-300 mb-4">
                     Project progress is calculated using AI analysis of your GitHub repositories:
                 </p>
@@ -154,7 +155,7 @@ export default function SystemInfo() {
             </InfoSection>
 
             {/* Learning Entries */}
-            <InfoSection title="Learning Entries" icon="📚" delay={0.3}>
+            <InfoSection title="Learning Entries" icon={<BookOpen className="text-purple-400" size={32} />} delay={0.3}>
                 <p className="text-slate-300 mb-4">
                     Learning logs help you track daily progress and build habits:
                 </p>
@@ -182,7 +183,7 @@ export default function SystemInfo() {
             </InfoSection>
 
             {/* Statistics */}
-            <InfoSection title="Statistics Calculation" icon="📈" delay={0.4}>
+            <InfoSection title="Statistics Calculation" icon={<TrendingUp className="text-emerald-400" size={32} />} delay={0.4}>
                 <p className="text-slate-300 mb-4">
                     Your dashboard stats are calculated from your activity data:
                 </p>
@@ -219,7 +220,7 @@ export default function SystemInfo() {
             </InfoSection>
 
             {/* Activity Heatmap */}
-            <InfoSection title="Activity Heatmap" icon="🗓️" delay={0.5}>
+            <InfoSection title="Activity Heatmap" icon={<Calendar className="text-pink-400" size={32} />} delay={0.5}>
                 <p className="text-slate-300 mb-4">
                     The heatmap visualization on your dashboard:
                 </p>
@@ -252,7 +253,7 @@ export default function SystemInfo() {
             </InfoSection>
 
             {/* Top Technologies */}
-            <InfoSection title="Top Technologies" icon="⚡" delay={0.6}>
+            <InfoSection title="Top Technologies" icon={<Zap className="text-cyan-400 fill-cyan-400" size={32} />} delay={0.6}>
                 <p className="text-slate-300 mb-4">
                     Your tech profile is built from:
                 </p>
@@ -285,7 +286,7 @@ export default function SystemInfo() {
                     to="/dashboard"
                     className="inline-flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors"
                 >
-                    ← Back to Dashboard
+                    <ArrowLeft size={16} /> Back to Dashboard
                 </Link>
             </motion.div>
         </motion.div>

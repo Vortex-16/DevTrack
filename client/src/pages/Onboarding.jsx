@@ -3,6 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { preferencesApi, notificationsApi } from '../services/api';
+import {
+    Rocket,
+    Zap,
+    Package,
+    Target,
+    Clock,
+    BookOpen,
+    Hammer,
+    Briefcase,
+    DollarSign,
+    Image as ImageIcon,
+    Bot,
+    Hand,
+    PartyPopper,
+    Moon,
+    Timer
+} from 'lucide-react';
 
 // Step components
 const WelcomeStep = ({ onNext }) => (
@@ -12,8 +29,8 @@ const WelcomeStep = ({ onNext }) => (
         exit={{ opacity: 0, y: -20 }}
         className="text-center"
     >
-        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-            <span className="text-5xl">🚀</span>
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <Rocket size={48} className="text-white" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-4">
             Welcome to DevTrack
@@ -48,7 +65,7 @@ const WorkPatternStep = ({ value, onChange, onNext, onBack }) => (
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">⚡</span>
+                    <Zap className="text-purple-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">I commit frequently while coding</p>
                         <p className="text-sm text-slate-400">Uses commit timestamps, detects breaks automatically after 90 min inactivity</p>
@@ -64,7 +81,7 @@ const WorkPatternStep = ({ value, onChange, onNext, onBack }) => (
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">📦</span>
+                    <Package className="text-pink-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">I commit only once after finishing work</p>
                         <p className="text-sm text-slate-400">Manual confirmation required, no automatic break marking</p>
@@ -155,7 +172,7 @@ const ReminderStep = ({ mode, fixedTime, onModeChange, onTimeChange, onNext, onB
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">🎯</span>
+                    <Target className="text-purple-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">Same time as yesterday's start</p>
                         <p className="text-sm text-slate-400">Adaptive mode - learns from your habits</p>
@@ -171,7 +188,7 @@ const ReminderStep = ({ mode, fixedTime, onModeChange, onTimeChange, onNext, onB
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">⏰</span>
+                    <Clock className="text-pink-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">Fixed time every day</p>
                         <p className="text-sm text-slate-400">Set a specific time for daily reminders</p>
@@ -213,11 +230,11 @@ const ReminderStep = ({ mode, fixedTime, onModeChange, onTimeChange, onNext, onB
 
 const GoalStep = ({ value, onChange, onNext, onBack }) => {
     const goals = [
-        { value: 'Learning new tech stack', emoji: '📚' },
-        { value: 'Working on side projects', emoji: '🛠️' },
-        { value: 'Preparing for placements', emoji: '💼' },
-        { value: 'Freelance work', emoji: '💰' },
-        { value: 'Personal portfolio', emoji: '🖼️' },
+        { value: 'Learning new tech stack', icon: <BookOpen size={20} className="text-purple-400" /> },
+        { value: 'Working on side projects', icon: <Hammer size={20} className="text-pink-400" /> },
+        { value: 'Preparing for placements', icon: <Briefcase size={20} className="text-blue-400" /> },
+        { value: 'Freelance work', icon: <DollarSign size={20} className="text-emerald-400" /> },
+        { value: 'Personal portfolio', icon: <ImageIcon size={20} className="text-amber-400" /> },
     ];
 
     const [customGoal, setCustomGoal] = useState('');
@@ -236,12 +253,12 @@ const GoalStep = ({ value, onChange, onNext, onBack }) => {
                     <button
                         key={goal.value}
                         onClick={() => onChange(goal.value)}
-                        className={`p-4 rounded-xl border-2 text-left transition-all duration-300 ${value === goal.value
+                        className={`p-4 rounded-xl border-2 text-left transition-all duration-300 flex items-center gap-3 ${value === goal.value
                             ? 'border-purple-500 bg-purple-500/10'
                             : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                             }`}
                     >
-                        <span className="text-xl mr-3">{goal.emoji}</span>
+                        {goal.icon}
                         <span className="text-white">{goal.value}</span>
                     </button>
                 ))}
@@ -295,7 +312,7 @@ const BreakDetectionStep = ({ value, onChange, onNext, onBack }) => (
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">🤖</span>
+                    <Bot className="text-purple-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">Yes, auto-detect inactive periods</p>
                         <p className="text-sm text-slate-400">DevTrack will notify you after 90 minutes of no commits</p>
@@ -311,7 +328,7 @@ const BreakDetectionStep = ({ value, onChange, onNext, onBack }) => (
                     }`}
             >
                 <div className="flex items-center gap-4">
-                    <span className="text-2xl">✋</span>
+                    <Hand className="text-pink-400" size={24} />
                     <div>
                         <p className="font-semibold text-white">No, I'll manage breaks manually</p>
                         <p className="text-sm text-slate-400">You control when to mark breaks</p>
@@ -341,35 +358,35 @@ const ConfirmationStep = ({ preferences, userGoal, onBack, onComplete, loading }
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -50 }}
     >
-        <h2 className="text-2xl font-bold text-white mb-2">Ready to Go! 🎉</h2>
+        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">Ready to Go! <PartyPopper className="text-yellow-400" /></h2>
         <p className="text-slate-400 mb-6">Here's a summary of your preferences:</p>
 
         <div className="bg-slate-800/50 rounded-xl p-6 mb-8 border border-slate-700">
             <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-slate-700">
                     <span className="text-slate-400">Work Pattern</span>
-                    <span className="text-white font-medium">
-                        {preferences.commitPattern === 'frequent' ? '⚡ Frequent commits' : '📦 End-only commits'}
+                    <span className="text-white font-medium flex items-center gap-1.5">
+                        {preferences.commitPattern === 'frequent' ? <><Zap size={14} className="text-purple-400" /> Frequent commits</> : <><Package size={14} className="text-pink-400" /> End-only commits</>}
                     </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-700">
                     <span className="text-slate-400">Auto-End</span>
-                    <span className="text-white font-medium">
-                        {preferences.autoEndDuration === 'midnight' ? '🌙 At midnight' : `⏱️ After ${preferences.autoEndDuration}`}
+                    <span className="text-white font-medium flex items-center gap-1.5">
+                        {preferences.autoEndDuration === 'midnight' ? <><Moon size={14} className="text-blue-400" /> At midnight</> : <><Timer size={14} className="text-pink-400" /> After ${preferences.autoEndDuration}</>}
                     </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-700">
                     <span className="text-slate-400">Reminders</span>
-                    <span className="text-white font-medium">
+                    <span className="text-white font-medium flex items-center gap-1.5">
                         {preferences.reminderMode === 'adaptive'
-                            ? '🎯 Adaptive'
-                            : `⏰ Fixed at ${preferences.fixedTime}`}
+                            ? <><Target size={14} className="text-purple-400" /> Adaptive</>
+                            : <><Clock size={14} className="text-pink-400" /> Fixed at ${preferences.fixedTime}</>}
                     </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-700">
                     <span className="text-slate-400">Break Detection</span>
-                    <span className="text-white font-medium">
-                        {preferences.breakDetection ? '🤖 Auto-detect' : '✋ Manual'}
+                    <span className="text-white font-medium flex items-center gap-1.5">
+                        {preferences.breakDetection ? <><Bot size={14} className="text-purple-400" /> Auto-detect</> : <><Hand size={14} className="text-pink-400" /> Manual</>}
                     </span>
                 </div>
                 <div className="flex justify-between items-center py-2">

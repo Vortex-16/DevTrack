@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { preferencesApi, notificationsApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
 import MobileAppToken from '../MobileAppToken';
+import { Target, Clock, Zap, Package } from 'lucide-react';
 
 /**
  * Notification Settings Modal/Panel
@@ -226,7 +227,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
-                                            <p className="font-semibold text-white">🎯 Adaptive</p>
+                                            <p className="font-semibold text-white flex items-center gap-2">
+                                                <Target size={16} className="text-purple-400" /> Adaptive
+                                            </p>
                                             <p className="text-sm text-slate-400">Same time as yesterday</p>
                                         </button>
                                         <button
@@ -236,7 +239,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
-                                            <p className="font-semibold text-white">⏰ Fixed Time</p>
+                                            <p className="font-semibold text-white flex items-center gap-2">
+                                                <Clock size={16} className="text-pink-400" /> Fixed Time
+                                            </p>
                                             <p className="text-sm text-slate-400">Set a specific time</p>
                                         </button>
                                     </div>
@@ -269,7 +274,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
-                                            <p className="font-semibold text-white">⚡ Frequent</p>
+                                            <p className="font-semibold text-white flex items-center gap-2">
+                                                <Zap size={16} className="text-purple-400" /> Frequent
+                                            </p>
                                             <p className="text-sm text-slate-400">Multiple commits per day</p>
                                         </button>
                                         <button
@@ -279,7 +286,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                                                 }`}
                                         >
-                                            <p className="font-semibold text-white">📦 End-only</p>
+                                            <p className="font-semibold text-white flex items-center gap-2">
+                                                <Package size={16} className="text-pink-400" /> End-only
+                                            </p>
                                             <p className="text-sm text-slate-400">One commit at end of day</p>
                                         </button>
                                     </div>

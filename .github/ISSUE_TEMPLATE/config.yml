@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🛡️ Security Policy
+    url: https://github.com/Alpha4Coders/DevTrack/security/policy
+    about: Please report security vulnerabilities here.
+  - name: 💬 Community Support
+    url: https://github.com/Alpha4Coders/DevTrack/discussions
+    about: Ask questions and get help from the community.

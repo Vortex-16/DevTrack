@@ -13,14 +13,14 @@ const DashboardIcon = ({ className = "w-5 h-5" }) => (
 )
 
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
-    <svg className={className} 
-         viewBox="0 0 24 24" 
-         fill="none" 
-         xmlns="http://www.w3.org/2000/svg"
+    <svg className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
     >
-        <path 
-            d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z" 
-            fill="currentColor" 
+        <path
+            d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z"
+            fill="currentColor"
         />
     </svg>
 )
@@ -181,6 +181,15 @@ function MobileNavbar({ onOpenSettings }) {
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
             >
+                {/* Logo - only on tablets/wide mobile */}
+                <Link to="/" className="hidden sm:block mr-2">
+                    <motion.div
+                        className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center overflow-hidden"
+                        whileHover={{ scale: 1.05 }}
+                    >
+                        <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
+                    </motion.div>
+                </Link>
                 {/* Nav items */}
                 <div className="flex items-center gap-1 flex-1 justify-center">
                     {navItems.map((item) => (
@@ -199,9 +208,6 @@ function MobileNavbar({ onOpenSettings }) {
                             >
                                 <item.icon className={`w-4 h-4 ${location.pathname === item.path ? 'text-white' : 'text-slate-400'}`} />
                             </motion.div>
-                            <span className={`text-[10px] mt-0.5 ${location.pathname === item.path ? 'text-purple-400' : 'text-slate-500'}`}>
-                                {item.name}
-                            </span>
                         </Link>
                     ))}
                 </div>
