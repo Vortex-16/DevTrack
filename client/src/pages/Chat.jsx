@@ -468,7 +468,7 @@ export default function Chat() {
                     className="flex-1 overflow-y-auto min-h-0 mb-4 overscroll-behavior-contain relative z-0 pointer-events-auto"
                     style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
                 >
-                    <div ref={contentRef} className="space-y-4 pr-2 pb-4">
+                    <div ref={contentRef} className="space-y-4 pr-6 pb-4">
                         <AnimatePresence>
                             {messages.map((msg, idx) => (
                                 <MessageBubble key={idx} message={msg} idx={idx} />
