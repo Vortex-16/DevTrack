@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tasksApi } from '../../services/api'
-import { Calendar as CalendarIcon } from 'lucide-react'
+import { Calendar as CalendarIcon, ArrowLeft } from 'lucide-react'
 
 // Calendar Component with Task Management
 export default function Calendar({ onExpand, compact }) {
@@ -118,9 +118,6 @@ export default function Calendar({ onExpand, compact }) {
     const handleDateClick = (day) => {
         const dateStr = getDateString(year, month, day)
         setSelectedDate(dateStr)
-        if (onExpand) {
-            onExpand()
-        }
     }
 
     // Add new task
@@ -270,78 +267,109 @@ export default function Calendar({ onExpand, compact }) {
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
-                    {/* Day headers */}
-                    <div className="grid grid-cols-7 gap-0.5 mb-1 flex-shrink-0">
-                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                            <div key={day} className="text-center text-[10px] font-medium text-slate-500 py-0.5">
-                                {day}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Calendar grid */}
-                    <div className="grid grid-cols-7 gap-0.5 mb-3 flex-shrink-0">
-                        {renderDays()}
-                    </div>
-
-                    {/* Selected date tasks */}
-                    {selectedDate && (
-                        <div className="border-t border-white/10 pt-4 flex-1 flex flex-col min-h-0">
-                            <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                                <span className="text-sm font-medium text-slate-400">
-                                    Tasks for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                </span>
-                                <button
-                                    onClick={() => setShowModal(true)}
-                                    className="text-xs px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
-                                >
-                                    + Add Task
-                                </button>
+                <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
+                    {/* Calendar Grid Layer */}
+                    <div className="absolute inset-0 flex flex-col overflow-y-auto scrollbar-hide">
+                        {/* Calendar Container */}
+                        <div className="flex gap-2 mb-3 flex-shrink-0">
+                            {/* Vertical Day Headers */}
+                            <div className="grid grid-rows-7 gap-0.5">
+                                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                    <div key={day} className="flex items-center justify-center text-xs font-bold text-slate-500 h-8 w-6">
+                                        {day}
+                                    </div>
+                                ))}
                             </div>
 
-                            <div className="space-y-2 overflow-y-auto pr-2 scrollbar-hide min-h-0">
-                                {selectedDateTasks.length === 0 ? (
-                                    <p className="text-slate-500 text-sm text-center py-4">No tasks for this date</p>
-                                ) : (
-                                    selectedDateTasks.map(task => (
-                                        <div
-                                            key={task.id}
-                                            className={`flex items-center gap-2 p-2 rounded-lg bg-white/5 ${task.completed ? 'opacity-60' : ''}`}
-                                        >
-                                            <button
-                                                onClick={() => handleToggleTask(task.id)}
-                                                className={`w-5 h-5 rounded flex-shrink-0 border transition-colors
-                                                    ${task.completed
-                                                        ? 'bg-emerald-500 border-emerald-500'
-                                                        : 'border-slate-600 hover:border-purple-500'
-                                                    }
-                                                `}
-                                            >
-                                                {task.completed && <span className="text-white text-xs">✓</span>}
-                                            </button>
-                                            <span className={`text-sm flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
-                                                {task.title}
-                                            </span>
-                                            <span className={`text-xs px-1.5 py-0.5 rounded
-                                                ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                                                    task.priority === 'medium' ? 'bg-orange-500/20 text-orange-400' :
-                                                        'bg-slate-500/20 text-slate-400'}
-                                            `}>
-                                                {task.priority}
-                                            </span>
-                                            <button
-                                                onClick={() => handleDeleteTask(task.id)}
-                                                className="text-slate-500 hover:text-red-400 transition-colors text-sm"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
+                            {/* Calendar grid (Horizontal flow) */}
+                            <div className="grid grid-rows-7 grid-flow-col gap-0.5 flex-1">
+                                {renderDays().map((day, i) => {
+                                    // Strip the fixed height class if it's an empty div or button
+                                    if (day.props.className?.includes('h-10')) {
+                                        return <div key={day.key} className="h-8" />
+                                    }
+                                    return day
+                                })}
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Task View Slide-over Layer */}
+                    <AnimatePresence>
+                        {selectedDate && (
+                            <motion.div
+                                initial={{ x: '100%', opacity: 0 }}
+                                animate={{ x: '0%', opacity: 1 }}
+                                exit={{ x: '100%', opacity: 0 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="absolute inset-0 z-10 flex flex-col"
+                                style={{
+                                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.98), rgba(20, 25, 40, 0.99))'
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-3 flex-shrink-0 pt-1">
+                                    <button
+                                        onClick={() => setSelectedDate(null)}
+                                        className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+                                    >
+                                        <ArrowLeft size={16} /> Back
+                                    </button>
+                                    <span className="text-sm font-medium text-purple-400">
+                                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                    <button
+                                        onClick={() => setShowModal(true)}
+                                        className="text-xs px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+                                    >
+                                        + Add
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2 overflow-y-auto pr-2 scrollbar-hide min-h-0 flex-1">
+                                    {selectedDateTasks.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                                            <p className="text-sm">No tasks for this date</p>
+                                        </div>
+                                    ) : (
+                                        selectedDateTasks.map(task => (
+                                            <div
+                                                key={task.id}
+                                                className={`flex items-center gap-2 p-2 rounded-lg bg-white/5 ${task.completed ? 'opacity-60' : ''}`}
+                                            >
+                                                <button
+                                                    onClick={() => handleToggleTask(task.id)}
+                                                    className={`w-5 h-5 rounded flex-shrink-0 border transition-colors
+                                                        ${task.completed
+                                                            ? 'bg-emerald-500 border-emerald-500'
+                                                            : 'border-slate-600 hover:border-purple-500'
+                                                        }
+                                                    `}
+                                                >
+                                                    {task.completed && <span className="text-white text-xs">✓</span>}
+                                                </button>
+                                                <span className={`text-sm flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-white'} truncate`}>
+                                                    {task.title}
+                                                </span>
+                                                <span className={`text-xs px-1.5 py-0.5 rounded
+                                                    ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                                        task.priority === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                                            'bg-slate-500/20 text-slate-400'}
+                                                `}>
+                                                    {task.priority}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleDeleteTask(task.id)}
+                                                    className="text-slate-500 hover:text-red-400 transition-colors text-sm pl-1"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 

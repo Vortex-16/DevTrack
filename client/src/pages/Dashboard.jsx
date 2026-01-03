@@ -439,6 +439,102 @@ function PromoCard() {
     )
 }
 
+// Tech Fact Card
+function TechFactCard({ compact }) {
+    const [fact, setFact] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    const facts = [
+        "The first computer mouse was made of wood.",
+        "The first 1GB hard drive weighed over 500 pounds.",
+        "The QWERTY keyboard was designed to slow down typists.",
+        "There is a town in Norway called Hell, and it freezes over every winter.",
+        "The first text message sent was 'Merry Christmas'.",
+        "The Firefox logo isn't a fox; it's a red panda.",
+        "Samsung started as a grocery store trading noodles.",
+        "The first webcam monitored a coffee pot.",
+        "NASA's internet speed is 91 GB per second.",
+        "The first computer bug was an actual moth.",
+        "Email existed before the World Wide Web.",
+        "The most common password is '123456'.",
+        "Google was originally called 'Backrub'.",
+        "Domain names used to be free until 1995."
+    ]
+
+    useEffect(() => {
+        randomizeFact()
+    }, [])
+
+    const randomizeFact = () => {
+        setLoading(true)
+        setTimeout(() => {
+            const random = facts[Math.floor(Math.random() * facts.length)]
+            setFact(random)
+            setLoading(false)
+        }, 300)
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="h-full"
+        >
+            <div
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full border border-white/10 flex flex-col relative overflow-hidden group`}
+                style={{
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
+                }}
+                onClick={randomizeFact}
+            >
+                {/* Background decoration */}
+                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500" />
+                
+                <div className="flex items-center gap-1 mb-3">
+                    <div className="p-2 rounded-lg text-yellow-500 font-bold">
+                        <Lightbulb size={20} />
+                    </div>
+                    <h3 className="text-sm font-bold text-white">Did You Know?</h3>
+                </div>
+
+                <div className="flex-1 flex flex-col justify-center">
+                    <AnimatePresence mode='wait'>
+                        {loading ? (
+                            <motion.div
+                                key="loader"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="h-20 flex items-center justify-center"
+                            >
+                                <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                            </motion.div>
+                        ) : (
+                            <motion.p
+                                key="fact"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="text-slate-300 text-sm leading-relaxed font-medium"
+                            >
+                                "{fact}"
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <div className="mt-3 text-right">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
+                        Refresh
+                    </span>
+                </div>
+            </div>
+        </motion.div>
+    )
+}
+
 // GitHub Icon component
 function GitHubIcon() {
     return (
@@ -710,14 +806,19 @@ export default function Dashboard() {
 
                         {/* Row 2: Activity Table + Calendar */}
                         <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0`}>
-                            {/* Activity Table - spans 7 cols */}
-                            <div className="lg:col-span-7">
+                            {/* Activity Table - spans 4 cols */}
+                            <div className="lg:col-span-4">
                                 <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
                             </div>
 
                             {/* Calendar - spans 5 cols */}
                             <div className="lg:col-span-5 h-[350px] lg:h-full">
                                 <Calendar onExpand={handleExpandView} compact={!isScrollable} />
+                            </div>
+
+                            {/* Tech Fact - spans 3 cols */}
+                            <div className="hidden lg:block lg:col-span-3 h-[350px] lg:h-full">
+                                <TechFactCard compact={!isScrollable} />
                             </div>
                         </div>
 
