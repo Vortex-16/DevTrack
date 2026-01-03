@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock } from 'lucide-react'
+import { ReactLenis } from 'lenis/react'
 
 export default function TimePicker({ value, onChange, label, minTime }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -112,9 +113,9 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                         {/* Hours Column */}
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-500 mb-2 text-center uppercase tracking-wider">Hour</div>
-                            <div 
+                            <ReactLenis 
+                                root={false} 
                                 className="h-48 overflow-y-auto overscroll-contain space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1"
-                                data-lenis-prevent
                             >
                                 {hours.map(h => {
                                     const isValid = isTimeValid(h, '00', selectedPeriod) || isTimeValid(h, '55', selectedPeriod) // Check if any minute in this hour is valid
@@ -138,7 +139,7 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                                         </button>
                                     )
                                 })}
-                            </div>
+                            </ReactLenis>
                         </div>
 
                         {/* Divider */}
@@ -147,9 +148,9 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                         {/* Minutes Column */}
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-500 mb-2 text-center uppercase tracking-wider">Min</div>
-                            <div 
+                            <ReactLenis 
+                                root={false} 
                                 className="h-48 overflow-y-auto overscroll-contain space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1"
-                                data-lenis-prevent="true"
                             >
                                 {minutes.map(m => {
                                     const isValid = isTimeValid(selectedHour, m, selectedPeriod)
@@ -173,7 +174,7 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                                         </button>
                                     )
                                 })}
-                            </div>
+                            </ReactLenis>
                         </div>
 
                         {/* Divider */}
