@@ -58,6 +58,7 @@ export default function DatePicker({ value, onChange, label }) {
         }
 
         const today = new Date()
+        today.setHours(0, 0, 0, 0)
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
         for (let day = 1; day <= daysInMonth; day++) {
@@ -68,20 +69,25 @@ export default function DatePicker({ value, onChange, label }) {
             const cellDay = String(cellDate.getDate()).padStart(2, '0')
             const cellDateStr = `${cellYear}-${cellMonth}-${cellDay}`
 
+            const isFuture = cellDate > today
+
             const isSelected = value === cellDateStr
             const isToday = cellDateStr === todayStr
 
             days.push(
                 <button
                     key={day}
-                    onClick={() => handleDateClick(day)}
+                    onClick={() => !isFuture && handleDateClick(day)}
+                    disabled={isFuture}
                     type="button"
                     className={`h-8 w-8 rounded-full text-xs font-medium transition-all relative flex items-center justify-center
                         ${isSelected
                             ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
                             : isToday
                                 ? 'bg-white/10 text-white border border-purple-500/50'
-                                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                                : isFuture 
+                                    ? 'text-slate-700 cursor-not-allowed opacity-30'
+                                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                         }
                     `}
                 >

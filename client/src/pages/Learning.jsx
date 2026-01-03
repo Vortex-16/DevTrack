@@ -6,7 +6,7 @@ import { useAuth } from '@clerk/clerk-react'
 import { useCache } from '../context/CacheContext'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ReactLenis } from 'lenis/react'
+import { ReactLenis, useLenis } from 'lenis/react'
 import DatePicker from '../components/ui/DatePicker'
 import TimePicker from '../components/ui/TimePicker'
 
@@ -201,6 +201,22 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
+    const lenis = useLenis()
+
+    useEffect(() => {
+        if (isOpen) {
+            lenis?.stop()
+            document.body.style.overflow = 'hidden'
+        } else {
+            lenis?.start()
+            document.body.style.overflow = 'unset'
+        }
+        return () => {
+            lenis?.start()
+            document.body.style.overflow = 'unset'
+        }
+    }, [isOpen, lenis])
+
     if (!isOpen) return null
 
     return (
@@ -450,15 +466,17 @@ export default function Learning() {
                             <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
                             <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
                         </div>
-                        {learningEntries.map((entry, idx) => (
-                            <EntryCard
-                                key={entry.id}
-                                entry={entry}
-                                onEdit={openEditModal}
-                                onDelete={(id) => setDeleteConfirm(id)}
-                                delay={0.1 + idx * 0.05}
-                            />
-                        ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {learningEntries.map((entry, idx) => (
+                                <EntryCard
+                                    key={entry.id}
+                                    entry={entry}
+                                    onEdit={openEditModal}
+                                    onDelete={(id) => setDeleteConfirm(id)}
+                                    delay={0.1 + idx * 0.05}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

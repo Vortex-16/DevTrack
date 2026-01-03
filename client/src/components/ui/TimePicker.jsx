@@ -112,7 +112,10 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                         {/* Hours Column */}
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-500 mb-2 text-center uppercase tracking-wider">Hour</div>
-                            <div className="h-48 overflow-y-auto space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1">
+                            <div 
+                                className="h-48 overflow-y-auto overscroll-contain space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1"
+                                data-lenis-prevent
+                            >
                                 {hours.map(h => {
                                     const isValid = isTimeValid(h, '00', selectedPeriod) || isTimeValid(h, '55', selectedPeriod) // Check if any minute in this hour is valid
                                     return (
@@ -144,7 +147,10 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                         {/* Minutes Column */}
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-500 mb-2 text-center uppercase tracking-wider">Min</div>
-                            <div className="h-48 overflow-y-auto space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1">
+                            <div 
+                                className="h-48 overflow-y-auto overscroll-contain space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/40 pr-1"
+                                data-lenis-prevent="true"
+                            >
                                 {minutes.map(m => {
                                     const isValid = isTimeValid(selectedHour, m, selectedPeriod)
                                     return (
@@ -176,7 +182,10 @@ export default function TimePicker({ value, onChange, label, minTime }) {
                         {/* AM/PM Column */}
                         <div className="flex-1">
                             <div className="text-xs font-semibold text-slate-500 mb-2 text-center uppercase tracking-wider">AM/PM</div>
-                            <div className="h-48 flex flex-col gap-1">
+                            <div 
+                                className="h-48 flex flex-col gap-1 overflow-y-auto overscroll-contain scrollbar-hide"
+                                data-lenis-prevent
+                            >
                                 {periods.map(p => {
                                     // Check if period is valid (at least one time in this period is valid)
                                     // Simplified: if checking PM vs MinTime, if MinTime is in PM, AM is invalid.
