@@ -81,7 +81,7 @@ function AnimatedCounter({ value, duration = 1.5 }) {
 }
 
 // Portfolio Card - DARK themed with functional time buttons
-function PortfolioCard({ totalLogs, currentStreak, logs }) {
+function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
     const [selectedPeriod, setSelectedPeriod] = useState('1W')
 
     // Get days based on selected period
@@ -143,7 +143,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
             className="h-full"
         >
             <div
-                className="rounded-2xl p-4 h-full relative overflow-hidden border border-white/10"
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-4'} h-full relative overflow-hidden border border-white/10`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
@@ -223,7 +223,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs }) {
 }
 
 // Asset Card - DARK themed
-function AssetCard({ icon, title, subtitle, value, change, color, delay = 0 }) {
+function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, compact }) {
     const colors = {
         cyan: { border: 'border-cyan-500/30', iconBg: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/20' },
         purple: { border: 'border-purple-500/30', iconBg: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
@@ -240,7 +240,7 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0 }) {
             className="flex-1 min-w-[140px]"
         >
             <div
-                className={`rounded-2xl p-4 h-full border ${c.border} backdrop-blur-sm`}
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-4'} h-full border ${c.border} backdrop-blur-sm`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
                 }}
@@ -270,7 +270,7 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0 }) {
 }
 
 // Activity Table - DARK themed with combined GitHub + Learning logs
-function ActivityTable({ logs, logStats, githubCommits }) {
+function ActivityTable({ logs, logStats, githubCommits, compact }) {
     // Helper to parse date properly
     const parseDate = (date) => {
         if (!date) return new Date(0)
@@ -325,14 +325,14 @@ function ActivityTable({ logs, logStats, githubCommits }) {
             className="h-full"
         >
             <div
-                className="rounded-2xl p-4 h-full border border-white/10"
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-3'} h-full border border-white/10 flex flex-col`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <h3 className="text-base font-semibold text-white">Recent Activity</h3>
                         <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">
@@ -345,7 +345,7 @@ function ActivityTable({ logs, logStats, githubCommits }) {
                 </div>
 
                 {/* Activity List */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
                     {topActivities.length === 0 ? (
                         <p className="text-slate-500 text-sm text-center py-4">No recent activity</p>
                     ) : (
@@ -358,7 +358,7 @@ function ActivityTable({ logs, logStats, githubCommits }) {
                                 transition={{ delay: 0.4 + idx * 0.08 }}
                             >
                                 {/* Icon */}
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg flex-shrink-0
                                     ${activity.type === 'github'
                                         ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
                                         : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
@@ -381,7 +381,7 @@ function ActivityTable({ logs, logStats, githubCommits }) {
                                 </div>
 
                                 {/* Type badge */}
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
                                     ${activity.type === 'github'
                                         ? 'bg-gray-500/20 text-gray-400'
                                         : 'bg-purple-500/20 text-purple-400'
@@ -548,6 +548,13 @@ export default function Dashboard() {
     const allTags = recentLogs.flatMap(log => log.tags || [])
     const uniqueTags = [...new Set(allTags)]
 
+    const [isScrollable, setIsScrollable] = useState(false)
+
+    // Handler for interactions that require more space (e.g., adding a task)
+    const handleExpandView = () => {
+        setIsScrollable(true)
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -561,17 +568,19 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
+            className={isScrollable ? "" : "h-[calc(100vh-3rem)] md:h-[calc(100vh-4rem)] overflow-hidden"}
         >
             {/* Main Container with rounded border */}
             <div
-                className="rounded-[2rem] p-4 lg:p-8 border border-white/10 flex flex-col"
+                className={`rounded-[2rem] p-4 lg:p-8 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
+                    ${isScrollable ? 'h-auto overflow-y-auto' : 'h-full overflow-hidden'}`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
                 }}
             >
                 {/* Header Row */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <div>
                         <h1 className="text-3xl font-bold text-white">Overview</h1>
                     </div>
@@ -636,9 +645,9 @@ export default function Dashboard() {
 
                 {/* Main Dashboard Grid */}
                 {!hasNoData && (
-                    <div className="space-y-4 lg:space-y-5">
+                    <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-5' : 'space-y-4 lg:space-y-4 flex-1 flex flex-col min-h-0'}`}>
                         {/* Row 1: Portfolio + Assets */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-5' : 'gap-4 lg:gap-4 flex-shrink-0'}`}>
                             {/* Portfolio Card - spans 4 cols */}
                             <div className="lg:col-span-4">
                                 {isRefreshing && !logStats ? (
@@ -648,54 +657,59 @@ export default function Dashboard() {
                                         totalLogs={logStats?.totalLogs || 0}
                                         currentStreak={logStats?.currentStreak || 0}
                                         logs={recentLogs}
+                                        compact={!isScrollable}
                                     />
                                 )}
                             </div>
 
                             {/* Your Stats Section - spans 8 cols */}
-                            <div className="lg:col-span-8">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h2 className="text-lg font-semibold text-white">Your Stats</h2>
+                            <div className="lg:col-span-8 flex flex-col justify-center h-full pb-10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="text-base font-semibold text-white">Your Stats</h2>
                                 </div>
                                 {isRefreshing && !projectStats ? (
                                     <SkeletonStats />
                                 ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className={`grid grid-cols-2 md:grid-cols-4 ${isScrollable ? 'gap-4 lg:gap-5' : 'gap-4'}`}>
                                         <AssetCard
-                                            icon={<Brain size={20} />}
+                                            icon={<Brain size={ isScrollable ? 20 : 18 } />}
                                             title="Learning"
                                             subtitle="Streak days"
                                             value={logStats?.currentStreak || 0}
                                             change={logStats?.weeklyGrowth || 0}
                                             color="cyan"
                                             delay={0.15}
+                                            compact={!isScrollable}
                                         />
                                         <AssetCard
-                                            icon={<Github size={20} />}
+                                            icon={<Github size={ isScrollable ? 20 : 18 } />}
                                             title="GitHub"
                                             subtitle="Commit streak"
                                             value={githubStreak}
                                             change={githubStats?.streakGrowth || 0}
                                             color="purple"
                                             delay={0.2}
+                                            compact={!isScrollable}
                                         />
                                         <AssetCard
-                                            icon={<GitCommitHorizontal size={20} />}
+                                            icon={<GitCommitHorizontal size={ isScrollable ? 20 : 18 } />}
                                             title="Commits"
                                             subtitle={`${projectStats?.totalProjects || 0} projects`}
                                             value={projectStats?.totalCommits || 0}
                                             change={projectStats?.totalCommitGrowth || 0}
                                             color="green"
                                             delay={0.25}
+                                            compact={!isScrollable}
                                         />
                                         <AssetCard
-                                            icon={<Lightbulb size={20} />}
+                                            icon={<Lightbulb size={ isScrollable ? 20 : 18 } />}
                                             title="Skills"
                                             subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
                                             value={uniqueTags.length}
                                             change={uniqueTags.length > 0 ? 5 : 0}
                                             color="orange"
                                             delay={0.3}
+                                            compact={!isScrollable}
                                         />
                                     </div>
                                 )}
@@ -703,9 +717,9 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 2: Activity Table + Calendar */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+                        <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-5' : 'gap-4 lg:gap-4 flex-1 min-h-0'}`}>
                             {/* Activity Table - spans 7 cols */}
-                            <div className="lg:col-span-7">
+                            <div className="lg:col-span-7 h-full">
                                 {isRefreshing && recentLogs.length === 0 ? (
                                     <div className="rounded-2xl p-4 border border-white/10 h-full bg-slate-900/50">
                                         <Skeleton variant="title" className="mb-4" />
@@ -714,13 +728,18 @@ export default function Dashboard() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                    <ActivityTable
+                                        logs={recentLogs}
+                                        logStats={logStats}
+                                        githubCommits={githubCommits}
+                                        compact={!isScrollable}
+                                    />
                                 )}
                             </div>
 
                             {/* Calendar - spans 5 cols */}
-                            <div className="lg:col-span-5">
-                                <Calendar />
+                            <div className="lg:col-span-12 xl:col-span-5 h-full">
+                                <Calendar onExpand={handleExpandView} compact={!isScrollable} />
                             </div>
                         </div>
 

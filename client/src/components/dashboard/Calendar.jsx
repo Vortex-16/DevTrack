@@ -4,7 +4,7 @@ import { tasksApi } from '../../services/api'
 import { Calendar as CalendarIcon } from 'lucide-react'
 
 // Calendar Component with Task Management
-export default function Calendar() {
+export default function Calendar({ onExpand, compact }) {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [selectedDate, setSelectedDate] = useState(null)
     const [tasks, setTasks] = useState([])
@@ -118,6 +118,9 @@ export default function Calendar() {
     const handleDateClick = (day) => {
         const dateStr = getDateString(year, month, day)
         setSelectedDate(dateStr)
+        if (onExpand) {
+            onExpand()
+        }
     }
 
     // Add new task
@@ -210,7 +213,7 @@ export default function Calendar() {
                     key={day}
                     onClick={() => handleDateClick(day)}
                     className={`h-8 w-full rounded text-xs font-medium transition-all relative
-                        ${isToday ? 'ring-1 ring-purple-500' : ''}
+                        ${isToday ? 'ring-1 ring-inset ring-purple-500' : ''}
                         ${isSelected ? 'bg-purple-500 text-white' : 'hover:bg-white/10 text-slate-300'}
                     `}
                 >
@@ -237,14 +240,14 @@ export default function Calendar() {
             className="h-full"
         >
             <div
-                className="rounded-2xl p-4 border border-white/10 h-full"
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-3'} border border-white/10 h-full flex flex-col`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
                     <h3 className="text-base font-semibold text-white flex items-center gap-2">
                         <CalendarIcon className="w-5 h-5 text-purple-400" /> Calendar
                     </h3>
@@ -267,77 +270,79 @@ export default function Calendar() {
                     </div>
                 </div>
 
-                {/* Day headers */}
-                <div className="grid grid-cols-7 gap-0.5 mb-1">
-                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                        <div key={day} className="text-center text-[10px] font-medium text-slate-500 py-0.5">
-                            {day}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-0.5 mb-3">
-                    {renderDays()}
-                </div>
-
-                {/* Selected date tasks */}
-                {selectedDate && (
-                    <div className="border-t border-white/10 pt-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-slate-400">
-                                Tasks for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </span>
-                            <button
-                                onClick={() => setShowModal(true)}
-                                className="text-xs px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
-                            >
-                                + Add Task
-                            </button>
-                        </div>
-
-                        {selectedDateTasks.length === 0 ? (
-                            <p className="text-slate-500 text-sm text-center py-4">No tasks for this date</p>
-                        ) : (
-                            <div className="space-y-2 max-h-32 overflow-y-auto">
-                                {selectedDateTasks.map(task => (
-                                    <div
-                                        key={task.id}
-                                        className={`flex items-center gap-2 p-2 rounded-lg bg-white/5 ${task.completed ? 'opacity-60' : ''}`}
-                                    >
-                                        <button
-                                            onClick={() => handleToggleTask(task.id)}
-                                            className={`w-5 h-5 rounded flex-shrink-0 border transition-colors
-                                                ${task.completed
-                                                    ? 'bg-emerald-500 border-emerald-500'
-                                                    : 'border-slate-600 hover:border-purple-500'
-                                                }
-                                            `}
-                                        >
-                                            {task.completed && <span className="text-white text-xs">✓</span>}
-                                        </button>
-                                        <span className={`text-sm flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
-                                            {task.title}
-                                        </span>
-                                        <span className={`text-xs px-1.5 py-0.5 rounded
-                                            ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                                                task.priority === 'medium' ? 'bg-orange-500/20 text-orange-400' :
-                                                    'bg-slate-500/20 text-slate-400'}
-                                        `}>
-                                            {task.priority}
-                                        </span>
-                                        <button
-                                            onClick={() => handleDeleteTask(task.id)}
-                                            className="text-slate-500 hover:text-red-400 transition-colors text-sm"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
+                <div className="flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
+                    {/* Day headers */}
+                    <div className="grid grid-cols-7 gap-0.5 mb-1 flex-shrink-0">
+                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                            <div key={day} className="text-center text-[10px] font-medium text-slate-500 py-0.5">
+                                {day}
                             </div>
-                        )}
+                        ))}
                     </div>
-                )}
+
+                    {/* Calendar grid */}
+                    <div className="grid grid-cols-7 gap-0.5 mb-3 flex-shrink-0">
+                        {renderDays()}
+                    </div>
+
+                    {/* Selected date tasks */}
+                    {selectedDate && (
+                        <div className="border-t border-white/10 pt-4 flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                                <span className="text-sm font-medium text-slate-400">
+                                    Tasks for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </span>
+                                <button
+                                    onClick={() => setShowModal(true)}
+                                    className="text-xs px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+                                >
+                                    + Add Task
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 overflow-y-auto pr-2 scrollbar-hide min-h-0">
+                                {selectedDateTasks.length === 0 ? (
+                                    <p className="text-slate-500 text-sm text-center py-4">No tasks for this date</p>
+                                ) : (
+                                    selectedDateTasks.map(task => (
+                                        <div
+                                            key={task.id}
+                                            className={`flex items-center gap-2 p-2 rounded-lg bg-white/5 ${task.completed ? 'opacity-60' : ''}`}
+                                        >
+                                            <button
+                                                onClick={() => handleToggleTask(task.id)}
+                                                className={`w-5 h-5 rounded flex-shrink-0 border transition-colors
+                                                    ${task.completed
+                                                        ? 'bg-emerald-500 border-emerald-500'
+                                                        : 'border-slate-600 hover:border-purple-500'
+                                                    }
+                                                `}
+                                            >
+                                                {task.completed && <span className="text-white text-xs">✓</span>}
+                                            </button>
+                                            <span className={`text-sm flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
+                                                {task.title}
+                                            </span>
+                                            <span className={`text-xs px-1.5 py-0.5 rounded
+                                                ${task.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                                    task.priority === 'medium' ? 'bg-orange-500/20 text-orange-400' :
+                                                        'bg-slate-500/20 text-slate-400'}
+                                            `}>
+                                                {task.priority}
+                                            </span>
+                                            <button
+                                                onClick={() => handleDeleteTask(task.id)}
+                                                className="text-slate-500 hover:text-red-400 transition-colors text-sm"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Add Task Modal */}
