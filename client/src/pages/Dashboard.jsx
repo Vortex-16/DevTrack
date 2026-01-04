@@ -10,8 +10,9 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
+import { ReactLenis } from 'lenis/react'
 
 
 // Helper to format dates for display
@@ -153,13 +154,13 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
                 <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
 
                 <div className="flex items-start justify-between mb-0.5">
-                    <div>
+                    <div className="pl-1">
                         <h3 className={`${compact ? 'text-xl' : 'text-2xl'} font-bold text-white`}>
                             <AnimatedCounter value={totalLogs} />
                         </h3>
                         <p className="text-slate-400 text-[10px] uppercase tracking-wider">Total Logs</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right pr-1">
                         <p className="text-sm font-semibold text-purple-400">{periodLogs.length}</p>
                         <p className="text-[10px] text-slate-500">This {selectedPeriod}</p>
                     </div>
@@ -334,7 +335,10 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-2 flex-shrink-0">
                     <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+                        <h3 className="text-sm font-semibold text-white flex items-center gap-2 pl-1">
+                            <History size={16} className="text-purple-400" />
+                            Recent Activity
+                        </h3>
                         <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-medium flex items-center gap-1">
                             <Flame size={10} className="fill-purple-400" /> {logStats?.currentStreak || 0} days
                         </span>
@@ -456,20 +460,65 @@ function CSTriviaCard({ compact }) {
         return txt.value
     }
 
-    const fetchTrivia = async () => {
+    const fetchTrivia = async (forceRefresh = false) => {
         setLoading(true)
         setShowAnswer(false)
+
+        const CACHE_KEY = 'devtrack_trivia_cache'
+        const CACHE_DURATION = 60 * 60 * 1000 // 1 hour
+
+        // Try to load from cache if not forcing refresh
+        if (!forceRefresh) {
+            const cached = localStorage.getItem(CACHE_KEY)
+            if (cached) {
+                try {
+                    const { data, timestamp } = JSON.parse(cached)
+                    if (Date.now() - timestamp < CACHE_DURATION) {
+                        setTrivia(data)
+                        setLoading(false)
+                        return
+                    }
+                } catch (e) {
+                    console.error('Error parsing trivia cache', e)
+                }
+            }
+        }
+
         try {
             const response = await fetch('https://opentdb.com/api.php?amount=1&category=18&type=multiple')
+            
+            // Handle Rate Limiting (429) gracefully
+            if (response.status === 429) {
+                console.warn('Trivia API rate limited, using cache or fallback')
+                 // If we have cache (even expired), use it as fallback for rate limit
+                 const cached = localStorage.getItem(CACHE_KEY)
+                 if (cached) {
+                     const { data } = JSON.parse(cached)
+                     setTrivia(data)
+                     setLoading(false)
+                     return
+                 }
+                 throw new Error('Rate limited and no cache')
+            }
+
             if (!response.ok) throw new Error('Failed to fetch trivia')
+            
             const data = await response.json()
             if (data.results && data.results.length > 0) {
                 const result = data.results[0]
-                setTrivia({
+                const newTrivia = {
                     question: decodeHTML(result.question),
                     answer: decodeHTML(result.correct_answer),
                     difficulty: result.difficulty
-                })
+                }
+                
+                setTrivia(newTrivia)
+                
+                // Update cache
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    data: newTrivia,
+                    timestamp: Date.now()
+                }))
             }
         } catch (err) {
             console.error('Error fetching CS trivia:', err)
@@ -488,7 +537,7 @@ function CSTriviaCard({ compact }) {
         if (!showAnswer) {
             setShowAnswer(true)
         } else {
-            fetchTrivia()
+            fetchTrivia(true)
         }
     }
 
@@ -509,7 +558,7 @@ function CSTriviaCard({ compact }) {
             className="h-full"
         >
             <div
-                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full border border-white/10 flex flex-col relative overflow-hidden group cursor-pointer`}
+                className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-3'} h-full border border-white/10 flex flex-col relative overflow-hidden group cursor-pointer`}
                 style={{
                     background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
@@ -519,21 +568,19 @@ function CSTriviaCard({ compact }) {
                 {/* Background decoration */}
                 <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500" />
 
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1">
-                        <div className="p-2 rounded-lg text-cyan-400 font-bold">
-                            <Brain size={20} />
-                        </div>
-                        <h3 className="text-sm font-bold text-white">CS Trivia</h3>
-                    </div>
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2 pl-1">
+                        <Brain size={16} className="text-cyan-400" />
+                        CS Trivia
+                    </h3>
                     {trivia.difficulty && (
-                        <span className={`text-[10px] font-semibold uppercase ${getDifficultyColor(trivia.difficulty)}`}>
+                        <span className={`text-[10px] font-semibold uppercase pr-1 ${getDifficultyColor(trivia.difficulty)}`}>
                             {trivia.difficulty}
                         </span>
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center">
+                <div className="flex-1 flex flex-col justify-center relative z-10">
                     <AnimatePresence mode='wait'>
                         {loading ? (
                             <motion.div
@@ -552,19 +599,20 @@ function CSTriviaCard({ compact }) {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                             >
-                                <p className="text-slate-200 text-sm leading-relaxed font-medium mb-3">
+                                <p className="text-slate-200 text-sm md:text-lg lg:text-sm leading-relaxed font-medium mb-3">
                                     {trivia.question}
                                 </p>
                                 <AnimatePresence>
                                     {showAnswer && (
                                         <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30"
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="mt-4 p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 backdrop-blur-sm"
                                         >
                                             <p className="text-xs text-slate-400 mb-1">Answer:</p>
-                                            <p className="text-cyan-400 text-sm font-semibold">
+                                            <p className="text-cyan-400 text-sm md:text-lg lg:text-sm font-semibold">
                                                 {trivia.answer}
                                             </p>
                                         </motion.div>
@@ -576,10 +624,10 @@ function CSTriviaCard({ compact }) {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-600 uppercase tracking-wider">
+                    <span className="text-[10px] text-slate-600 uppercase tracking-wider pl-1">
                         DevTrack Trivia
                     </span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-cyan-400 transition-colors">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-cyan-400 transition-colors pr-1">
                         {showAnswer ? 'Next' : 'Reveal'}
                     </span>
                 </div>
@@ -656,25 +704,27 @@ export default function Dashboard() {
             }
 
             const [logStatsRes, projectStatsRes, logsRes, githubRes] = await Promise.all([
-                logsApi.getStats().catch(() => ({ data: { data: {} } })),
-                projectsApi.getStats().catch(() => ({ data: { data: {} } })),
-                logsApi.getAll({ limit: 50 }).catch(() => ({ data: { data: { logs: [] } } })),
-                githubApi.getCommits(30).catch(() => ({ data: { data: { commits: [] } } }))
+                logsApi.getStats().catch(() => ({ error: true })),
+                projectsApi.getStats().catch(() => ({ error: true })),
+                logsApi.getAll({ limit: 50 }).catch(() => ({ error: true })),
+                githubApi.getCommits(30).catch(() => ({ error: true }))
             ])
 
-            const newLogStats = logStatsRes.data.data || {}
-            const newProjectStats = projectStatsRes.data.data || {}
-            const newRecentLogs = logsRes.data.data.logs || []
-            const newGithubStats = githubRes.data?.data || {}
-            const newGithubCommits = newGithubStats.commits || []
-            const newGithubStreak = newGithubStats.streak || 0
+            const newLogStats = logStatsRes.error ? null : (logStatsRes.data?.data || {})
+            const newProjectStats = projectStatsRes.error ? null : (projectStatsRes.data?.data || {})
+            const newRecentLogs = logsRes.error ? null : (logsRes.data?.data?.logs || [])
+            const newGithubStats = githubRes.error ? null : (githubRes.data?.data || {})
+            const newGithubCommits = newGithubStats?.commits || []
+            const newGithubStreak = newGithubStats?.streak || 0
 
-            setLogStats(newLogStats)
-            setProjectStats(newProjectStats)
-            setRecentLogs(newRecentLogs)
-            setGithubStats(newGithubStats)
-            setGithubCommits(newGithubCommits)
-            setGithubStreak(newGithubStreak)
+            if (newLogStats) setLogStats(newLogStats)
+            if (newProjectStats) setProjectStats(newProjectStats)
+            if (newRecentLogs) setRecentLogs(newRecentLogs)
+            if (newGithubStats) {
+                setGithubStats(newGithubStats)
+                setGithubCommits(newGithubCommits)
+                setGithubStreak(newGithubStreak)
+            }
 
             // Cache the actual data object
             setCachedData('dashboard_data', {
@@ -693,7 +743,7 @@ export default function Dashboard() {
         }
     }
 
-    const hasNoData = !logStats?.totalLogs && !projectStats?.totalProjects
+    const hasNoData = logStats?.totalLogs === 0 && projectStats?.totalProjects === 0
     const allTags = recentLogs.flatMap(log => log.tags || [])
     const uniqueTags = [...new Set(allTags)]
 
@@ -710,12 +760,14 @@ export default function Dashboard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className={isScrollable ? "" : "h-auto lg:h-[calc(100vh-4rem)] lg:overflow-hidden"}
+                className="h-auto md:h-[calc(100vh-4rem)] md:overflow-hidden"
             >
                 {/* Main Container with rounded border */}
                 <div
                     className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
-                    ${isScrollable ? 'h-full overflow-hidden' : 'h-auto lg:h-full lg:overflow-hidden'}`}
+                    ${isScrollable 
+                        ? 'h-full overflow-hidden' 
+                        : 'h-auto md:h-full md:overflow-hidden'}`}
                     style={{
                         background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
@@ -794,9 +846,12 @@ export default function Dashboard() {
 
                     {/* Main Dashboard Grid */}
                     {!hasNoData && (
-                        <div className={`transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'}`}>
-                            {/* Row 1: Portfolio + Assets */}
-                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
+                        <div className="h-full pr-1 md:overflow-hidden">
+                            <ReactLenis root={false} className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${
+                                isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
+                            }`}>
+                                {/* Row 1: Portfolio + Assets */}
+                                <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
                                 {/* Portfolio Card - spans 4 cols */}
                                 <div className="lg:col-span-4">
                                     <PortfolioCard
@@ -808,9 +863,9 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Your Stats Section - spans 8 cols */}
-                                <div className="lg:col-span-8 flex flex-col justify-center">
+                                <div className="lg:col-span-8 flex flex-col justify-end">
                                     <div className="flex items-center justify-between mb-1.5">
-                                        <h2 className="text-sm font-semibold text-white">Your Stats</h2>
+                                        <h2 className="text-base font-semibold text-white">Your Stats</h2>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                         <AssetCard
@@ -858,7 +913,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Row 2: Activity Table + Calendar */}
-                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0`}>
+                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}>
                                 {/* Activity Table - spans 4 cols */}
                                 <div className="lg:col-span-4">
                                     <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
@@ -870,19 +925,20 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* CS Trivia - spans 3 cols */}
-                                <div className="hidden lg:block lg:col-span-3 h-[350px] lg:h-full">
+                                <div className="block lg:col-span-3 h-[350px] lg:h-full">
                                     <CSTriviaCard compact={!isScrollable} />
                                 </div>
                             </div>
 
-                            {/* Row 3: Mobile App Token (Mobile Only) */}
-                            <div className="block lg:hidden flex-shrink-0">
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-4">
-                                    <div className="lg:col-span-4">
+                            {/* Row 3: Mobile App Token */}
+                            <div className="block flex-shrink-0">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-5">
+                                    <div className="lg:col-span-12">
                                         <MobileAppToken />
                                     </div>
                                 </div>
                             </div>
+                        </ReactLenis>
                         </div>
                     )}
                 </div>
