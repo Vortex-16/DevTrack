@@ -599,7 +599,7 @@ function CSTriviaCard({ compact }) {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                             >
-                                <p className="text-slate-200 text-sm md:text-lg lg:text-sm leading-relaxed font-medium mb-3">
+                                <p className="text-slate-200 text-sm md:text-lg lg:text-sm leading-relaxed font-medium mb-3 pl-1">
                                     {trivia.question}
                                 </p>
                                 <AnimatePresence>
