@@ -250,7 +250,7 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
                     <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}>
                         {icon}
                     </div>
-                    <div>
+                    <div className="pl-1">
                         <p className={`font-bold text-white ${compact ? 'text-base' : 'text-lg'}`}>
                             {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
                         </p>
@@ -258,9 +258,9 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
                     </div>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-slate-500 text-xs">{subtitle}</span>
+                    <span className="text-slate-500 text-xs pl-1">{subtitle}</span>
                     {change !== undefined && change !== 0 && (
-                        <span className={`text-xs font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className={`text-xs font-medium pr-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                             {change >= 0 ? '+' : ''}{change}%
                         </span>
                     )}
