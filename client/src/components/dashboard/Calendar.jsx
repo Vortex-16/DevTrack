@@ -201,7 +201,7 @@ export default function Calendar({ onExpand, compact }) {
 
         // Empty cells for days before first day of month
         for (let i = 0; i < firstDayOfMonth; i++) {
-            days.push(<div key={`empty-${i}`} className="h-10" />)
+            days.push(<div key={`empty-${i}`} className="h-9" />)
         }
 
         // Days of the month
@@ -216,7 +216,7 @@ export default function Calendar({ onExpand, compact }) {
                 <button
                     key={day}
                     onClick={() => handleDateClick(day)}
-                    className={`h-10 w-full rounded text-xs font-medium transition-all relative
+                    className={`h-8 w-full rounded text-xs font-medium transition-all relative
                         ${isToday ? 'ring-1 ring-inset ring-purple-500' : ''}
                         ${isSelected ? 'bg-purple-500 text-white' : 'hover:bg-white/10 text-slate-300'}
                     `}
@@ -291,15 +291,15 @@ export default function Calendar({ onExpand, compact }) {
                             >
                                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                     <h4 className="text-sm font-bold text-white">Select Month</h4>
-                                    <button 
+                                    <button
                                         onClick={() => setShowMonthPicker(false)}
                                         className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                                     >
                                         <X size={16} />
                                     </button>
                                 </div>
-                                
-                                <div 
+
+                                <div
                                     className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-hide flex-1"
                                     data-lenis-prevent // Prevent parent scrolling
                                 >
@@ -308,8 +308,8 @@ export default function Calendar({ onExpand, compact }) {
                                             key={m}
                                             onClick={() => handleMonthSelect(idx)}
                                             className={`p-3 rounded-xl text-sm font-medium transition-all text-left
-                                                ${idx === month 
-                                                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' 
+                                                ${idx === month
+                                                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
                                                     : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
                                                 }
                                             `}
