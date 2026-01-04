@@ -217,8 +217,8 @@ function MobileNavbar({ onOpenSettings }) {
             <div
                 className="rounded-full px-4 py-2 flex items-center justify-between backdrop-blur-xl"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 30, 40, 0.9), rgba(20, 20, 30, 0.95))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                    background: 'rgba(30, 30, 40, 0.6)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
             >
