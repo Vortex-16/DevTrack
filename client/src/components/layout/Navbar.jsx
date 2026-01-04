@@ -232,7 +232,7 @@ function MobileNavbar({ onOpenSettings }) {
                     </motion.div>
                 </Link>
                 {/* Nav items */}
-                <div className="flex items-center gap-1 flex-1 justify-center">
+                <div className="flex items-center gap-1 flex-1 justify-start sm:justify-center">
                     {navItems.map((item) => (
                         <Link
                             key={item.path}
