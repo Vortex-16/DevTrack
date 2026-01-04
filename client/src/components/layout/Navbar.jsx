@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { UserButton } from '@clerk/clerk-react'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import NotificationSettings from '../settings/NotificationSettings'
 import { BookOpen, Info } from 'lucide-react'
 
@@ -165,13 +165,54 @@ function Sidebar({ onOpenSettings }) {
 // Mobile top navbar (pill-shaped)
 function MobileNavbar({ onOpenSettings }) {
     const location = useLocation()
+    const [isHidden, setIsHidden] = useState(false)
+
+    const lastScrollY = useRef(0)
+
+    // Listen for scroll events (window + dashboard container)
+    useEffect(() => {
+        const handleScroll = (e) => {
+            // Only apply on mobile dashboard
+            if (!location.pathname.startsWith('/dashboard') || window.innerWidth >= 768) {
+                setIsHidden(false)
+                return
+            }
+
+            // Get scroll position from target (element or window)
+            const currentY = e.target === document ? window.scrollY : (e.target.scrollTop || 0)
+            const diff = currentY - lastScrollY.current
+
+            // Logic: Hide on scroll down (> 60px), Show on scroll up or at top
+            if (currentY < 10) {
+                setIsHidden(false)
+            } else if (diff > 0 && currentY > 60) {
+                setIsHidden(true)
+            } else if (diff < 0) { // Show immediately on scroll up
+                setIsHidden(false)
+            }
+
+            lastScrollY.current = currentY
+        }
+
+        // Attach to window and specific container
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        
+        // Try to find dashboard container and attach (poll briefly if needed, but simple query works if mounted)
+        const container = document.getElementById('dashboard-scroll-container')
+        if (container) container.addEventListener('scroll', handleScroll, { passive: true })
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            if (container) container.removeEventListener('scroll', handleScroll)
+        }
+    }, [location.pathname])
 
     return (
         <motion.nav
             className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-4"
             initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            animate={{ y: isHidden ? -100 : 0, opacity: isHidden ? 0 : 1 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
         >
             <div
                 className="rounded-full px-4 py-2 flex items-center justify-between backdrop-blur-xl"

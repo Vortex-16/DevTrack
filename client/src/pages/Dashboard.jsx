@@ -663,6 +663,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(!hasCachedData('dashboard_data'))
     const [isRefreshing, setIsRefreshing] = useState(false)
     const retriedGithub = useRef(false)
+    const scrollTracker = useRef({ lastY: 0, state: 'up' }) // Track scroll for navbar
 
     useEffect(() => {
         fetchData()
@@ -847,9 +848,13 @@ export default function Dashboard() {
                     {/* Main Dashboard Grid */}
                     {!hasNoData && (
                         <div className="h-full pr-1 md:overflow-hidden">
-                            <ReactLenis root={false} className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${
+                            <ReactLenis 
+                                root={false}
+                                id="dashboard-scroll-container"
+                                className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${
                                 isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
-                            }`}>
+                                }`}
+                            >
                                 {/* Row 1: Portfolio + Assets */}
                                 <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
                                 {/* Portfolio Card - spans 4 cols */}
