@@ -378,41 +378,66 @@ class GitHubService {
             // Flatten the days from weeks
             const allDays = collection.contributionCalendar.weeks.flatMap(w => w.contributionDays);
 
-            // Calculate streak
+            // Calculate streak using a Map for O(1) lookups
             let streak = 0;
             const today = new Date().toISOString().split('T')[0];
             const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-            // Sort by date descending
-            const sortedDays = allDays.sort((a, b) => new Date(b.date) - new Date(a.date));
+            // Create a map of date -> contribution count for fast lookup
+            const contributionMap = new Map();
+            allDays.forEach(day => {
+                contributionMap.set(day.date, day.contributionCount);
+            });
 
-            // Find streak starting from today or yesterday
-            let checkDate = new Date();
-            const todayData = sortedDays.find(d => d.date === today);
-            const yesterdayData = sortedDays.find(d => d.date === yesterday);
+            console.log(`📊 Contribution data: ${allDays.length} days, ${allDays.filter(d => d.contributionCount > 0).length} with contributions`);
+            console.log(`📅 Today (${today}): ${contributionMap.get(today) || 0} contributions`);
+            console.log(`📅 Yesterday (${yesterday}): ${contributionMap.get(yesterday) || 0} contributions`);
 
-            if (!todayData?.contributionCount && !yesterdayData?.contributionCount) {
+            // Determine starting point - today if has contributions, otherwise yesterday
+            const todayContributions = contributionMap.get(today) || 0;
+            const yesterdayContributions = contributionMap.get(yesterday) || 0;
+
+            // If neither today nor yesterday has contributions, streak is 0
+            if (todayContributions === 0 && yesterdayContributions === 0) {
+                console.log('⚠️ No contributions today or yesterday - streak is 0');
                 streak = 0;
             } else {
-                if (!todayData?.contributionCount) {
+                // Start from today if it has contributions, otherwise start from yesterday
+                let checkDate = new Date();
+                if (todayContributions === 0) {
                     checkDate.setDate(checkDate.getDate() - 1);
+                    console.log('🔄 No contributions today, starting from yesterday');
                 }
 
-                for (const day of sortedDays) {
+                // Count backwards day by day
+                while (true) {
                     const checkStr = checkDate.toISOString().split('T')[0];
-                    if (day.date === checkStr && day.contributionCount > 0) {
+                    const contributions = contributionMap.get(checkStr) || 0;
+
+                    if (contributions > 0) {
                         streak++;
                         checkDate.setDate(checkDate.getDate() - 1);
-                    } else if (day.date < checkStr) {
+                    } else {
+                        // Break the streak when we hit a day with no contributions
+                        console.log(`🛑 Streak broken at ${checkStr} (0 contributions)`);
+                        break;
+                    }
+
+                    // Safety check: don't go back more than the data we have
+                    if (checkDate < new Date(Date.now() - days * 86400000)) {
+                        console.log('⚠️ Reached data boundary');
                         break;
                     }
                 }
             }
 
-            console.log('✅ GraphQL contributions:', {
+            console.log(`✅ GraphQL contributions for ${username}:`, {
                 totalCommits: collection.totalCommitContributions,
+                totalPRs: collection.totalPullRequestContributions,
+                totalIssues: collection.totalIssueContributions,
                 streak,
-                daysWithActivity: allDays.filter(d => d.contributionCount > 0).length
+                daysWithActivity: allDays.filter(d => d.contributionCount > 0).length,
+                dateRange: `${allDays[allDays.length - 1]?.date} to ${allDays[0]?.date}`
             });
 
             return {

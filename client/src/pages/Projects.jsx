@@ -12,16 +12,16 @@ import PixelTransition from '../components/ui/PixelTransition';
 
 // SVG Icon Components
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
-    <svg className={className}
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <path
-            d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z"
-            fill="currentColor"
-        />
-    </svg>
+  <svg className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z"
+      fill="currentColor"
+    />
+  </svg>
 )
 
 // Animated counter
@@ -1409,10 +1409,10 @@ export default function Projects() {
           </div>
 
           {/* Scrollable Content Area */}
-          <div 
+          <div
             ref={projectsContainerRef}
             className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-2 relative"
-          > 
+          >
             <div ref={projectsContentRef} className="pb-4">
               {/* Error State */}
               {error && (

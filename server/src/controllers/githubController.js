@@ -69,7 +69,7 @@ const getCommits = async (req, res, next) => {
 
         if (!user.githubUsername) {
             // Return empty array instead of error - more graceful for dashboard
-            console.log('ℹ️ User has no GitHub username linked');
+            console.log(`ℹ️ User ${userId} has no GitHub username linked`);
             return res.status(200).json({
                 success: true,
                 data: {
@@ -83,6 +83,9 @@ const getCommits = async (req, res, next) => {
             });
         }
 
+        console.log(`🔍 Fetching GitHub data for user: ${user.githubUsername} (userId: ${userId})`);
+        console.log(`🔑 Using ${user.githubAccessToken ? 'user OAuth token' : 'server PAT'}`);
+
         // Use user's OAuth token if available for better rate limits
         const githubService = new GitHubService(user.githubAccessToken || null);
 
@@ -92,6 +95,8 @@ const getCommits = async (req, res, next) => {
         // Handle both old array format and new object format
         const allCommits = Array.isArray(result) ? result : (result.commits || []);
         const currentStreak = result.streak || 0;
+
+        console.log(`📈 Fetched ${allCommits.length} commits, streak: ${currentStreak}, totalContributions: ${result.totalContributions || 'N/A'}`);
 
         // Calculate WoW growth
         const oneWeekAgo = new Date();
