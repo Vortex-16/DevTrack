@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'
 
 const CacheContext = createContext(null)
 
 export function CacheProvider({ children }) {
     const [cache, setCache] = useState({})
 
-    const setCachedData = (key, data) => {
+    const setCachedData = useCallback((key, data) => {
         setCache(prev => ({
             ...prev,
             [key]: {
@@ -13,18 +13,25 @@ export function CacheProvider({ children }) {
                 timestamp: Date.now()
             }
         }))
-    }
+    }, [])
 
-    const getCachedData = (key) => {
+    const getCachedData = useCallback((key) => {
         return cache[key]?.data || null
-    }
+    }, [cache])
 
-    const hasCachedData = (key) => {
+    const hasCachedData = useCallback((key) => {
         return !!cache[key]
-    }
+    }, [cache])
+
+    const value = useMemo(() => ({
+        cache,
+        setCachedData,
+        getCachedData,
+        hasCachedData
+    }), [cache, setCachedData, getCachedData, hasCachedData])
 
     return (
-        <CacheContext.Provider value={{ cache, setCachedData, getCachedData, hasCachedData }}>
+        <CacheContext.Provider value={value}>
             {children}
         </CacheContext.Provider>
     )
