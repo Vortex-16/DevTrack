@@ -465,15 +465,16 @@ function CSTriviaCard({ compact }) {
         setShowAnswer(false)
 
         const CACHE_KEY = 'devtrack_trivia_cache'
-        const CACHE_DURATION = 60 * 60 * 1000 // 1 hour
+        const CACHE_DURATION = 30 * 60 * 1000 // 1 hour se 30 min kr rha hun best hoga
 
         // Try to load from cache if not forcing refresh
         if (!forceRefresh) {
             const cached = localStorage.getItem(CACHE_KEY)
             if (cached) {
                 try {
-                    const { data, timestamp } = JSON.parse(cached)
-                    if (Date.now() - timestamp < CACHE_DURATION) {
+                    const cachedParsed = JSON.parse(cached)
+                    const { data, timestamp } = cachedParsed
+                    if (Date.now() - timestamp < CACHE_DURATION && !forceRefresh) {
                         setTrivia(data)
                         setLoading(false)
                         return
@@ -486,23 +487,23 @@ function CSTriviaCard({ compact }) {
 
         try {
             const response = await fetch('https://opentdb.com/api.php?amount=1&category=18&type=multiple')
-            
+
             // Handle Rate Limiting (429) gracefully
             if (response.status === 429) {
                 console.warn('Trivia API rate limited, using cache or fallback')
-                 // If we have cache (even expired), use it as fallback for rate limit
-                 const cached = localStorage.getItem(CACHE_KEY)
-                 if (cached) {
-                     const { data } = JSON.parse(cached)
-                     setTrivia(data)
-                     setLoading(false)
-                     return
-                 }
-                 throw new Error('Rate limited and no cache')
+                // If we have cache (even expired), use it as fallback for rate limit
+                const cached = localStorage.getItem(CACHE_KEY)
+                if (cached) {
+                    const { data } = JSON.parse(cached)
+                    setTrivia(data)
+                    setLoading(false)
+                    return
+                }
+                throw new Error('Rate limited and no cache')
             }
 
             if (!response.ok) throw new Error('Failed to fetch trivia')
-            
+
             const data = await response.json()
             if (data.results && data.results.length > 0) {
                 const result = data.results[0]
@@ -511,9 +512,9 @@ function CSTriviaCard({ compact }) {
                     answer: decodeHTML(result.correct_answer),
                     difficulty: result.difficulty
                 }
-                
+
                 setTrivia(newTrivia)
-                
+
                 // Update cache
                 localStorage.setItem(CACHE_KEY, JSON.stringify({
                     data: newTrivia,
@@ -766,9 +767,9 @@ export default function Dashboard() {
                 {/* Main Container with rounded border */}
                 <div
                     className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
-                    ${isScrollable 
-                        ? 'h-full overflow-hidden' 
-                        : 'h-auto md:h-full md:overflow-hidden'}`}
+                    ${isScrollable
+                            ? 'h-full overflow-hidden'
+                            : 'h-auto md:h-full md:overflow-hidden'}`}
                     style={{
                         background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
                         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
@@ -848,102 +849,101 @@ export default function Dashboard() {
                     {/* Main Dashboard Grid */}
                     {!hasNoData && (
                         <div className="h-full pr-1 md:overflow-hidden">
-                            <ReactLenis 
+                            <ReactLenis
                                 root={false}
                                 id="dashboard-scroll-container"
-                                className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${
-                                isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
-                                }`}
+                                className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
+                                    }`}
                             >
                                 {/* Row 1: Portfolio + Assets */}
                                 <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
-                                {/* Portfolio Card - spans 4 cols */}
-                                <div className="lg:col-span-4">
-                                    <PortfolioCard
-                                        totalLogs={logStats?.totalLogs || 0}
-                                        currentStreak={logStats?.currentStreak || 0}
-                                        logs={recentLogs}
-                                        compact={!isScrollable}
-                                    />
-                                </div>
-
-                                {/* Your Stats Section - spans 8 cols */}
-                                <div className="lg:col-span-8 flex flex-col justify-end">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <h2 className="text-base font-semibold text-white">Your Stats</h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <AssetCard
-                                            icon={<Brain size={isScrollable ? 20 : 16} />}
-                                            title="Learning"
-                                            subtitle="Streak days"
-                                            value={logStats?.currentStreak || 0}
-                                            change={logStats?.weeklyGrowth || 0}
-                                            color="cyan"
-                                            delay={0.15}
-                                            compact={!isScrollable}
-                                        />
-                                        <AssetCard
-                                            icon={<Github size={isScrollable ? 20 : 16} />}
-                                            title="GitHub"
-                                            subtitle="Commit streak"
-                                            value={githubStreak}
-                                            change={githubStats?.streakGrowth || 0}
-                                            color="purple"
-                                            delay={0.2}
-                                            compact={!isScrollable}
-                                        />
-                                        <AssetCard
-                                            icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
-                                            title="Commits"
-                                            subtitle={`${projectStats?.totalProjects || 0} projects`}
-                                            value={projectStats?.totalCommits || 0}
-                                            change={projectStats?.totalCommitGrowth || 0}
-                                            color="green"
-                                            delay={0.25}
-                                            compact={!isScrollable}
-                                        />
-                                        <AssetCard
-                                            icon={<Lightbulb size={isScrollable ? 20 : 16} />}
-                                            title="Skills"
-                                            subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
-                                            value={uniqueTags.length}
-                                            change={uniqueTags.length > 0 ? 5 : 0}
-                                            color="orange"
-                                            delay={0.3}
+                                    {/* Portfolio Card - spans 4 cols */}
+                                    <div className="lg:col-span-4">
+                                        <PortfolioCard
+                                            totalLogs={logStats?.totalLogs || 0}
+                                            currentStreak={logStats?.currentStreak || 0}
+                                            logs={recentLogs}
                                             compact={!isScrollable}
                                         />
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Row 2: Activity Table + Calendar */}
-                            <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}>
-                                {/* Activity Table - spans 4 cols */}
-                                <div className="lg:col-span-4">
-                                    <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
-                                </div>
-
-                                {/* Calendar - spans 5 cols */}
-                                <div className="lg:col-span-5 h-[350px] lg:h-full">
-                                    <Calendar onExpand={handleExpandView} compact={!isScrollable} />
-                                </div>
-
-                                {/* CS Trivia - spans 3 cols */}
-                                <div className="block lg:col-span-3 h-[350px] lg:h-full">
-                                    <CSTriviaCard compact={!isScrollable} />
-                                </div>
-                            </div>
-
-                            {/* Row 3: Mobile App Token */}
-                            <div className="block flex-shrink-0">
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-5">
-                                    <div className="lg:col-span-12">
-                                        <MobileAppToken />
+                                    {/* Your Stats Section - spans 8 cols */}
+                                    <div className="lg:col-span-8 flex flex-col justify-end">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <h2 className="text-base font-semibold text-white">Your Stats</h2>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <AssetCard
+                                                icon={<Brain size={isScrollable ? 20 : 16} />}
+                                                title="Learning"
+                                                subtitle="Streak days"
+                                                value={logStats?.currentStreak || 0}
+                                                change={logStats?.weeklyGrowth || 0}
+                                                color="cyan"
+                                                delay={0.15}
+                                                compact={!isScrollable}
+                                            />
+                                            <AssetCard
+                                                icon={<Github size={isScrollable ? 20 : 16} />}
+                                                title="GitHub"
+                                                subtitle="Commit streak"
+                                                value={githubStreak}
+                                                change={githubStats?.streakGrowth || 0}
+                                                color="purple"
+                                                delay={0.2}
+                                                compact={!isScrollable}
+                                            />
+                                            <AssetCard
+                                                icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
+                                                title="Commits"
+                                                subtitle={`${projectStats?.totalProjects || 0} projects`}
+                                                value={projectStats?.totalCommits || 0}
+                                                change={projectStats?.totalCommitGrowth || 0}
+                                                color="green"
+                                                delay={0.25}
+                                                compact={!isScrollable}
+                                            />
+                                            <AssetCard
+                                                icon={<Lightbulb size={isScrollable ? 20 : 16} />}
+                                                title="Skills"
+                                                subtitle={uniqueTags.slice(0, 2).join(', ') || 'Add tags'}
+                                                value={uniqueTags.length}
+                                                change={uniqueTags.length > 0 ? 5 : 0}
+                                                color="orange"
+                                                delay={0.3}
+                                                compact={!isScrollable}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </ReactLenis>
+
+                                {/* Row 2: Activity Table + Calendar */}
+                                <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}>
+                                    {/* Activity Table - spans 4 cols */}
+                                    <div className="lg:col-span-4">
+                                        <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                    </div>
+
+                                    {/* Calendar - spans 5 cols */}
+                                    <div className="lg:col-span-5 h-[350px] lg:h-full">
+                                        <Calendar onExpand={handleExpandView} compact={!isScrollable} />
+                                    </div>
+
+                                    {/* CS Trivia - spans 3 cols */}
+                                    <div className="block lg:col-span-3 h-[350px] lg:h-full">
+                                        <CSTriviaCard compact={!isScrollable} />
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Mobile App Token */}
+                                <div className="block flex-shrink-0">
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-5">
+                                        <div className="lg:col-span-12">
+                                            <MobileAppToken />
+                                        </div>
+                                    </div>
+                                </div>
+                            </ReactLenis>
                         </div>
                     )}
                 </div>

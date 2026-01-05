@@ -52,7 +52,7 @@ api.interceptors.request.use(
             const token = await getClerkToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
-            } else {
+            } else if (config.url !== '/health') {
                 console.warn('No Clerk auth token available for request:', config.url);
             }
         } catch (error) {
