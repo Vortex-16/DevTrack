@@ -448,16 +448,12 @@ export default function Learning() {
     return (
         <PixelTransition loading={loading}>
             <motion.div>
-            {/* Main Container */}
+            {/* Main Container - Background removed */}
             <div
-                className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
-                style={{
-                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                }}
+                className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
                         <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
@@ -469,7 +465,7 @@ export default function Learning() {
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 flex-shrink-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-shrink-0">
                     <>
                         <StatCard icon={<BookOpen size={24} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
                         <StatCard icon={<Flame size={24} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
