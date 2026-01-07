@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, RefreshCw } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
 import { ReactLenis } from 'lenis/react'
 
@@ -663,7 +663,21 @@ export default function Dashboard() {
     const [githubUsername, setGithubUsername] = useState('')
     const [loading, setLoading] = useState(!hasCachedData('dashboard_data'))
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isSyncing, setIsSyncing] = useState(false)
     const retriedGithub = useRef(false)
+
+    const handleSync = async () => {
+        setIsSyncing(true)
+        try {
+            await authApi.sync()
+            await fetchData()
+            // Optional: Show success toast
+        } catch (err) {
+            console.error('Manual sync failed:', err)
+        } finally {
+            setIsSyncing(false)
+        }
+    }
     const scrollTracker = useRef({ lastY: 0, state: 'up' }) // Track scroll for navbar
 
     useEffect(() => {
@@ -776,7 +790,18 @@ export default function Dashboard() {
                         <div>
                             <h1 className="text-2xl font-bold text-white">Overview</h1>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            {/* Sync Button */}
+                            <button
+                                onClick={handleSync}
+                                disabled={isSyncing}
+                                className={`p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center gap-2 text-slate-400 hover:text-white ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title="Sync with GitHub"
+                            >
+                                <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+                                <span className="text-sm font-medium hidden lg:block">Sync</span>
+                            </button>
+
                             {/* GitHub Link */}
                             {githubUsername ? (
                                 <a

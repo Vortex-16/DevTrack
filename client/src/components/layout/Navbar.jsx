@@ -33,6 +33,12 @@ const WindowsTerminalIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 )
 
+const GithubOutlineIcon = ({ className = "w-5 h-5" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+    </svg>
+)
+
 
 
 
@@ -41,7 +47,7 @@ const navItems = [
     { name: 'Learning', path: '/learning', icon: BookOpen },
     { name: 'Projects', path: '/projects', icon: WindowsTerminalIcon },
     { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
-    { name: 'Info', path: '/system-info', icon: Info },
+    { name: 'GitHub Insights', path: '/github-insights', icon: GithubOutlineIcon },
 ]
 
 // Sidebar icon button
@@ -172,9 +178,12 @@ function MobileNavbar({ onOpenSettings }) {
     // Listen for scroll events (window + dashboard container)
     useEffect(() => {
         const handleScroll = (e) => {
+            // Only apply on mobile dashboard or system-info
+            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info')
+
             // Only apply on mobile dashboard, system-info, learning, or projects
             const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects')
-            
+
             if (!isAnimatedPage || window.innerWidth >= 768) {
                 setIsHidden(false)
                 return
@@ -196,6 +205,35 @@ function MobileNavbar({ onOpenSettings }) {
             lastScrollY.current = currentY
         }
 
+        // Attach to window and specific container
+        window.addEventListener('scroll', handleScroll, { passive: true })
+
+        let checkForContainer;
+        let timeout;
+
+        const attachToContainer = () => {
+            const container = document.getElementById('dashboard-scroll-container') || document.getElementById('learning-scroll-container')
+            if (container) {
+                container.addEventListener('scroll', handleScroll, { passive: true })
+                return true
+            }
+            return false
+        }
+
+        // Try immediately
+        if (!attachToContainer()) {
+            // Poll if not found (briefly)
+            checkForContainer = setInterval(() => {
+                if (attachToContainer()) {
+                    clearInterval(checkForContainer)
+                }
+            }, 500)
+
+            // Safety timeout
+            timeout = setTimeout(() => {
+                clearInterval(checkForContainer)
+            }, 5000)
+        }
         // Continuous integrity check: ensure we're listening to the live element
         // (React might re-mount the container, detaching our listener from the DOM)
         const currentContainerRef = { current: null }
@@ -204,7 +242,7 @@ function MobileNavbar({ onOpenSettings }) {
             const dashboard = document.getElementById('dashboard-scroll-container')
             const learning = document.getElementById('learning-scroll-container')
             const projects = document.getElementById('projects-scroll-container')
-            
+
             // Prioritize based on current path to avoid ambiguity, though IDs are unique per page
             let targetDiv = null
             if (location.pathname.startsWith('/dashboard')) targetDiv = dashboard
@@ -219,7 +257,7 @@ function MobileNavbar({ onOpenSettings }) {
                     if (currentContainerRef.current) {
                         currentContainerRef.current.removeEventListener('scroll', handleScroll)
                     }
-                    
+
                     // Attach to new
                     targetDiv.addEventListener('scroll', handleScroll, { passive: true })
                     currentContainerRef.current = targetDiv
@@ -242,6 +280,10 @@ function MobileNavbar({ onOpenSettings }) {
 
         return () => {
             window.removeEventListener('scroll', handleScroll)
+            if (checkForContainer) clearInterval(checkForContainer)
+            if (timeout) clearTimeout(timeout)
+            const container = document.getElementById('dashboard-scroll-container') || document.getElementById('learning-scroll-container')
+            if (container) container.removeEventListener('scroll', handleScroll)
             clearInterval(integrityInterval)
             if (currentContainerRef.current) {
                 currentContainerRef.current.removeEventListener('scroll', handleScroll)

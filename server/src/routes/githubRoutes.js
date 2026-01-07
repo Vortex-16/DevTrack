@@ -11,6 +11,9 @@ const githubController = require('../controllers/githubController');
 // Get GitHub activity summary
 router.get('/activity', requireAuth, githubController.getActivity);
 
+// Get comprehensive GitHub insights
+router.get('/insights', requireAuth, githubController.getInsights);
+
 // Get recent commits
 router.get('/commits', requireAuth, githubController.getCommits);
 

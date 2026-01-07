@@ -11,7 +11,8 @@ import Chat from './pages/Chat'
 import SystemInfo from './pages/SystemInfo'
 import Onboarding from './pages/Onboarding'
 import MobileAuth from './pages/MobileAuth'
-import { preferencesApi } from './services/api'
+import GitHubInsights from './pages/GitHubInsights'
+import { preferencesApi, authApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
 import { CacheProvider } from './context/CacheContext'
@@ -38,6 +39,9 @@ function OnboardingRedirect({ children }) {
             }
 
             try {
+                // Sync user with backend
+                await authApi.sync().catch(err => console.error('Sync failed:', err));
+
                 const response = await preferencesApi.get()
                 const onboardingCompleted = response.data?.data?.onboardingCompleted
 
@@ -119,6 +123,7 @@ function App() {
                         <Route path="/learning" element={<Learning />} />
                         <Route path="/projects" element={<Projects />} />
                         <Route path="/chat" element={<Chat />} />
+                        <Route path="/github-insights" element={<GitHubInsights />} />
                         <Route path="/system-info" element={<SystemInfo />} />
                     </Route>
 

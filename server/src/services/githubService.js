@@ -11,10 +11,11 @@ class GitHubService {
         const authToken = token || process.env.GITHUB_PAT;
 
         if (!authToken) {
-            throw new Error('GitHub token not provided');
+            console.warn('⚠️ No GitHub token provided. initialized unauthenticated Octokit. Some features may be limited or rate-limited.');
+            this.octokit = new Octokit();
+        } else {
+            this.octokit = new Octokit({ auth: authToken });
         }
-
-        this.octokit = new Octokit({ auth: authToken });
     }
 
     /**
@@ -492,6 +493,161 @@ class GitHubService {
             console.error('Error fetching contributions via GraphQL:', error.message);
             return null;
         }
+    }
+
+    /**
+     * Get comprehensive GitHub insights for bento grid
+     */
+    async getGitHubInsights(username) {
+        try {
+            const query = `
+                query($username: String!) {
+                    user(login: $username) {
+                        name
+                        login
+                        avatarUrl
+                        bio
+                        createdAt
+                        followers { totalCount }
+                        following { totalCount }
+                        repositories(first: 100, ownerAffiliations: OWNER) {
+                            totalCount
+                            nodes {
+                                isPrivate
+                                isFork
+                                stargazerCount
+                                forkCount
+                                languages(first: 5, orderBy: {field: SIZE, direction: DESC}) {
+                                    edges {
+                                        size
+                                        node {
+                                            name
+                                            color
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        contributionsCollection {
+                            totalCommitContributions
+                            totalPullRequestContributions
+                            totalIssueContributions
+                            totalRepositoriesWithContributedCommits
+                            totalPullRequestReviewContributions
+                            contributionCalendar {
+                                totalContributions
+                            }
+                        }
+                        issues(states: CLOSED, first: 1) {
+                            totalCount
+                        }
+                        pullRequests(states: MERGED, first: 1) {
+                            totalCount
+                        }
+                        starredRepositories {
+                            totalCount
+                        }
+                        watching {
+                            totalCount
+                        }
+                    }
+                }
+            `;
+
+            const response = await this.octokit.graphql(query, { username });
+            const user = response.user;
+
+            if (!user) return null;
+
+            // Calculate total stars across user's repos
+            const totalStars = user.repositories.nodes.reduce((sum, repo) => sum + repo.stargazerCount, 0);
+            const totalForks = user.repositories.nodes.reduce((sum, repo) => sum + repo.forkCount, 0);
+            const publicRepos = user.repositories.nodes.filter(r => !r.isPrivate).length;
+            const privateRepos = user.repositories.nodes.filter(r => r.isPrivate).length;
+            const sourceRepos = user.repositories.nodes.filter(r => !r.isFork).length;
+
+            // Aggregate languages
+            const languageMap = {};
+            user.repositories.nodes.forEach(repo => {
+                repo.languages.edges.forEach(edge => {
+                    const name = edge.node.name;
+                    languageMap[name] = (languageMap[name] || 0) + edge.size;
+                });
+            });
+
+            const topLanguages = Object.entries(languageMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([name, size]) => ({ name, size }));
+
+            // Calculate Grade/Rank (S, A, B, C)
+            // Logic: based on commits, stars, followers, and PRs
+            const commits = user.contributionsCollection.totalCommitContributions;
+            const prs = user.pullRequests.totalCount;
+            const reviews = user.contributionsCollection.totalPullRequestReviewContributions;
+            const issuesSolved = user.issues.totalCount;
+            const followers = user.followers.totalCount;
+
+            const score = (commits * 0.5) + (prs * 2) + (reviews * 1.5) + (issuesSolved * 1) + (totalStars * 5) + (followers * 2);
+
+            let grade = 'C';
+            if (score > 1000) grade = 'S+';
+            else if (score > 500) grade = 'S';
+            else if (score > 200) grade = 'A';
+            else if (score > 100) grade = 'B';
+
+            return {
+                profile: {
+                    name: user.name,
+                    username: user.login,
+                    avatarUrl: user.avatarUrl,
+                    bio: user.bio,
+                    createdAt: user.createdAt,
+                    followers: user.followers.totalCount,
+                    following: user.following.totalCount,
+                },
+                stats: {
+                    totalRepos: user.repositories.totalCount,
+                    publicRepos,
+                    privateRepos,
+                    sourceRepos,
+                    totalStars,
+                    totalForks,
+                    totalCommits: commits,
+                    totalPRs: prs,
+                    totalReviews: reviews,
+                    totalIssuesSolved: issuesSolved,
+                    totalStarred: user.starredRepositories.totalCount,
+                    totalWatching: user.watching.totalCount,
+                    totalContributions: user.contributionsCollection.contributionCalendar.totalContributions,
+                },
+                rank: {
+                    score,
+                    grade,
+                    level: Math.floor(Math.sqrt(score / 10)) + 1,
+                },
+                languages: topLanguages,
+                badges: this.calculateBadges(user, score),
+            };
+        } catch (error) {
+            console.error('Error fetching GitHub insights:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Calculate badges based on user milestones
+     */
+    calculateBadges(user, score) {
+        const badges = [];
+        const stats = user.contributionsCollection;
+
+        if (stats.totalCommitContributions > 100) badges.push({ id: 'century_committer', name: 'Century Committer', icon: '🏆' });
+        if (user.pullRequests.totalCount > 10) badges.push({ id: 'pr_master', name: 'PR Master', icon: '🚢' });
+        if (user.followers.totalCount > 50) badges.push({ id: 'community_leader', name: 'Community Leader', icon: '🌟' });
+        if (score > 500) badges.push({ id: 'octo_ninja', name: 'Octo Ninja', icon: '🥷' });
+
+        return badges;
     }
 
     /**

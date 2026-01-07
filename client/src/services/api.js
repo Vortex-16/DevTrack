@@ -109,6 +109,7 @@ export const githubApi = {
     getCommits: (days = 30) => api.get('/github/commits', { params: { days } }),
     getRepoLanguages: (owner, repo) => api.get(`/github/repo/${owner}/${repo}/languages`),
     createRepo: (name, description, isPrivate) => api.post('/github/repo', { name, description, isPrivate }),
+    getInsights: () => api.get('/github/insights'),
 };
 
 export const geminiApi = {

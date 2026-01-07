@@ -6,6 +6,65 @@
 const GitHubService = require('../services/githubService');
 const { collections } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
+const { clerkClient } = require('@clerk/clerk-sdk-node');
+
+/**
+ * Helper to ensure user has GitHub username and get fresh token
+ */
+const ensureGitHubData = async (userId) => {
+    let userDoc = await collections.users().doc(userId).get();
+    if (!userDoc.exists) {
+        // Try a quick sync if doc doesn't exist
+        const { syncUser } = require('./authController');
+        // This is still a bit cyclic but we need a way to bootstrap the user
+        // Alternative: just return null/throw if doc is missing
+        return { user: null, githubUsername: null, githubAccessToken: null };
+    }
+
+    let user = userDoc.data();
+    let githubUsername = user.githubUsername;
+    let githubAccessToken = user.githubAccessToken;
+
+    // 1. If username missing, try fetching from Clerk
+    if (!githubUsername) {
+        try {
+            const clerkUser = await clerkClient.users.getUser(userId);
+            if (clerkUser.externalAccounts) {
+                const githubAccount = clerkUser.externalAccounts.find(
+                    (acc) => acc.provider === 'github' || acc.provider === 'oauth_github'
+                );
+                if (githubAccount) {
+                    githubUsername = githubAccount.username || githubAccount.externalId;
+                    console.log(`✅ [Auto-Sync] Found GitHub username: ${githubUsername}`);
+
+                    await collections.users().doc(userId).update({
+                        githubUsername: githubUsername,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn(`⚠️ [Auto-Sync] Clerk fetch failed for ${userId}:`, e.message);
+        }
+    }
+
+    // 2. Always try to get a FRESH OAuth token from Clerk
+    try {
+        const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
+        if (oauthTokens?.data?.[0]?.token) {
+            githubAccessToken = oauthTokens.data[0].token;
+            // Update cached token
+            await collections.users().doc(userId).update({
+                githubAccessToken: githubAccessToken,
+                updatedAt: new Date().toISOString()
+            });
+        }
+    } catch (tokenErr) {
+        console.warn(`⚠️ [OAuth] Could not refresh token for ${userId}:`, tokenErr.message);
+    }
+
+    return { user, githubUsername, githubAccessToken };
+};
 
 /**
  * Get user's GitHub activity summary
@@ -15,21 +74,14 @@ const getActivity = async (req, res, next) => {
     try {
         const { userId } = req.auth;
 
-        // Get user's GitHub username from Firestore
-        const userDoc = await collections.users().doc(userId).get();
+        const { githubUsername, githubAccessToken } = await ensureGitHubData(userId);
 
-        if (!userDoc.exists) {
-            throw new APIError('User not found', 404);
-        }
-
-        const user = userDoc.data();
-
-        if (!user.githubUsername) {
+        if (!githubUsername) {
             throw new APIError('GitHub account not connected', 400);
         }
 
-        const githubService = new GitHubService();
-        const activity = await githubService.getActivitySummary(user.githubUsername);
+        const githubService = new GitHubService(githubAccessToken);
+        const activity = await githubService.getActivitySummary(githubUsername);
 
         // Store activity snapshot in Firestore
         await collections.activities().doc(`${userId}_${Date.now()}`).set({
@@ -59,17 +111,10 @@ const getCommits = async (req, res, next) => {
         const { userId } = req.auth;
         const days = parseInt(req.query.days) || 7;
 
-        const userDoc = await collections.users().doc(userId).get();
+        const { githubUsername, githubAccessToken } = await ensureGitHubData(userId);
 
-        if (!userDoc.exists) {
-            throw new APIError('User not found', 404);
-        }
-
-        const user = userDoc.data();
-
-        if (!user.githubUsername) {
-            // Return empty array instead of error - more graceful for dashboard
-            console.log(`ℹ️ User ${userId} has no GitHub username linked`);
+        if (!githubUsername) {
+            console.log(`ℹ️ User ${userId} still has no GitHub username linked`);
             return res.status(200).json({
                 success: true,
                 data: {
@@ -83,40 +128,14 @@ const getCommits = async (req, res, next) => {
             });
         }
 
-        // Get FRESH OAuth token from Clerk for accurate contribution data
-        let githubAccessToken = user.githubAccessToken || null;
-
-        try {
-            const { clerkClient } = require('@clerk/clerk-sdk-node');
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                userId,
-                'oauth_github'
-            );
-
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-                console.log('🔑 Using FRESH OAuth token from Clerk for contributions');
-
-                // Update the cached token in Firestore for future use
-                await collections.users().doc(userId).update({
-                    githubAccessToken: githubAccessToken,
-                    updatedAt: new Date().toISOString()
-                });
-            } else {
-                console.log('⚠️ No fresh OAuth token available, using cached or PAT');
-            }
-        } catch (tokenErr) {
-            console.warn('⚠️ Could not get fresh OAuth token from Clerk:', tokenErr.message);
-        }
-
-        console.log(`🔍 Fetching GitHub data for user: ${user.githubUsername} (userId: ${userId})`);
+        console.log(`🔍 Fetching GitHub data for user: ${githubUsername} (userId: ${userId})`);
         console.log(`🔑 Using ${githubAccessToken ? 'user OAuth token' : 'server PAT'}`);
 
         // Use fresh OAuth token if available for accurate contributions (including private)
         const githubService = new GitHubService(githubAccessToken);
 
         // Fetch 14 days of data to calculate WoW growth
-        const result = await githubService.getRecentCommits(user.githubUsername, 14);
+        const result = await githubService.getRecentCommits(githubUsername, 14);
 
         // Handle both old array format and new object format
         const allCommits = Array.isArray(result) ? result : (result.commits || []);
@@ -454,6 +473,32 @@ const createRepo = async (req, res, next) => {
     }
 };
 
+/**
+ * Get comprehensive GitHub insights for bento grid
+ * GET /api/github/insights
+ */
+const getInsights = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+
+        const { githubUsername, githubAccessToken } = await ensureGitHubData(userId);
+
+        if (!githubUsername) {
+            throw new APIError('GitHub account not connected', 400);
+        }
+
+        const githubService = new GitHubService(githubAccessToken);
+        const insights = await githubService.getGitHubInsights(githubUsername);
+
+        res.status(200).json({
+            success: true,
+            data: insights,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getActivity,
     getCommits,
@@ -463,5 +508,6 @@ module.exports = {
     analyzeRepo,
     getRepoLanguages,
     createRepo,
+    getInsights,
 };
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { SignInButton } from "@clerk/clerk-react";
-import { Github, Linkedin, Lock, Code, BarChart3, Rocket, Zap, Bot, RefreshCw, Flame, TrendingUp } from "lucide-react";
+import { Github, Linkedin, Lock, Code, BarChart3, Rocket, Zap, Bot, RefreshCw, Flame, TrendingUp, HelpCircle, ChevronDown } from "lucide-react";
 
 
 import { motion, useInView, AnimatePresence } from "framer-motion";
@@ -788,6 +789,80 @@ function TeamCard({ member, index }) {
   );
 }
 
+const faqs = [
+  {
+    q: "How does DevTrack monitor my activity?",
+    a: "We integrate directly with the GitHub API to monitor your commits, PRs, and repository interactions. All data is synced in real-time to give you up-to-the-minute insights."
+  },
+  {
+    q: "Is my source code secure?",
+    a: "Yes. We only access metadata regarding your contributions (line counts, language types, timestamps). We never read, store, or share your actual source code contents."
+  },
+  {
+    q: "What is the GitHub DNA Score?",
+    a: "It's a proprietary metric that analyzes your consistency, impact, and code authority. It helps you understand your professional growth compared to global standards."
+  },
+  {
+    q: "Can I use DevTrack for free?",
+    a: "DevTrack is currently free for individual developers. We aim to help every coder build a consistent habit and a professional portfolio."
+  }
+];
+
+function FAQ() {
+  const [open, setOpen] = useState(0);
+
+  return (
+    <section className="py-32 px-6 bg-gradient-to-b from-transparent to-black">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-16">
+          <p className="text-cyan-400 text-sm font-semibold mb-4 tracking-widest uppercase">Answers</p>
+          <h2 className="text-4xl md:text-6xl font-black text-white" style={{ fontFamily: "Syne, sans-serif" }}>
+            Common <NeonText color="cyan">Questions</NeonText>
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <motion.div
+              key={i}
+              className="group rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-colors hover:border-cyan-500/30"
+            >
+              <button
+                onClick={() => setOpen(open === i ? -1 : i)}
+                className="w-full px-6 py-6 flex items-center justify-between text-left"
+              >
+                <span className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tight">
+                  {faq.q}
+                </span>
+                <motion.div
+                  animate={{ rotate: open === i ? 180 : 0 }}
+                  className="text-cyan-500"
+                >
+                  <ChevronDown size={20} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {open === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-6 text-slate-400 leading-relaxed text-sm">
+                      {faq.a}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   const heroRef = useRef(null);
   const [mounted, setMounted] = useState(false);
@@ -1078,6 +1153,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* FAQ */}
+      <FAQ />
 
       {/* CTA */}
       <section className="py-32 px-4 md:px-6">
