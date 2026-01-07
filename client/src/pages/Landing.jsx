@@ -51,18 +51,21 @@ function MagneticButton({ children, className = "", strength = 0.3 }) {
 
 // Team members
 const teamMembers = [
-  { name: "Vikash Gupta", github: "Vortex-16", role: "Frontend & Backend, AI" },
+  {
+    name: "Vikash Gupta",
+    github: "Vortex-16",
+    role: "Frontend & Backend, AI"
+  },
   {
     name: "Ayush Chowdhury",
     github: "AyushChowdhuryCSE",
-    role: "Frontend Developer",
+    role: "Innovation & Concepts",
   },
   {
-    name: "Rajbeer Saha",
-    github: "PixelPioneer404",
-    role: "Frontend Developer",
+    name: "Rajdeep Das",
+    github: "yourajdeep",
+    role: "UI/UX & Optimization"
   },
-  { name: "Rajdeep Das", github: "yourajdeep", role: "UI/UX & Optimization" },
 ];
 
 // Features - with sizes for bento grid
@@ -695,7 +698,6 @@ function DashboardMockup() {
 const cardColors = [
   { gradient: "from-cyan-500 to-blue-500", glow: "cyan" },
   { gradient: "from-purple-500 to-pink-500", glow: "purple" },
-  { gradient: "from-emerald-500 to-teal-500", glow: "emerald" },
   { gradient: "from-orange-500 to-red-500", glow: "orange" },
 ];
 
@@ -1146,9 +1148,11 @@ export default function Landing() {
             </motion.h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {teamMembers.map((member, index) => (
-              <TeamCard key={index} member={member} index={index} />
+              <div key={index} className="w-[75%] sm:w-[calc(50%-1rem)] md:w-[25%]">
+                <TeamCard member={member} index={index} />
+              </div>
             ))}
           </div>
         </div>
