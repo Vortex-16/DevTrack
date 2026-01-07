@@ -180,7 +180,7 @@ function MobileNavbar({ onOpenSettings }) {
     useEffect(() => {
         const handleScroll = (e) => {
             // Only apply on mobile dashboard, system-info, learning, or projects
-            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects') || location.pathname.startsWith('/github-insights')
+            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects') || location.pathname.startsWith('/github-insights') || location.pathname.startsWith('/chat')
 
             if (!isAnimatedPage || window.innerWidth >= 768) {
                 setIsHidden(false)
@@ -241,6 +241,7 @@ function MobileNavbar({ onOpenSettings }) {
             const learning = document.getElementById('learning-scroll-container')
             const projects = document.getElementById('projects-scroll-container')
             const githubInsights = document.getElementById('github-insights-scroll-container')
+            const chat = document.getElementById('chat-scroll-container')
 
             // Prioritize based on current path to avoid ambiguity, though IDs are unique per page
             let targetDiv = null
@@ -248,6 +249,7 @@ function MobileNavbar({ onOpenSettings }) {
             else if (location.pathname.startsWith('/learning')) targetDiv = learning
             else if (location.pathname.startsWith('/projects')) targetDiv = projects
             else if (location.pathname.startsWith('/github-insights')) targetDiv = githubInsights
+            else if (location.pathname.startsWith('/chat')) targetDiv = chat
 
             // If we found a valid container
             if (targetDiv) {

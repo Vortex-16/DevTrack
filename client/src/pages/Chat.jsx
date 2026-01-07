@@ -477,6 +477,7 @@ export default function Chat() {
                 {/* Messages Area */}
                 <div
                     ref={containerRef}
+                    id="chat-scroll-container"
                     className="flex-1 overflow-y-auto min-h-0 mb-2 overscroll-behavior-contain relative z-0 pointer-events-auto"
                     style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
                 >
