@@ -159,6 +159,7 @@ function Sidebar({ onOpenSettings }) {
                             elements: {
                                 avatarBox: 'w-10 h-10',
                                 userButtonTrigger: 'focus:shadow-none',
+                                userButtonPopoverCard: 'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-white/10'
                             }
                         }}
                     />
@@ -356,7 +357,7 @@ function MobileNavbar({ onOpenSettings }) {
                             elements: {
                                 avatarBox: 'w-8 h-8',
                                 userButtonTrigger: 'focus:shadow-none',
-                                userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 shadow-xl border border-white/10'
+                                userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10'
                             }
                         }}
                     />
