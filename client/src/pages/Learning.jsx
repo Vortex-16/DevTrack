@@ -170,7 +170,7 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
 
                         <div className="flex flex-row items-center justify-between gap-2 lg:gap-5 mb-2">
                             <h3 className="text-xs lg:text-sm font-bold text-white leading-tight whitespace-nowrap min-w-0 truncate">{formatDate(entry.date)}</h3>
-                            <span className="bg-white/10 backdrop-blur-md border border-white/10 px-2 py-1 rounded-xl text-slate-400 text-[10px] lg:text-xs flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                            <span className="bg-white/10 backdrop-blur-md border border-white/10 px-2 py-1 rounded-xl text-slate-400 text-[10px] lg:text-xs hidden sm:flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                                 <Clock size={12} />
                                 {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
                             </span>
@@ -450,7 +450,7 @@ export default function Learning() {
             <motion.div>
             {/* Main Container - Background removed */}
             <div
-                className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden"
+                className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
             >
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
