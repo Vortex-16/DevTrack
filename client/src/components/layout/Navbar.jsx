@@ -239,12 +239,14 @@ function MobileNavbar({ onOpenSettings }) {
             const dashboard = document.getElementById('dashboard-scroll-container')
             const learning = document.getElementById('learning-scroll-container')
             const projects = document.getElementById('projects-scroll-container')
+            const githubInsights = document.getElementById('github-insights-scroll-container')
 
             // Prioritize based on current path to avoid ambiguity, though IDs are unique per page
             let targetDiv = null
             if (location.pathname.startsWith('/dashboard')) targetDiv = dashboard
             else if (location.pathname.startsWith('/learning')) targetDiv = learning
             else if (location.pathname.startsWith('/projects')) targetDiv = projects
+            else if (location.pathname.startsWith('/github-insights')) targetDiv = githubInsights
 
             // If we found a valid container
             if (targetDiv) {
@@ -365,6 +367,35 @@ function MobileNavbar({ onOpenSettings }) {
 
 export default function Navbar() {
     const [settingsOpen, setSettingsOpen] = useState(false)
+
+    // Lock body and internal scroll containers when settings modal is open
+    useEffect(() => {
+        const getContainers = () => [
+            document.body,
+            document.documentElement,
+            document.getElementById('dashboard-scroll-container'),
+            document.getElementById('learning-scroll-container'),
+            document.getElementById('projects-scroll-container'),
+            document.getElementById('github-insights-scroll-container')
+        ]
+
+        if (settingsOpen) {
+            getContainers().forEach(el => {
+                if (el) el.style.overflow = 'hidden'
+            })
+        } else {
+            getContainers().forEach(el => {
+                if (el) el.style.overflow = ''
+            })
+        }
+
+        // Cleanup function
+        return () => {
+             getContainers().forEach(el => {
+                if (el) el.style.overflow = ''
+            })
+        }
+    }, [settingsOpen])
 
     return (
         <>
