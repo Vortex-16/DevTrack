@@ -128,7 +128,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Login with GitHub via Clerk (opens browser)
-  Future<void> loginWithGitHub() async {
+  Future<bool> loginWithGitHub() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -139,8 +139,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         error: success ? null : 'Could not open sign-in page',
       );
+      return success;
     } catch (e) {
       state = AuthState.error(e.toString());
+      return false;
     }
   }
 

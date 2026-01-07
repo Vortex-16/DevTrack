@@ -138,26 +138,36 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final firstDayOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
     final lastDayOfMonth =
         DateTime(selectedDate.year, selectedDate.month + 1, 0);
-    final startingWeekday = firstDayOfMonth.weekday;
+    
+    // Dart's weekday: 1 (Mon) to 7 (Sun)
+    // For a grid starting on Monday, we need (startingWeekday - 1) prefix spaces
+    final prefixSpaces = firstDayOfMonth.weekday - 1;
+    final totalCells = prefixSpaces + lastDayOfMonth.day;
 
-    List<Widget> days = [];
-    for (int i = 1; i < startingWeekday; i++) {
-      days.add(const SizedBox(width: 40, height: 40));
-    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: totalCells,
+      itemBuilder: (context, index) {
+        if (index < prefixSpaces) {
+          return const SizedBox.shrink();
+        }
 
-    for (int day = 1; day <= lastDayOfMonth.day; day++) {
-      final date = DateTime(selectedDate.year, selectedDate.month, day);
-      final isToday = _isToday(date);
-      final isSelected = _isSameDay(date, selectedDate);
-      final taskCount = state.getTaskCountForDate(date);
+        final day = index - prefixSpaces + 1;
+        final date = DateTime(selectedDate.year, selectedDate.month, day);
+        final isToday = _isToday(date);
+        final isSelected = _isSameDay(date, selectedDate);
+        final taskCount = state.getTaskCountForDate(date);
 
-      days.add(
-        GestureDetector(
+        return GestureDetector(
           onTap: () =>
               ref.read(taskStateProvider.notifier).changeSelectedDate(date),
           child: Container(
-            width: 40,
-            height: 40,
             decoration: BoxDecoration(
               gradient: isSelected ? AppColors.primaryGradient : null,
               color: isToday && !isSelected
@@ -197,11 +207,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ],
             ),
           ),
-        ),
-      );
-    }
-
-    return Wrap(spacing: 4, runSpacing: 4, children: days);
+        );
+      },
+    );
   }
 
   List<Widget> _buildTaskList(List<Task> tasks) {

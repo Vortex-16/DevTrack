@@ -25,20 +25,31 @@ class AuthService {
   /// 2. After success, redirects back to app via deep link with session token
   Future<bool> loginWithGitHub() async {
     try {
-      // Open the mobile auth page - it will handle Clerk login
-      // and redirect back to the app with the session token
       final signInUrl = Uri.parse(mobileAuthUrl);
-
-      if (await canLaunchUrl(signInUrl)) {
-        await launchUrl(signInUrl, mode: LaunchMode.externalApplication);
-        return true;
-      } else {
-        print('Could not launch mobile auth URL');
+      
+      print('🌐 Attempting to launch: $signInUrl');
+      
+      // Try to launch with external application (browser)
+      final success = await launchUrl(
+        signInUrl, 
+        mode: LaunchMode.externalApplication,
+      );
+      
+      if (!success) {
+        print('⚠️ launchUrl returned false, trying fallback mode...');
+        // Fallback to platform default
+        return await launchUrl(signInUrl);
+      }
+      
+      return success;
+    } catch (e) {
+      print('❌ GitHub login error: $e');
+      // Final attempt with platform default
+      try {
+        return await launchUrl(Uri.parse(mobileAuthUrl));
+      } catch (_) {
         return false;
       }
-    } catch (e) {
-      print('GitHub login error: $e');
-      rethrow;
     }
   }
 

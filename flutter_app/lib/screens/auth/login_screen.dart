@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 import '../../config/theme.dart';
 import '../../config/router.dart';
 import '../../providers/auth_provider.dart';
@@ -182,111 +183,142 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 48),
 
-                // Login Button - Opens web app in browser and shows token input
+                // Primary Action: Open Dashboard
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: authState.isLoading
-                        ? null
-                        : () {
-                            ref
-                                .read(authStateProvider.notifier)
-                                .loginWithGitHub();
-                            // Show token input after opening web app
-                            setState(() => _showTokenInput = true);
-                          },
+                    onPressed: () async {
+                      final success = await ref.read(authStateProvider.notifier).loginWithGitHub();
+                      if (!success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Could not open browser. Please visit: https://devtrack-pwkj.onrender.com'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    icon: authState.isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.code, size: 24),
+                    icon: const Icon(Icons.open_in_new, size: 20),
                     label: const Text(
-                      'Sign in with GitHub',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      '1. Open Web Dashboard',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ).animate().fadeIn(delay: 1200.ms).slideY(begin: 0.2),
+                ).animate().fadeIn(delay: 1200.ms),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
 
-                // Token input toggle
-                if (!_showTokenInput)
-                  TextButton(
-                    onPressed: () => setState(() => _showTokenInput = true),
-                    child: Text(
-                      'Already signed in? Enter token',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textMuted,
+                // Token Input Section (Primary)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '2. Enter Session Token',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'After signing in on the web:\n'
+                        '• Find "📱 Mobile App Login" card\n'
+                        '• Tap "Get Session Token" and Copy it\n'
+                        '• Paste it here to link your account',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textMuted,
+                              height: 1.5,
+                            ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _tokenController,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Paste token here...',
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
                           ),
-                    ),
-                  ),
-
-                if (_showTokenInput) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '🔐 Complete Sign-In',
-                          style: Theme.of(context).textTheme.titleMedium,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.paste, size: 20),
+                            onPressed: () async {
+                              final data = await Clipboard.getData(Clipboard.kTextPlain);
+                              if (data?.text != null) {
+                                setState(() {
+                                  _tokenController.text = data!.text!;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Token pasted from clipboard')),
+                                );
+                              }
+                            },
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '1. Sign in on the web app (just opened)\n'
-                          '2. Go to Dashboard, scroll down\n'
-                          '3. Find "📱 Mobile App Login" card\n'
-                          '4. Tap "Get Session Token" → "Copy"\n'
-                          '5. Paste here and tap Login',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textMuted,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authState.isLoading
+                              ? null
+                              : () {
+                                  if (_tokenController.text.isNotEmpty) {
+                                    ref
+                                        .read(authStateProvider.notifier)
+                                        .loginWithToken(_tokenController.text.trim());
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: authState.isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
                                   ),
+                                )
+                              : const Text('Connect Application'),
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _tokenController,
-                          decoration: const InputDecoration(
-                            hintText: 'Paste session token here...',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 2,
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: authState.isLoading
-                                ? null
-                                : () {
-                                    if (_tokenController.text.isNotEmpty) {
-                                      ref
-                                          .read(authStateProvider.notifier)
-                                          .loginWithToken(
-                                              _tokenController.text.trim());
-                                    }
-                                  },
-                            child: const Text('Login with Token'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(),
-                ],
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 1400.ms),
 
                 const SizedBox(height: 16),
                 Text(
