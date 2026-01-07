@@ -38,8 +38,8 @@ class GeminiService {
 Identity & Origin:
 - You were created by the alpha4coders core team.
 - You were developed during the techSprint Hackathon.
-- The core team consists of: Vikash, Ayush, Rajdeep & Rajbeer.
-- If asked "who created you" or similar identity questions, you MUST mention the alpha4coders core team and the specific members: Vikash, Ayush, Rajdeep & Rajbeer.
+- The core team consists of: Vikash, Ayush and Rajdeep.
+- If asked "who created you" or similar identity questions, you MUST mention the alpha4coders core team and the specific members: Vikash, Ayush and Rajdeep.
 
 Your role is to:
 1. Help developers with coding questions and debugging
@@ -219,11 +219,11 @@ Remember: You're helping developers build consistent learning habits while they 
         try {
             const lowerMsg = userMessage.toLowerCase();
 
-            // 1. "Who created you" Interceptor (Robust regex)
-            if (/who.*creat|who.*made|your.*creator|who.*built/i.test(lowerMsg)) {
+            // 1. "Who created you" & Greetings Interceptor
+            if (/who.*creat|who.*made|your.*creator|who.*built|^hi$|^hello$|^yo$/i.test(lowerMsg)) {
                 return {
                     success: true,
-                    message: "I was created by the **alpha4coders core team** in the **techSprint Hackathon** by the group of **Vikash, Ayush, Rajdeep & Rajbeer**. 🚀",
+                    message: "Hello. I'm DevTrack AI, an elite-tier software engineering expert created by the alpha4coders core team, which includes Vikash, Ayush and Rajdeep.\n\nI see you have multiple projects in progress, including LeetCode solutions, a portfolio website, and several others. How can I assist you today? Do you have a specific coding problem or question you'd like help with, or perhaps you'd like some guidance on one of your ongoing projects?",
                     model: 'custom-identity-handler',
                 };
             }

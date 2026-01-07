@@ -10,7 +10,7 @@ DevTrack is an AI-enhanced developer ecosystem designed to bridge the gap betwee
 
 ## 🔥 Why DevTrack?
 
-Traditional portfolios show where you *are*. DevTrack shows how you *got there*.
+Traditional portfolios show where you _are_. DevTrack shows how you _got there_.
 
 - **Insightful Tracking**: Log learning logs with mood and time metrics.
 - **AI-Powered Analysis**: Deep repository analysis using Llama 3.3 to track real progress.
@@ -21,12 +21,12 @@ Traditional portfolios show where you *are*. DevTrack shows how you *got there*.
 
 ## 🛠 Tech Stack
 
-| Component | Technology |
-| :--- | :--- |
-| **Frontend** | React 18, Vite, Framer Motion, GSAP, Tailwind CSS |
-| **Backend** | Node.js, Express.js |
-| **Intelligence** | Groq (Llama 3.3), Google Gemini |
-| **Data & Auth** | Firebase (Firestore/FCM), Clerk (GitHub OAuth) |
+| Component        | Technology                                        |
+| :--------------- | :------------------------------------------------ |
+| **Frontend**     | React 18, Vite, Framer Motion, GSAP, Tailwind CSS |
+| **Backend**      | Node.js, Express.js                               |
+| **Intelligence** | Groq (Llama 3.3), Google Gemini                   |
+| **Data & Auth**  | Firebase (Firestore/FCM), Clerk (GitHub OAuth)    |
 
 ---
 
@@ -44,6 +44,7 @@ DevTrack/
 ## 🚀 Quick Start
 
 ### 1. Clone & Install
+
 ```bash
 git clone https://github.com/Vortex-16/DevTrack.git
 cd DevTrack
@@ -52,11 +53,14 @@ cd server && npm install && cd ../client && npm install
 ```
 
 ### 2. Environment Configuration
+
 Create `.env` files in both `/client` and `/server` using the keys below:
+
 - **Server**: `FIREBASE_*`, `CLERK_SECRET_KEY`, `GROQ_API_KEY`, `GITHUB_PAT`
 - **Client**: `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_FIREBASE_*`
 
 ### 3. Launch
+
 ```bash
 # In /server
 npm run dev
@@ -79,11 +83,10 @@ npm run dev
 ## 👥 The team behind DevTrack
 
 Developed with ❤️ by **Alpha Coders**:
-[Ayush Chaudhary](https://github.com/AyushChowdhuryCSE) • [Rajbeer Saha](https://github.com) • [Rajdeep Das](https://github.com/yourajdeep) • [Vikash Gupta](https://github.com/Vortex-16)
+[Ayush Chaudhary](https://github.com/AyushChowdhuryCSE) • [Rajdeep Das](https://github.com/yourajdeep) • [Vikash Gupta](https://github.com/Vortex-16)
 
 ---
 
 ## 📄 License
 
 DevTrack is open-source software licensed under the [MIT License](LICENSE).
-
