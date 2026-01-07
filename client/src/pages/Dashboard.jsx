@@ -764,16 +764,12 @@ export default function Dashboard() {
                 transition={{ duration: 0.5 }}
                 className="h-auto md:h-[calc(100vh-4rem)] md:overflow-hidden"
             >
-                {/* Main Container with rounded border */}
+                {/* Main Container - Background removed */}
                 <div
-                    className={`rounded-[2rem] p-4 lg:p-6 border border-white/10 flex flex-col transition-all duration-500 ease-in-out
+                    className={`p-4 lg:p-6 flex flex-col transition-all duration-500 ease-in-out
                     ${isScrollable
                             ? 'h-full overflow-hidden'
                             : 'h-auto md:h-full md:overflow-hidden'}`}
-                    style={{
-                        background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                    }}
                 >
                     {/* Header Row */}
                     <div className="flex items-center justify-between mb-3 flex-shrink-0">

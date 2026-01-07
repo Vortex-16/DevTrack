@@ -448,13 +448,9 @@ export default function Learning() {
     return (
         <PixelTransition loading={loading}>
             <motion.div>
-            {/* Main Container */}
+            {/* Main Container - Background removed */}
             <div
-                className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
-                style={{
-                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                }}
+                className="p-6 lg:p-8 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
             >
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0">

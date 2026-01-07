@@ -406,24 +406,20 @@ export default function Chat() {
     return (
         <PixelTransition loading={loading && messages.length === 0}>
         <motion.div
-            className="h-[calc(100vh-6rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
+            className="h-[calc(100vh-4rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
         >
             {/* Loader Overlay removed - replaced by PixelTransition */}
 
 
             {/* Sidebar Removed */}
 
-            {/* Main Chat Container */}
+            {/* Main Chat Container - Background removed, padding maximized */}
             <div
-                className="rounded-[2rem] p-6 lg:p-8 border border-white/10 flex-1 flex flex-col overflow-hidden relative"
-                style={{
-                    background: 'linear-gradient(145deg, rgba(15, 20, 35, 0.8), rgba(10, 15, 25, 0.9))',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                }}
+                className="px-4 md:px-6 py-0 flex-1 flex flex-col overflow-hidden relative"
             >
                 {/* Header toggle removed */}
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                     <div className="flex items-center gap-3">
                         <div>
                             <h1 className="text-3xl font-bold text-white mb-1">DevTrack AI</h1>
@@ -450,7 +446,7 @@ export default function Chat() {
                 </div>
 
                 {/* Quick Prompts */}
-                <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+                <div className="flex flex-nowrap gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide">
                     {quickPrompts.map((qp, idx) => (
                         <QuickPromptButton
                             key={idx}
@@ -465,7 +461,7 @@ export default function Chat() {
                 {/* Messages Area */}
                 <div
                     ref={containerRef}
-                    className="flex-1 overflow-y-auto min-h-0 mb-4 overscroll-behavior-contain relative z-0 pointer-events-auto"
+                    className="flex-1 overflow-y-auto min-h-0 mb-2 overscroll-behavior-contain relative z-0 pointer-events-auto"
                     style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
                 >
                     <div ref={contentRef} className="space-y-4 pr-6 pb-4">
