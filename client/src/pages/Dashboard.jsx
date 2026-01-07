@@ -766,13 +766,13 @@ export default function Dashboard() {
             >
                 {/* Main Container - Background removed */}
                 <div
-                    className={`p-4 lg:p-6 flex flex-col transition-all duration-500 ease-in-out
+                    className={`px-4 md:px-6 py-0 flex flex-col transition-all duration-500 ease-in-out
                     ${isScrollable
                             ? 'h-full overflow-hidden'
                             : 'h-auto md:h-full md:overflow-hidden'}`}
                 >
                     {/* Header Row */}
-                    <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                    <div className="flex items-center justify-between mb-2 flex-shrink-0">
                         <div>
                             <h1 className="text-2xl font-bold text-white">Overview</h1>
                         </div>

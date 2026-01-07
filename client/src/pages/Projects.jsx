@@ -1349,10 +1349,10 @@ export default function Projects() {
       <motion.div>
         {/* Main Container - Background removed */}
         <div
-          className="p-6 lg:p-8 flex flex-col h-[calc(100vh-6rem)] overflow-hidden"
+          className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden"
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
             <div>
               <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
               <p className="text-slate-400 text-sm">
@@ -1369,7 +1369,7 @@ export default function Projects() {
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 flex-shrink-0">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 flex-shrink-0">
             <>
               <StatCard
                 icon={<Folder className="w-6 h-6" />}
