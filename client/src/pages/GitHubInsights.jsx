@@ -1,3 +1,4 @@
+import { ReactLenis } from 'lenis/react'
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -130,7 +131,8 @@ export default function GitHubInsights() {
 
     return (
         <div className="relative h-auto lg:h-[calc(100vh-4rem)] bg-slate-950 lg:overflow-hidden">
-            <div 
+            <ReactLenis 
+                root={false}
                 id="github-insights-scroll-container"
                 className="relative z-10 w-full h-full lg:overflow-y-auto px-4 md:px-6 py-6 lg:py-0 lg:overflow-visible flex flex-col"
             >
@@ -309,7 +311,7 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                 </div>
-            </div>
+            </ReactLenis>
         </div>
     )
 }

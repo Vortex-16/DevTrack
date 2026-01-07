@@ -349,13 +349,14 @@ function MobileNavbar({ onOpenSettings }) {
                 </motion.button>
 
                 {/* User */}
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/5 flex items-center justify-center ml-2">
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center ml-2">
                     <UserButton
                         afterSignOutUrl="/"
                         appearance={{
                             elements: {
                                 avatarBox: 'w-8 h-8',
                                 userButtonTrigger: 'focus:shadow-none',
+                                userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 shadow-xl border border-white/10'
                             }
                         }}
                     />
