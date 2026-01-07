@@ -159,6 +159,7 @@ function Sidebar({ onOpenSettings }) {
                             elements: {
                                 avatarBox: 'w-10 h-10',
                                 userButtonTrigger: 'focus:shadow-none',
+                                userButtonPopoverCard: 'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-white/10'
                             }
                         }}
                     />
@@ -239,12 +240,14 @@ function MobileNavbar({ onOpenSettings }) {
             const dashboard = document.getElementById('dashboard-scroll-container')
             const learning = document.getElementById('learning-scroll-container')
             const projects = document.getElementById('projects-scroll-container')
+            const githubInsights = document.getElementById('github-insights-scroll-container')
 
             // Prioritize based on current path to avoid ambiguity, though IDs are unique per page
             let targetDiv = null
             if (location.pathname.startsWith('/dashboard')) targetDiv = dashboard
             else if (location.pathname.startsWith('/learning')) targetDiv = learning
             else if (location.pathname.startsWith('/projects')) targetDiv = projects
+            else if (location.pathname.startsWith('/github-insights')) targetDiv = githubInsights
 
             // If we found a valid container
             if (targetDiv) {
@@ -347,13 +350,14 @@ function MobileNavbar({ onOpenSettings }) {
                 </motion.button>
 
                 {/* User */}
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/5 flex items-center justify-center ml-2">
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center ml-2">
                     <UserButton
                         afterSignOutUrl="/"
                         appearance={{
                             elements: {
                                 avatarBox: 'w-8 h-8',
                                 userButtonTrigger: 'focus:shadow-none',
+                                userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10'
                             }
                         }}
                     />
@@ -365,6 +369,35 @@ function MobileNavbar({ onOpenSettings }) {
 
 export default function Navbar() {
     const [settingsOpen, setSettingsOpen] = useState(false)
+
+    // Lock body and internal scroll containers when settings modal is open
+    useEffect(() => {
+        const getContainers = () => [
+            document.body,
+            document.documentElement,
+            document.getElementById('dashboard-scroll-container'),
+            document.getElementById('learning-scroll-container'),
+            document.getElementById('projects-scroll-container'),
+            document.getElementById('github-insights-scroll-container')
+        ]
+
+        if (settingsOpen) {
+            getContainers().forEach(el => {
+                if (el) el.style.overflow = 'hidden'
+            })
+        } else {
+            getContainers().forEach(el => {
+                if (el) el.style.overflow = ''
+            })
+        }
+
+        // Cleanup function
+        return () => {
+             getContainers().forEach(el => {
+                if (el) el.style.overflow = ''
+            })
+        }
+    }, [settingsOpen])
 
     return (
         <>

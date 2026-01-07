@@ -110,7 +110,15 @@ export const githubApi = {
     getRepoLanguages: (owner, repo) => api.get(`/github/repo/${owner}/${repo}/languages`),
     createRepo: (name, description, isPrivate) => api.post('/github/repo', { name, description, isPrivate }),
     getInsights: () => api.get('/github/insights'),
-    downloadReport: () => api.get('/github/report', { responseType: 'blob' }),
+    getSimilarProjects: (languages, topics, minStars, limit) => 
+        api.get('/github/similar-projects', { 
+            params: { 
+                languages: languages?.join(','), 
+                topics: topics?.join(','), 
+                minStars, 
+                limit 
+            } 
+        }),
 };
 
 export const geminiApi = {

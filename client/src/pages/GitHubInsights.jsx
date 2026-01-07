@@ -1,3 +1,4 @@
+import { ReactLenis } from 'lenis/react'
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -129,8 +130,12 @@ export default function GitHubInsights() {
     const { profile, stats, rank, languages, badges } = data
 
     return (
-        <div className="relative min-h-screen lg:min-h-0 lg:h-[calc(100vh-4rem)] bg-slate-950 overflow-hidden">
-            <div className="relative z-10 w-full px-4 md:px-6 py-6 lg:py-0 space-y-6 lg:space-y-4 pb-32 lg:pb-0 h-full flex flex-col">
+        <div className="relative h-auto lg:h-[calc(100vh-4rem)] bg-slate-950 lg:overflow-hidden">
+            <ReactLenis 
+                root={false}
+                id="github-insights-scroll-container"
+                className="relative z-10 w-full h-full lg:overflow-y-auto px-4 md:px-6 py-6 lg:py-0 lg:overflow-visible flex flex-col"
+            >
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row items-center gap-6 mb-4">
                     <motion.div
@@ -306,7 +311,7 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                 </div>
-            </div>
+            </ReactLenis>
         </div>
     )
 }

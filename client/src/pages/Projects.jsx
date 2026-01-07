@@ -7,12 +7,31 @@ import Lenis from "lenis";
 import { useLenis } from "lenis/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare, PartyPopper } from 'lucide-react';
-import PixelTransition from '../components/ui/PixelTransition';
+import {
+  Folder,
+  Activity,
+  CheckCircle,
+  GitCommitHorizontal,
+  Plus,
+  Rocket,
+  Star,
+  FileText,
+  Bug,
+  Bot,
+  RefreshCcw,
+  Loader2,
+  PlusSquare,
+  PartyPopper,
+  Sparkles,
+  Search,
+} from "lucide-react";
+import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
+import PixelTransition from "../components/ui/PixelTransition";
 
 // SVG Icon Components
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className}
+  <svg
+    className={className}
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -22,7 +41,7 @@ const GeminiIcon = ({ className = "w-5 h-5" }) => (
       fill="currentColor"
     />
   </svg>
-)
+);
 
 // Animated counter
 function AnimatedCounter({ value }) {
@@ -98,7 +117,9 @@ function StatCard({ icon, label, value, color, delay = 0 }) {
             <p className="text-2xl font-bold text-white leading-none mb-1">
               <AnimatedCounter value={value} />
             </p>
-            <p className="text-slate-400 text-sm leading-tight line-clamp-2">{label}</p>
+            <p className="text-slate-400 text-sm leading-tight line-clamp-2">
+              {label}
+            </p>
           </div>
         </div>
       </div>
@@ -154,8 +175,9 @@ function ProjectCard({
       className="group"
     >
       <div
-        className={`rounded-2xl p-6 border ${isExpanded ? "border-purple-500/50" : "border-white/10"
-          } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
+        className={`rounded-2xl p-6 border ${
+          isExpanded ? "border-purple-500/50" : "border-white/10"
+        } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
         style={{
           background:
             "linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))",
@@ -180,8 +202,9 @@ function ProjectCard({
               </motion.span>
             </div>
             <p
-              className={`text-slate-400 text-sm ${isExpanded ? "" : "truncate"
-                }`}
+              className={`text-slate-400 text-sm ${
+                isExpanded ? "" : "truncate"
+              }`}
             >
               {project.description || "No description"}
             </p>
@@ -249,7 +272,10 @@ function ProjectCard({
                 <div className="flex flex-wrap gap-1.5">
                   {(project.technologies || []).map((tech, i) => {
                     // Handle both string and object formats
-                    const techName = typeof tech === 'string' ? tech : (tech?.name || String(tech));
+                    const techName =
+                      typeof tech === "string"
+                        ? tech
+                        : tech?.name || String(tech);
                     return (
                       <span
                         key={i}
@@ -269,7 +295,11 @@ function ProjectCard({
                         Stars
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
-                        <Star size={10} className="text-yellow-500 fill-yellow-500" /> {project.githubData?.stars || 0}
+                        <Star
+                          size={10}
+                          className="text-yellow-500 fill-yellow-500"
+                        />{" "}
+                        {project.githubData?.stars || 0}
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -277,7 +307,8 @@ function ProjectCard({
                         Commits
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
-                        <FileText size={10} className="text-blue-400" /> {project.commits || 0}
+                        <FileText size={10} className="text-blue-400" />{" "}
+                        {project.commits || 0}
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -285,7 +316,8 @@ function ProjectCard({
                         Issues
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
-                        <Bug size={10} className="text-red-400" /> {project.githubData?.openIssues || 0}
+                        <Bug size={10} className="text-red-400" />{" "}
+                        {project.githubData?.openIssues || 0}
                       </span>
                     </div>
                   </div>
@@ -297,7 +329,11 @@ function ProjectCard({
                       className="p-2 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
                       title="Re-analyze Repository"
                     >
-                      {analyzing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
+                      {analyzing ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <RefreshCcw size={14} />
+                      )}
                     </button>
                   )}
                 </div>
@@ -377,17 +413,17 @@ function Modal({ isOpen, onClose, title, children }) {
   // Global Scroll Lock
   useEffect(() => {
     if (isOpen) {
-      globalLenis?.stop()
-      document.body.style.overflow = 'hidden'
+      globalLenis?.stop();
+      document.body.style.overflow = "hidden";
     } else {
-      globalLenis?.start()
-      document.body.style.overflow = 'unset'
+      globalLenis?.start();
+      document.body.style.overflow = "unset";
     }
     return () => {
-      globalLenis?.start()
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, globalLenis])
+      globalLenis?.start();
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen, globalLenis]);
 
   // Local Scroll (inside modal)
   useEffect(() => {
@@ -596,7 +632,10 @@ function ProjectForm({
             className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-purple-500 hover:bg-purple-500/10 transition-all text-left group"
           >
             <div className="mb-2">
-              <CheckCircle size={32} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+              <CheckCircle
+                size={32}
+                className="text-emerald-500 group-hover:scale-110 transition-transform"
+              />
             </div>
             <p className="font-semibold text-white">Yes, I have a repo</p>
             <p className="text-xs text-slate-400 mt-1">
@@ -609,7 +648,10 @@ function ProjectForm({
             className="p-6 rounded-xl border-2 border-slate-700 bg-slate-800/50 hover:border-cyan-500 hover:bg-cyan-500/10 transition-all text-left group"
           >
             <div className="mb-2">
-              <PlusSquare size={32} className="text-cyan-500 group-hover:scale-110 transition-transform" />
+              <PlusSquare
+                size={32}
+                className="text-cyan-500 group-hover:scale-110 transition-transform"
+              />
             </div>
             <p className="font-semibold text-white">No, create one</p>
             <p className="text-xs text-slate-400 mt-1">
@@ -689,10 +731,11 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: false })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${!newRepoData.isPrivate
-              ? "border-purple-500 bg-purple-500/10"
-              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-              }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
+              !newRepoData.isPrivate
+                ? "border-purple-500 bg-purple-500/10"
+                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+            }`}
           >
             <p className="font-medium text-white">🌍 Public</p>
             <p className="text-xs text-slate-400">Anyone can see</p>
@@ -700,10 +743,11 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: true })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${newRepoData.isPrivate
-              ? "border-purple-500 bg-purple-500/10"
-              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-              }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
+              newRepoData.isPrivate
+                ? "border-purple-500 bg-purple-500/10"
+                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+            }`}
           >
             <p className="font-medium text-white">🔒 Private</p>
             <p className="text-xs text-slate-400">Only you</p>
@@ -788,10 +832,11 @@ function ProjectForm({
               key={status}
               type="button"
               onClick={() => setFormData({ ...formData, status })}
-              className={`p-2 rounded-xl border text-xs font-medium transition-all ${formData.status === status
-                ? "bg-purple-500/20 border-purple-500 text-white"
-                : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
-                }`}
+              className={`p-2 rounded-xl border text-xs font-medium transition-all ${
+                formData.status === status
+                  ? "bg-purple-500/20 border-purple-500 text-white"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
+              }`}
             >
               {status}
             </button>
@@ -867,8 +912,8 @@ function ProjectForm({
           {analyzing
             ? "🔍 Analyzing..."
             : isEdit
-              ? "Save Changes"
-              : "Create Project"}
+            ? "Save Changes"
+            : "Create Project"}
         </Button>
       </div>
     </form>
@@ -895,13 +940,13 @@ function SuccessTick() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
                   opacity: [0, 0.6, 0],
-                  scale: [0.8, 2.5]
+                  scale: [0.8, 2.5],
                 }}
                 transition={{
                   duration: 2.5,
                   repeat: Infinity,
                   delay: i * 0.6,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
                 className="absolute w-28 h-28 bg-emerald-500/30 rounded-full"
               />
@@ -916,11 +961,17 @@ function SuccessTick() {
               type: "spring",
               stiffness: 300,
               damping: 20,
-              delay: 0.1
+              delay: 0.1,
             }}
             className="w-28 h-28 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(16,185,129,0.6)] border-4 border-slate-900"
           >
-            <svg className="w-14 h-14 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+            <svg
+              className="w-14 h-14 text-white drop-shadow-md"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3.5}
+            >
               <motion.path
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
@@ -954,7 +1005,7 @@ function SuccessTick() {
         </div>
       </div>
     </motion.div>
-  )
+  );
 }
 
 export default function Projects() {
@@ -964,7 +1015,7 @@ export default function Projects() {
   const sanitizeProjects = (projects) => {
     if (!Array.isArray(projects)) return [];
 
-    return projects.map(project => {
+    return projects.map((project) => {
       const sanitized = { ...project };
 
       // Fix openIssues if it's an array instead of a number
@@ -972,15 +1023,15 @@ export default function Projects() {
         if (Array.isArray(sanitized.githubData.openIssues)) {
           sanitized.githubData = {
             ...sanitized.githubData,
-            openIssues: sanitized.githubData.openIssues.length
+            openIssues: sanitized.githubData.openIssues.length,
           };
         }
       }
 
       // Fix technologies if it contains objects instead of strings
       if (Array.isArray(sanitized.technologies)) {
-        sanitized.technologies = sanitized.technologies.map(tech =>
-          typeof tech === 'string' ? tech : (tech?.name || String(tech))
+        sanitized.technologies = sanitized.technologies.map((tech) =>
+          typeof tech === "string" ? tech : tech?.name || String(tech)
         );
       }
 
@@ -989,13 +1040,20 @@ export default function Projects() {
   };
 
   // Initialize from cache with sanitization
-  const cachedData = getCachedData('projects_data') || {};
+  const cachedData = getCachedData("projects_data") || {};
   const sanitizedCachedProjects = sanitizeProjects(cachedData.projects || []);
 
   const [projects, setProjects] = useState(sanitizedCachedProjects);
-  const [loading, setLoading] = useState(!hasCachedData('projects_data'));
+  const [loading, setLoading] = useState(!hasCachedData("projects_data"));
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [stats, setStats] = useState(cachedData.stats || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 });
+  const [stats, setStats] = useState(
+    cachedData.stats || {
+      totalProjects: 0,
+      activeProjects: 0,
+      completedProjects: 0,
+      totalCommits: 0,
+    }
+  );
 
   const [showModal, setShowModal] = useState(false);
 
@@ -1008,6 +1066,7 @@ export default function Projects() {
   const [completeConfirm, setCompleteConfirm] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
+  const [showSimilarModal, setShowSimilarModal] = useState(false);
 
   const defaultFormData = {
     name: "",
@@ -1024,7 +1083,7 @@ export default function Projects() {
 
   const fetchData = async () => {
     try {
-      if (!hasCachedData('projects_data')) {
+      if (!hasCachedData("projects_data")) {
         setLoading(true);
       } else {
         setIsRefreshing(true);
@@ -1032,11 +1091,16 @@ export default function Projects() {
 
       const [projectsRes, statsRes] = await Promise.all([
         projectsApi.getAll({ limit: 50 }),
-        projectsApi.getStats()
+        projectsApi.getStats(),
       ]);
 
       const rawProjects = projectsRes.data.data.projects || [];
-      const newStats = statsRes.data.data || { totalProjects: 0, activeProjects: 0, completedProjects: 0, totalCommits: 0 };
+      const newStats = statsRes.data.data || {
+        totalProjects: 0,
+        activeProjects: 0,
+        completedProjects: 0,
+        totalCommits: 0,
+      };
 
       // Sanitize project data to fix legacy data structures
       const newProjects = sanitizeProjects(rawProjects);
@@ -1045,9 +1109,9 @@ export default function Projects() {
       setStats(newStats);
 
       // Cache data
-      setCachedData('projects_data', {
+      setCachedData("projects_data", {
         projects: newProjects,
-        stats: newStats
+        stats: newStats,
       });
     } catch (err) {
       setError(err.message);
@@ -1081,7 +1145,11 @@ export default function Projects() {
         githubData: {
           stars: repoInfo.stars,
           forks: repoInfo.forks,
-          openIssues: repoInfo.openIssuesCount || (Array.isArray(repoInfo.openIssues) ? repoInfo.openIssues.length : 0),
+          openIssues:
+            repoInfo.openIssuesCount ||
+            (Array.isArray(repoInfo.openIssues)
+              ? repoInfo.openIssues.length
+              : 0),
           languages: repoInfo.languages,
           totalCommits: repoInfo.totalCommits,
         },
@@ -1129,7 +1197,8 @@ export default function Projects() {
       // 1. Create project immediately with available data
       setLoading(true);
       const createResponse = await projectsApi.create(projectData);
-      const newProjectId = createResponse.data?.data?.project?.id || createResponse.data?.data?.id;
+      const newProjectId =
+        createResponse.data?.data?.project?.id || createResponse.data?.data?.id;
 
       // 2. Close modal and refresh      // 4. Clean up
       setShowModal(false);
@@ -1146,13 +1215,18 @@ export default function Projects() {
             setIsBackgroundProcessing(true);
             // Optional: Show some global global loading indicator or toast if needed
             // But for now we just update silently and refresh when done
-            const analysisData = await analyzeWithGitHub(projectData.repositoryUrl);
+            const analysisData = await analyzeWithGitHub(
+              projectData.repositoryUrl
+            );
 
             if (analysisData) {
               // Update the project with the analysis results
               await projectsApi.update(newProjectId, {
                 ...analysisData,
-                technologies: analysisData.technologies.length > 0 ? analysisData.technologies : projectData.technologies
+                technologies:
+                  analysisData.technologies.length > 0
+                    ? analysisData.technologies
+                    : projectData.technologies,
               });
               // Refresh list to show new data
               fetchData();
@@ -1194,7 +1268,9 @@ export default function Projects() {
       .map((t) => t.trim())
       .filter((t) => t);
     let updateData = { ...formData, technologies: techArray };
-    const needsAnalysis = formData.repositoryUrl && formData.repositoryUrl !== editingProject.repositoryUrl;
+    const needsAnalysis =
+      formData.repositoryUrl &&
+      formData.repositoryUrl !== editingProject.repositoryUrl;
     const projectId = editingProject.id;
 
     try {
@@ -1220,7 +1296,9 @@ export default function Projects() {
         (async () => {
           try {
             setIsBackgroundProcessing(true);
-            const analysisData = await analyzeWithGitHub(updateData.repositoryUrl);
+            const analysisData = await analyzeWithGitHub(
+              updateData.repositoryUrl
+            );
             if (analysisData) {
               await projectsApi.update(projectId, analysisData);
               fetchData();
@@ -1232,7 +1310,6 @@ export default function Projects() {
           }
         })();
       }
-
     } catch (err) {
       console.error("Error updating project:", err);
       alert("Failed to update project");
@@ -1322,8 +1399,8 @@ export default function Projects() {
       content: projectsContentRef.current,
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
+      orientation: "vertical",
+      gestureOrientation: "vertical",
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 2,
@@ -1348,9 +1425,7 @@ export default function Projects() {
     <PixelTransition loading={loading}>
       <motion.div>
         {/* Main Container - Background removed */}
-        <div
-          className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
-        >
+        <div className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
             <div>
@@ -1359,13 +1434,23 @@ export default function Projects() {
                 Track your development projects and milestones
               </p>
             </div>
-            <Button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              New Project
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowSimilarModal(true)}
+                variant="ghost"
+                className="flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10"
+              >
+                <Search className="w-4 h-4 text-purple-400" />
+                Discover Similar
+              </Button>
+              <Button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                New Project
+              </Button>
+            </div>
           </div>
 
           {/* Stats Row */}
@@ -1450,8 +1535,8 @@ export default function Projects() {
                     No Projects Yet
                   </h3>
                   <p className="text-slate-400 mb-6 max-w-md mx-auto">
-                    Track your coding projects, link your GitHub repos, and let AI
-                    analyze your progress!
+                    Track your coding projects, link your GitHub repos, and let
+                    AI analyze your progress!
                   </p>
                   <Button onClick={() => setShowModal(true)} size="lg">
                     Create Your First Project
@@ -1593,14 +1678,36 @@ export default function Projects() {
               className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-white/10 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg backdrop-blur-md"
             >
               <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm font-medium text-slate-300">Processing...</span>
+              <span className="text-sm font-medium text-slate-300">
+                Processing...
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {showSuccess && <SuccessTick />}
-        </AnimatePresence>
+        <AnimatePresence>{showSuccess && <SuccessTick />}</AnimatePresence>
+
+        {/* Similar Projects Discovery Modal */}
+        <SimilarProjectsModal
+          isOpen={showSimilarModal}
+          onClose={() => setShowSimilarModal(false)}
+          userLanguages={
+            // Extract unique languages from user's projects
+            [
+              ...new Set(
+                projects
+                  .flatMap((p) =>
+                    (p.languages || [])
+                      .map((l) => (typeof l === "string" ? l : l.name))
+                      .filter(Boolean)
+                  )
+                  .concat(
+                    projects.map((p) => p.primaryLanguage).filter(Boolean)
+                  )
+              ),
+            ].slice(0, 3)
+          }
+        />
       </motion.div>
     </PixelTransition>
   );

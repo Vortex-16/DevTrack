@@ -535,6 +535,73 @@ const getInsights = async (req, res, next) => {
     }
 };
 
+/**
+ * Search for similar open-source projects based on user's tech stack
+ * GET /api/github/similar-projects
+ */
+const getSimilarProjects = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+        const { languages, topics, minStars, limit } = req.query;
+
+        // Parse query params
+        const languageArray = languages ? languages.split(',').map(l => l.trim()) : [];
+        const topicArray = topics ? topics.split(',').map(t => t.trim()) : [];
+        const stars = parseInt(minStars) || 50;
+        const perPage = parseInt(limit) || 12;
+
+        // If no filters provided, try to get from user's projects
+        if (languageArray.length === 0 && topicArray.length === 0) {
+            // Fetch user's projects to extract tech stack
+            const projectsSnapshot = await collections.projects()
+                .where('uid', '==', userId)
+                .limit(10)
+                .get();
+
+            const userLanguages = new Set();
+            projectsSnapshot.forEach(doc => {
+                const project = doc.data();
+                if (project.languages && Array.isArray(project.languages)) {
+                    project.languages.forEach(lang => {
+                        if (lang.name) userLanguages.add(lang.name);
+                    });
+                }
+                if (project.primaryLanguage) {
+                    userLanguages.add(project.primaryLanguage);
+                }
+            });
+
+            if (userLanguages.size > 0) {
+                languageArray.push(...Array.from(userLanguages).slice(0, 3));
+            }
+        }
+
+        // If still no languages, use common ones
+        if (languageArray.length === 0) {
+            languageArray.push('JavaScript', 'TypeScript', 'Python');
+        }
+
+        console.log(`🔍 Searching similar projects for userId: ${userId}`);
+        console.log(`   Languages: ${languageArray.join(', ')}`);
+        console.log(`   Topics: ${topicArray.join(', ') || 'none'}`);
+
+        const githubService = new GitHubService();
+        const results = await githubService.searchSimilarProjects(
+            languageArray,
+            topicArray,
+            stars,
+            perPage
+        );
+
+        res.status(200).json({
+            success: true,
+            data: results,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getActivity,
     getCommits,
@@ -545,5 +612,6 @@ module.exports = {
     getRepoLanguages,
     createRepo,
     getInsights,
+    getSimilarProjects,
 };
 
