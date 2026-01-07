@@ -574,10 +574,15 @@ class GitHubService {
                 });
             });
 
+            const totalBytes = Object.values(languageMap).reduce((a, b) => a + b, 0);
             const topLanguages = Object.entries(languageMap)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
-                .map(([name, size]) => ({ name, size }));
+                .map(([name, size]) => ({
+                    name,
+                    size,
+                    percentage: totalBytes > 0 ? Math.round((size / totalBytes) * 100) : 0
+                }));
 
             // Calculate Grade/Rank (S, A, B, C)
             // Logic: based on commits, stars, followers, and PRs

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
-import { preferencesApi, notificationsApi } from '../../services/api';
+import { preferencesApi, notificationsApi, githubApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
 import MobileAppToken from '../MobileAppToken';
-import { Target, Clock, Zap, Package } from 'lucide-react';
+import { Target, Clock, Zap, Package, FileDown } from 'lucide-react';
 
 /**
  * Notification Settings Modal/Panel
@@ -33,6 +33,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [downloading, setDownloading] = useState(false);
     const contentRef = useRef(null);
 
     // Initialize Lenis for smooth scrolling
@@ -109,6 +110,29 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (error) {
             setMessage({ type: 'error', text: 'Failed to send test notification' });
+        }
+    };
+
+    const handleDownloadReport = async () => {
+        setDownloading(true);
+        try {
+            const response = await githubApi.downloadReport();
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `devtrack-report-${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            setMessage({ type: 'success', text: 'Report downloaded!' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        } catch (error) {
+            console.error('Download error:', error);
+            setMessage({ type: 'error', text: 'Failed to download report. Make sure GitHub is connected.' });
+        } finally {
+            setDownloading(false);
         }
     };
 
@@ -214,6 +238,25 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                 <div>
                                     <h3 className="text-lg font-semibold text-white mb-3">Mobile Connectivity</h3>
                                     <MobileAppToken />
+                                </div>
+
+                                {/* GitHub Report */}
+                                <div className="bg-slate-800/50 rounded-xl p-4">
+                                    <h3 className="text-lg font-semibold text-white mb-3">GitHub Report</h3>
+                                    <p className="text-sm text-slate-400 mb-4">
+                                        Download a comprehensive PDF report of your GitHub activity, including commits, issues, PRs, and more.
+                                    </p>
+                                    <button
+                                        onClick={handleDownloadReport}
+                                        disabled={downloading}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all disabled:opacity-50"
+                                    >
+                                        <FileDown size={18} />
+                                        {downloading ? 'Generating...' : 'Download Weekly Report'}
+                                    </button>
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        Reports are also sent automatically every Sunday at 9 AM.
+                                    </p>
                                 </div>
 
                                 {/* Reminder Mode */}

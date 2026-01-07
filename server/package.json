@@ -27,7 +27,9 @@
     "joi": "^17.13.3",
     "morgan": "^1.10.0",
     "node-cron": "^4.2.1",
-    "octokit": "^4.0.2"
+    "octokit": "^4.0.2",
+    "pdfkit": "^0.17.2",
+    "resend": "^6.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

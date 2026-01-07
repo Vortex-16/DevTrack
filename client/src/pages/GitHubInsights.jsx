@@ -23,9 +23,15 @@ import {
 } from 'lucide-react'
 import { githubApi } from '../services/api'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
+import { useCache } from '../context/CacheContext'
 
 const BentoCard = ({ children, className = "", delay = 0 }) => (
     <motion.div
+// ... (keep BentoCard and StatMini as is, referencing them by skipping)
+// Actually, sticking to smaller chunks is safer.
+// Let's just do imports first, then the logic.
+// I'll do imports and top of component.
+
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
@@ -48,16 +54,21 @@ const StatMini = ({ icon: Icon, label, value, color }) => (
 )
 
 export default function GitHubInsights() {
-    const [loading, setLoading] = useState(true)
+    const { getCachedData, setCachedData } = useCache()
+    const [loading, setLoading] = useState(!getCachedData('github_insights'))
     const [error, setError] = useState(null)
-    const [data, setData] = useState(null)
+    const [data, setData] = useState(getCachedData('github_insights') || null)
 
     useEffect(() => {
         const fetchInsights = async () => {
+            if (data) return // Already have data (from cache)
+
             try {
                 setLoading(true)
                 const response = await githubApi.getInsights()
-                setData(response.data.data)
+                const insightsData = response.data.data
+                setData(insightsData)
+                setCachedData('github_insights', insightsData)
             } catch (err) {
                 console.error('Error fetching insights:', err)
                 setError(err.response?.data?.error || 'Failed to fetch GitHub insights')
@@ -67,7 +78,7 @@ export default function GitHubInsights() {
         }
 
         fetchInsights()
-    }, [])
+    }, [data, setCachedData])
 
     const accountAge = useMemo(() => {
         if (!data?.profile?.createdAt) return null
@@ -85,7 +96,7 @@ export default function GitHubInsights() {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6">
-                <ProfessionalLoader size="lg" />
+                <ProfessionalLoader size="lg" showText={false} />
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -118,16 +129,8 @@ export default function GitHubInsights() {
     const { profile, stats, rank, languages, badges } = data
 
     return (
-        <div className="relative min-h-screen bg-slate-950 overflow-hidden">
-            {/* Background Decorations */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(120,50,255,0.1),transparent_50%)]"></div>
-                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full"></div>
-                <div className="absolute top-1/4 -left-20 w-[300px] h-[300px] bg-blue-600/10 blur-[100px] rounded-full"></div>
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-            </div>
-
-            <div className="relative z-10 max-w-7xl mx-auto p-4 md:p-8 space-y-6 pb-32">
+        <div className="relative min-h-screen lg:min-h-0 lg:h-[calc(100vh-4rem)] bg-slate-950 overflow-hidden">
+            <div className="relative z-10 w-full px-4 md:px-6 py-6 lg:py-0 space-y-6 lg:space-y-4 pb-32 lg:pb-0 h-full flex flex-col">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row items-center gap-6 mb-4">
                     <motion.div
@@ -160,10 +163,10 @@ export default function GitHubInsights() {
                 </div>
 
                 {/* Main Bento Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-6 md:grid-rows-4 gap-4 auto-rows-[minmax(130px,auto)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 lg:grid-rows-4 gap-4 auto-rows-[minmax(130px,auto)]">
 
                     {/* Rank Card - Slightly Smaller Focus */}
-                    <BentoCard className="md:col-span-2 md:row-span-2 flex flex-col justify-between overflow-hidden relative group">
+                    <BentoCard className="md:col-span-2 lg:col-span-2 lg:row-span-2 flex flex-col justify-between overflow-hidden relative group">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Zap className="w-48 h-48 rotate-12 text-purple-600" />
                         </div>
@@ -203,12 +206,12 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                     {/* Contribution Breakdown DNA */}
-                    <BentoCard className="md:col-span-4 md:row-span-1 border-purple-500/20">
+                    <BentoCard className="md:col-span-2 lg:col-span-4 lg:row-span-1 border-purple-500/20">
                         <div className="flex items-center gap-2 mb-3">
                             <History className="text-purple-400" size={14} />
                             <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Activity DNA</h3>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <StatMini icon={History} label="Commits" value={stats.totalCommits} color="blue" />
                             <StatMini icon={GitPullRequest} label="PRs" value={stats.totalPRs} color="purple" />
                             <StatMini icon={Target} label="Issues" value={stats.totalIssuesSolved} color="green" />
@@ -217,12 +220,12 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                     {/* Repository Architecture */}
-                    <BentoCard className="md:col-span-4 md:row-span-1 border-blue-500/20">
+                    <BentoCard className="md:col-span-2 lg:col-span-4 lg:row-span-1 border-blue-500/20">
                         <div className="flex items-center gap-2 mb-3">
                             <Lock className="text-blue-400" size={14} />
                             <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Source Inventory</h3>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <StatMini icon={Code2} label="Total" value={stats.totalRepos} color="slate" />
                             <StatMini icon={Globe} label="Public" value={stats.publicRepos} color="blue" />
                             <StatMini icon={Lock} label="Private" value={stats.privateRepos} color="red" />
@@ -231,7 +234,7 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                     {/* Tech Stack Cards - Dynamic & Floating */}
-                    <BentoCard className="md:col-span-2 md:row-span-1">
+                    <BentoCard className="md:col-span-1 lg:col-span-2 lg:row-span-1">
                         <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Primary Stack</h3>
                         <div className="flex flex-wrap gap-1.5">
                             {languages.map((lang, i) => (
@@ -243,7 +246,7 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                     {/* Coin/Contributions Counter */}
-                    <BentoCard className="md:col-span-2 md:row-span-1 flex flex-col items-center justify-center text-center group">
+                    <BentoCard className="md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col items-center justify-center text-center group">
                         <div className="p-3 rounded-full bg-yellow-500/10 text-yellow-500 mb-2 group-hover:scale-110 transition-transform">
                             <TrendingUp size={24} />
                         </div>
@@ -252,7 +255,7 @@ export default function GitHubInsights() {
                     </BentoCard>
 
                     {/* Social Stats */}
-                    <BentoCard className="md:col-span-2 md:row-span-1 flex flex-col justify-around">
+                    <BentoCard className="md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-around">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-yellow-400">
                                 <Star size={16} />
@@ -269,8 +272,19 @@ export default function GitHubInsights() {
                         </div>
                     </BentoCard>
 
+                    {/* GitHub Bio / DNA Signature */}
+                    <BentoCard className="md:col-span-1 lg:col-span-2 lg:row-span-1 flex flex-col justify-center relative italic text-slate-500 overflow-hidden">
+                        <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
+                            <ShieldCheck size={80} />
+                        </div>
+                        <p className="text-xs leading-relaxed relative z-10 pl-3 border-l-2 border-purple-500/30">
+                            "{profile.bio || "Full-stack developer architecting scalable solutions."}"
+                        </p>
+                        <div className="mt-2 text-[8px] font-black uppercase text-purple-500/50">Verified GitHub Identity</div>
+                    </BentoCard>
+
                     {/* Achievements Unlocked */}
-                    <BentoCard className="md:col-span-4 md:row-span-1 bg-gradient-to-br from-indigo-950/30 to-purple-950/30 border-purple-500/20">
+                    <BentoCard className="md:col-span-2 lg:col-span-4 lg:row-span-1 bg-gradient-to-br from-indigo-950/30 to-purple-950/30 border-purple-500/20 !overflow-visible z-20">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-xs font-black text-white uppercase tracking-widest mb-3">Milestones & Relics</h3>
@@ -289,17 +303,6 @@ export default function GitHubInsights() {
                                 <Award size={32} className="text-purple-400" />
                             </div>
                         </div>
-                    </BentoCard>
-
-                    {/* GitHub Bio / DNA Signature */}
-                    <BentoCard className="md:col-span-2 md:row-span-1 flex flex-col justify-center relative italic text-slate-500 overflow-hidden">
-                        <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12">
-                            <ShieldCheck size={80} />
-                        </div>
-                        <p className="text-xs leading-relaxed relative z-10 pl-3 border-l-2 border-purple-500/30">
-                            "{profile.bio || "Full-stack developer architecting scalable solutions."}"
-                        </p>
-                        <div className="mt-2 text-[8px] font-black uppercase text-purple-500/50">Verified GitHub Identity</div>
                     </BentoCard>
 
                 </div>

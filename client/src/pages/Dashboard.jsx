@@ -203,12 +203,12 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
                     </svg>
 
                     {/* Time range tabs - FUNCTIONAL */}
-                    <div className="flex items-center gap-1 mt-1 p-0.5 rounded-lg bg-white/5">
+                    <div className="flex items-center gap-1 mt-1 p-0.5 rounded-2xl bg-white/5">
                         {['1D', '1W', '1M', '3M', '1Y', 'All'].map((period) => (
                             <button
                                 key={period}
                                 onClick={() => setSelectedPeriod(period)}
-                                className={`flex-1 px-1 py-1 text-[9px] font-medium rounded transition-all duration-200
+                                className={`flex-1 px-1 py-1 text-[9px] font-medium rounded-xl transition-all duration-200
                                     ${selectedPeriod === period
                                         ? 'bg-purple-500 text-white shadow-lg'
                                         : 'text-slate-500 hover:text-white hover:bg-white/10'}`}

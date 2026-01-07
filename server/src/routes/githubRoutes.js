@@ -35,5 +35,20 @@ router.get('/repo/:owner/:repo/languages', optionalAuth, githubController.getRep
 // Create a new GitHub repository
 router.post('/repo', requireAuth, githubController.createRepo);
 
+// Generate and download PDF report
+router.get('/report', requireAuth, async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+        const reportService = require('../services/reportService');
+        const pdfBuffer = await reportService.generatePDFReport(userId);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=devtrack-report-${new Date().toISOString().split('T')[0]}.pdf`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
 

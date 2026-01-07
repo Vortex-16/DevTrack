@@ -179,7 +179,7 @@ function MobileNavbar({ onOpenSettings }) {
     useEffect(() => {
         const handleScroll = (e) => {
             // Only apply on mobile dashboard, system-info, learning, or projects
-            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects')
+            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects') || location.pathname.startsWith('/github-insights')
 
             if (!isAnimatedPage || window.innerWidth >= 768) {
                 setIsHidden(false)
