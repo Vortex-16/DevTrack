@@ -112,7 +112,7 @@ function QuickPromptButton({ icon, label, onClick, disabled }) {
         <motion.button
             onClick={onClick}
             disabled={disabled}
-            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap
                 ${disabled
                     ? 'bg-white/5 text-slate-500 cursor-not-allowed'
                     : 'bg-white/5 text-slate-300 hover:bg-purple-500/20 hover:text-purple-400 border border-white/10 hover:border-purple-500/30'}`}
@@ -397,10 +397,10 @@ export default function Chat() {
     }
 
     const quickPrompts = [
-        { icon: <Target size={14} className="text-purple-400" />, label: 'Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
-        { icon: <BookOpen size={14} className="text-blue-400" />, label: 'What to learn?', prompt: 'What should I learn next to improve my skills?' },
-        { icon: <Dumbbell size={14} className="text-emerald-400" />, label: 'Motivate me', prompt: 'Give me a motivational message based on my progress.' },
-        { icon: <BarChart2 size={14} className="text-orange-400" />, label: 'Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
+        { icon: <Target className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400" />, label: 'Which project first?', prompt: 'Based on my projects, which one should I focus on first and why?' },
+        { icon: <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400" />, label: 'What to learn?', prompt: 'What should I learn next to improve my skills?' },
+        { icon: <Dumbbell className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />, label: 'Motivate me', prompt: 'Give me a motivational message based on my progress.' },
+        { icon: <BarChart2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-400" />, label: 'Analyze progress', prompt: 'Analyze my overall progress. What can I improve?' },
     ]
 
     return (
