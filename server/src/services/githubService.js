@@ -950,6 +950,80 @@ class GitHubService {
         }
         return null;
     }
+
+    /**
+     * Search for similar open-source projects on GitHub
+     * @param {string[]} languages - Array of programming languages to search for
+     * @param {string[]} topics - Array of topics/keywords to search for
+     * @param {number} minStars - Minimum number of stars (default: 50)
+     * @param {number} perPage - Number of results to return (default: 12)
+     */
+    async searchSimilarProjects(languages = [], topics = [], minStars = 50, perPage = 12) {
+        try {
+            // Build the search query
+            const queryParts = [];
+
+            // Add language filters
+            if (languages.length > 0) {
+                // Use the top 3 languages
+                const topLangs = languages.slice(0, 3);
+                topLangs.forEach(lang => {
+                    queryParts.push(`language:${lang}`);
+                });
+            }
+
+            // Add topic/keyword filters
+            if (topics.length > 0) {
+                topics.slice(0, 5).forEach(topic => {
+                    queryParts.push(topic);
+                });
+            }
+
+            // Add star filter for quality repos
+            queryParts.push(`stars:>=${minStars}`);
+
+            // Only search public repos
+            queryParts.push('is:public');
+
+            // Exclude forks
+            queryParts.push('fork:false');
+
+            const searchQuery = queryParts.join(' ');
+            console.log(`🔍 Searching GitHub for: ${searchQuery}`);
+
+            const { data } = await this.octokit.rest.search.repos({
+                q: searchQuery,
+                sort: 'stars',
+                order: 'desc',
+                per_page: perPage,
+            });
+
+            console.log(`✅ Found ${data.total_count} repos, returning top ${data.items.length}`);
+
+            return {
+                totalCount: data.total_count,
+                repos: data.items.map(repo => ({
+                    id: repo.id,
+                    name: repo.name,
+                    fullName: repo.full_name,
+                    description: repo.description,
+                    url: repo.html_url,
+                    stars: repo.stargazers_count,
+                    forks: repo.forks_count,
+                    language: repo.language,
+                    topics: repo.topics || [],
+                    updatedAt: repo.updated_at,
+                    owner: {
+                        login: repo.owner.login,
+                        avatarUrl: repo.owner.avatar_url,
+                    },
+                })),
+            };
+        } catch (error) {
+            console.error('Error searching similar projects:', error.message);
+            throw error;
+        }
+    }
 }
 
 module.exports = GitHubService;

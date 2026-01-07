@@ -7,7 +7,8 @@ import Lenis from "lenis";
 import { useLenis } from "lenis/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCache } from "../context/CacheContext";
-import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare, PartyPopper } from 'lucide-react';
+import { Folder, Activity, CheckCircle, GitCommitHorizontal, Plus, Rocket, Star, FileText, Bug, Bot, RefreshCcw, Loader2, PlusSquare, PartyPopper, Sparkles } from 'lucide-react';
+import SimilarProjectsModal from '../components/projects/SimilarProjectsModal';
 import PixelTransition from '../components/ui/PixelTransition';
 
 // SVG Icon Components
@@ -1008,6 +1009,7 @@ export default function Projects() {
   const [completeConfirm, setCompleteConfirm] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
+  const [showSimilarModal, setShowSimilarModal] = useState(false);
 
   const defaultFormData = {
     name: "",
@@ -1359,13 +1361,23 @@ export default function Projects() {
                 Track your development projects and milestones
               </p>
             </div>
-            <Button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              New Project
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowSimilarModal(true)}
+                variant="ghost"
+                className="flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10"
+              >
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                Discover Similar
+              </Button>
+              <Button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                New Project
+              </Button>
+            </div>
           </div>
 
           {/* Stats Row */}
@@ -1601,6 +1613,22 @@ export default function Projects() {
         <AnimatePresence>
           {showSuccess && <SuccessTick />}
         </AnimatePresence>
+
+        {/* Similar Projects Discovery Modal */}
+        <SimilarProjectsModal
+          isOpen={showSimilarModal}
+          onClose={() => setShowSimilarModal(false)}
+          userLanguages={
+            // Extract unique languages from user's projects
+            [...new Set(
+              projects.flatMap(p => 
+                (p.languages || []).map(l => typeof l === 'string' ? l : l.name).filter(Boolean)
+              ).concat(
+                projects.map(p => p.primaryLanguage).filter(Boolean)
+              )
+            )].slice(0, 3)
+          }
+        />
       </motion.div>
     </PixelTransition>
   );
