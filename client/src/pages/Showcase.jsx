@@ -283,7 +283,21 @@ function ShowcaseCard({ showcase, onStar, onComment, onDeleteComment, currentUse
                         </div>
                         <span className="text-slate-500 text-xs flex items-center gap-1">
                             <Clock size={10} />
-                            {new Date(showcase.createdAt?.seconds * 1000 || showcase.createdAt).toLocaleDateString()}
+                            {(() => {
+                                try {
+                                    if (showcase.createdAt?.seconds) {
+                                        return new Date(showcase.createdAt.seconds * 1000).toLocaleDateString();
+                                    } else if (showcase.createdAt?._seconds) {
+                                        return new Date(showcase.createdAt._seconds * 1000).toLocaleDateString();
+                                    } else if (showcase.createdAt) {
+                                        const date = new Date(showcase.createdAt);
+                                        return isNaN(date.getTime()) ? 'Recently' : date.toLocaleDateString();
+                                    }
+                                    return 'Recently';
+                                } catch {
+                                    return 'Recently';
+                                }
+                            })()}
                         </span>
                     </div>
 
