@@ -16,9 +16,9 @@ const parseGitHubUrl = (url) => {
     if (!url) return null;
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (match) {
-        return { 
-            owner: match[1], 
-            repo: match[2].replace(/\.git$/, '') 
+        return {
+            owner: match[1],
+            repo: match[2].replace(/\.git$/, '')
         };
     }
     return null;
@@ -31,13 +31,13 @@ const parseGitHubUrl = (url) => {
 const generateReadme = async (req, res, next) => {
     try {
         const { projectId } = req.params;
-        const { userId, githubToken } = req.auth;
+        const { userId } = req.auth;
 
         console.log(`📝 Generating README for project ${projectId}`);
 
         // 1. Fetch the project
         const projectDoc = await collections.projects().doc(projectId).get();
-        
+
         if (!projectDoc.exists) {
             throw new APIError('Project not found', 404);
         }
@@ -69,8 +69,8 @@ const generateReadme = async (req, res, next) => {
             // Fallback to server PAT
         }
 
-        // 4. Initialize GitHub service with user's token
-        const githubService = new GitHubService(userGithubToken || githubToken);
+        // 4. Initialize GitHub service with user's token or fallback to env PAT
+        const githubService = new GitHubService(userGithubToken);
 
         // 5. Fetch complete repository information
         console.log(`📊 Fetching repo info for ${parsed.owner}/${parsed.repo}...`);
@@ -97,7 +97,7 @@ const generateReadme = async (req, res, next) => {
     } catch (error) {
         console.error('Generate README error:', error);
         if (error.status === 404) {
-             return next(new APIError('Repository not found or you do not have access. Please ensure your GitHub account is connected.', 404));
+            return next(new APIError('Repository not found or you do not have access. Please ensure your GitHub account is connected.', 404));
         }
         next(error);
     }
@@ -111,7 +111,7 @@ const commitReadme = async (req, res, next) => {
     try {
         const { projectId } = req.params;
         const { content, commitMessage = 'docs: update README.md' } = req.body;
-        const { userId, githubToken } = req.auth;
+        const { userId } = req.auth;
 
         if (!content) {
             throw new APIError('README content is required', 400);
@@ -121,7 +121,7 @@ const commitReadme = async (req, res, next) => {
 
         // 1. Fetch the project
         const projectDoc = await collections.projects().doc(projectId).get();
-        
+
         if (!projectDoc.exists) {
             throw new APIError('Project not found', 404);
         }
@@ -152,12 +152,12 @@ const commitReadme = async (req, res, next) => {
             console.warn('Failed to fetch user GitHub token:', error.message);
         }
 
-        // 4. Initialize GitHub service with user's token
-        const githubService = new GitHubService(userGithubToken || githubToken);
+        // 4. Initialize GitHub service with user's token or fallback to env PAT
+        const githubService = new GitHubService(userGithubToken);
 
         // 5. Commit the README file
         console.log(`📝 Committing README.md to ${parsed.owner}/${parsed.repo}...`);
-        
+
         const result = await githubService.commitFile(
             parsed.owner,
             parsed.repo,
@@ -177,7 +177,7 @@ const commitReadme = async (req, res, next) => {
 
     } catch (error) {
         console.error('Commit README error:', error);
-        
+
         // Provide helpful error messages for common issues
         if (error.message?.includes('permission')) {
             return next(new APIError('You do not have permission to push to this repository. Make sure you have write access.', 403));
@@ -185,7 +185,7 @@ const commitReadme = async (req, res, next) => {
         if (error.message?.includes('not found')) {
             return next(new APIError('Repository not found or you do not have access.', 404));
         }
-        
+
         next(error);
     }
 };

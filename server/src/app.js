@@ -23,6 +23,7 @@ const bookmarksRoutes = require('./routes/bookmarksRoutes');
 const projectIdeasRoutes = require('./routes/projectIdeasRoutes');
 const savedIdeasRoutes = require('./routes/savedIdeasRoutes');
 const showcaseRoutes = require('./routes/showcaseRoutes');
+const readmeRoutes = require('./routes/readmeRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -144,6 +145,7 @@ app.use('/api/bookmarks', bookmarksRoutes);
 app.use('/api/project-ideas', projectIdeasRoutes);
 app.use('/api/saved-ideas', savedIdeasRoutes);
 app.use('/api/showcase', showcaseRoutes);
+app.use('/api/readme', readmeRoutes);
 
 // ======================
 // 404 HANDLER
