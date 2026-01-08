@@ -167,4 +167,12 @@ export const projectIdeasApi = {
     generate: (options) => api.post('/project-ideas/generate', options),
 };
 
+export const savedIdeasApi = {
+    getAll: () => api.get('/saved-ideas'),
+    save: (ideaData) => api.post('/saved-ideas', ideaData),
+    checkStatus: (titles) => api.post('/saved-ideas/check', { titles }),
+    remove: (ideaId) => api.delete(`/saved-ideas/${ideaId}`),
+};
+
 export default api;
+

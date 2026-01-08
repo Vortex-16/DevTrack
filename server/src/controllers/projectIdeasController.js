@@ -14,7 +14,7 @@ const { APIError } = require("../middleware/errorHandler");
 const generateIdeas = async (req, res, next) => {
   try {
     const { userId } = req.auth;
-    const { difficulty = "intermediate" } = req.body;
+    const { difficulty = "intermediate", excludeTitles = [] } = req.body;
 
     // Validate difficulty
     const validDifficulties = ["beginner", "intermediate", "advanced"];
@@ -113,7 +113,8 @@ const generateIdeas = async (req, res, next) => {
     const groqService = getGroqService();
     const result = await groqService.generateProjectIdeas(
       skillProfile,
-      difficulty
+      difficulty,
+      excludeTitles
     );
 
     if (!result.success) {

@@ -1,6 +1,6 @@
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
-import { projectsApi, githubApi, geminiApi, projectIdeasApi } from "../services/api";
+import { projectsApi, githubApi, geminiApi, projectIdeasApi, savedIdeasApi } from "../services/api";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Lenis from "lenis";
@@ -28,9 +28,12 @@ import {
   Clock,
   GraduationCap,
   Zap,
+  Bookmark,
+  Leaf,
 } from "lucide-react";
 import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
 import SavedProjectsModal from "../components/projects/SavedProjectsModal";
+import SavedIdeasModal from "../components/projects/SavedIdeasModal";
 import PixelTransition from "../components/ui/PixelTransition";
 
 // SVG Icon Components
@@ -1091,10 +1094,15 @@ export default function Projects() {
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
   const [showSimilarModal, setShowSimilarModal] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showSavedIdeasModal, setShowSavedIdeasModal] = useState(false);
   const [showIdeasModal, setShowIdeasModal] = useState(false);
   const [projectIdeas, setProjectIdeas] = useState([]);
   const [generatingIdeas, setGeneratingIdeas] = useState(false);
   const [ideaDifficulty, setIdeaDifficulty] = useState('intermediate');
+  // Track shown idea titles with occurrence count (max 2 times per idea)
+  const [shownIdeaTitles, setShownIdeaTitles] = useState({});
+  // Track saved idea titles for bookmark status
+  const [savedIdeaTitles, setSavedIdeaTitles] = useState(new Set());
 
   const defaultFormData = {
     name: "",
@@ -1464,10 +1472,29 @@ export default function Projects() {
       setGeneratingIdeas(true);
       setProjectIdeas([]);
       
-      const response = await projectIdeasApi.generate({ difficulty: ideaDifficulty });
+      // Get titles that have already been shown twice (need to be excluded)
+      const excludeTitles = Object.entries(shownIdeaTitles)
+        .filter(([_, count]) => count >= 2)
+        .map(([title]) => title);
+      
+      const response = await projectIdeasApi.generate({ 
+        difficulty: ideaDifficulty,
+        excludeTitles 
+      });
       
       if (response.data?.success) {
-        setProjectIdeas(response.data.data.ideas || []);
+        const newIdeas = response.data.data.ideas || [];
+        setProjectIdeas(newIdeas);
+        
+        // Update shown titles count
+        setShownIdeaTitles(prev => {
+          const updated = { ...prev };
+          newIdeas.forEach(idea => {
+            const title = idea.title;
+            updated[title] = (updated[title] || 0) + 1;
+          });
+          return updated;
+        });
       }
     } catch (err) {
       console.error('Error generating ideas:', err);
@@ -1488,6 +1515,44 @@ export default function Projects() {
     });
     setShowIdeasModal(false);
     setShowModal(true);
+  };
+
+  // Toggle save/unsave an idea
+  const toggleSaveIdea = async (idea) => {
+    const isSaved = savedIdeaTitles.has(idea.title);
+    
+    // Optimistic update
+    setSavedIdeaTitles(prev => {
+      const newSet = new Set(prev);
+      if (isSaved) {
+        newSet.delete(idea.title);
+      } else {
+        newSet.add(idea.title);
+      }
+      return newSet;
+    });
+
+    try {
+      if (isSaved) {
+        // Generate the same ID the backend uses
+        const ideaId = btoa(idea.title).replace(/[/+=]/g, '_').substring(0, 50);
+        await savedIdeasApi.remove(ideaId);
+      } else {
+        await savedIdeasApi.save(idea);
+      }
+    } catch (err) {
+      console.error('Error toggling save:', err);
+      // Rollback on error
+      setSavedIdeaTitles(prev => {
+        const newSet = new Set(prev);
+        if (isSaved) {
+          newSet.add(idea.title);
+        } else {
+          newSet.delete(idea.title);
+        }
+        return newSet;
+      });
+    }
   };
 
   return (
@@ -1513,12 +1578,20 @@ export default function Projects() {
                 Get Ideas
               </Button>
               <Button
+                onClick={() => setShowSavedIdeasModal(true)}
+                variant="ghost"
+                className="flex items-center gap-2 border border-teal-500/30 hover:border-teal-500/50 hover:bg-teal-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+              >
+                <Bookmark className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-teal-400" />
+                Saved Ideas
+              </Button>
+              <Button
                 onClick={() => setShowSavedModal(true)}
                 variant="ghost"
                 className="flex items-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-yellow-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
               >
                 <Star className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-yellow-500 fill-yellow-500" />
-                Saved
+                Saved Repos
               </Button>
               <Button
                 onClick={() => setShowSimilarModal(true)}
@@ -1796,10 +1869,17 @@ export default function Projects() {
           }
         />
         
-        {/* Saved Projects Modal */}
+        {/* Saved Repos Modal */}
         <SavedProjectsModal
           isOpen={showSavedModal}
           onClose={() => setShowSavedModal(false)}
+        />
+
+        {/* Saved Ideas Modal */}
+        <SavedIdeasModal
+          isOpen={showSavedIdeasModal}
+          onClose={() => setShowSavedIdeasModal(false)}
+          onStartProject={startIdeaAsProject}
         />
 
         {/* Project Ideas Modal */}
@@ -1830,9 +1910,9 @@ export default function Projects() {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { value: 'beginner', label: 'Beginner', icon: '🌱', desc: '1-2 weeks', color: 'emerald' },
-                  { value: 'intermediate', label: 'Intermediate', icon: '🚀', desc: '2-4 weeks', color: 'purple' },
-                  { value: 'advanced', label: 'Advanced', icon: '⚡', desc: '4-8 weeks', color: 'orange' },
+                  { value: 'beginner', label: 'Beginner', Icon: Leaf, desc: '1-2 weeks', color: 'emerald' },
+                  { value: 'intermediate', label: 'Intermediate', Icon: Rocket, desc: '2-4 weeks', color: 'purple' },
+                  { value: 'advanced', label: 'Advanced', Icon: Zap, desc: '4-8 weeks', color: 'orange' },
                 ].map((diff) => (
                   <button
                     key={diff.value}
@@ -1848,7 +1928,15 @@ export default function Projects() {
                       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                     )}
                     <div className="relative">
-                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">{diff.icon}</div>
+                      <div className="flex justify-center mb-2">
+                        <diff.Icon className={`w-7 h-7 group-hover:scale-110 transition-transform duration-300 ${
+                          ideaDifficulty === diff.value 
+                            ? diff.color === 'emerald' ? 'text-emerald-400' 
+                              : diff.color === 'purple' ? 'text-purple-400' 
+                              : 'text-orange-400'
+                            : 'text-slate-400 group-hover:text-white'
+                        }`} />
+                      </div>
                       <div className="text-sm font-semibold mb-1">{diff.label}</div>
                       <div className="text-[11px] text-slate-500">{diff.desc}</div>
                     </div>
@@ -1901,12 +1989,29 @@ export default function Projects() {
                     >
                       {/* Header */}
                       <div className="flex items-start justify-between gap-3 mb-3">
-                        <h4 className="font-bold text-white text-base leading-tight group-hover:text-emerald-300 transition-colors">
+                        <h4 className="font-bold text-white text-base leading-tight group-hover:text-emerald-300 transition-colors flex-1">
                           {idea.title}
                         </h4>
-                        <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
-                          {idea.category || 'Project'}
-                        </span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Bookmark Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSaveIdea(idea);
+                            }}
+                            className={`p-1.5 rounded-lg transition-all duration-200 ${
+                              savedIdeaTitles.has(idea.title)
+                                ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
+                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-teal-400'
+                            }`}
+                            title={savedIdeaTitles.has(idea.title) ? 'Remove from saved' : 'Save idea'}
+                          >
+                            <Bookmark className={`w-4 h-4 ${savedIdeaTitles.has(idea.title) ? 'fill-teal-400' : ''}`} />
+                          </button>
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+                            {idea.category || 'Project'}
+                          </span>
+                        </div>
                       </div>
                       
                       {/* Description */}
@@ -1932,29 +2037,65 @@ export default function Projects() {
                       </div>
                       
                       {/* Meta Info - Better layout */}
-                      <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 p-3 rounded-xl bg-white/5">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                          <span className="text-slate-400">~{idea.estimatedHours || 40} hours</span>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 p-3 rounded-xl bg-white/5 overflow-hidden">
+                        <span className="flex items-center gap-1.5 flex-shrink-0">
+                          <Clock className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                          <span className="text-slate-400 whitespace-nowrap">~{idea.estimatedHours || 40} hours</span>
                         </span>
-                        <div className="w-px h-4 bg-white/10" />
-                        <span className="flex items-center gap-1.5 flex-1">
-                          <GraduationCap className="w-3.5 h-3.5 text-yellow-400" />
+                        <div className="w-px h-4 bg-white/10 flex-shrink-0" />
+                        <span className="flex items-center gap-1.5 flex-1 min-w-0 overflow-hidden">
+                          <GraduationCap className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
                           <span className="text-slate-400 truncate">
                             {(idea.newSkillsToLearn || []).slice(0, 2).join(', ') || 'New skills await'}
                           </span>
                         </span>
                       </div>
                       
-                      {/* Start Button - Enhanced */}
-                      <Button
-                        onClick={() => startIdeaAsProject(idea)}
-                        variant="ghost"
-                        className="w-full h-10 flex items-center justify-center text-sm font-semibold border-2 border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 transition-all duration-300 group/btn"
-                      >
-                        <Zap className="w-4 h-4 mr-2 group-hover/btn:animate-pulse" />
-                        Start This Project
-                      </Button>
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        {/* Start Button - Enhanced */}
+                        <Button
+                          onClick={() => startIdeaAsProject(idea)}
+                          variant="ghost"
+                          className="flex-1 h-10 flex items-center justify-center text-sm font-semibold border-2 border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 transition-all duration-300 group/btn"
+                        >
+                          <Zap className="w-4 h-4 mr-2 group-hover/btn:animate-pulse" />
+                          Start This Project
+                        </Button>
+                        
+                        {/* Ask Gemini For Roadmap Button */}
+                        <Button
+                          onClick={async () => {
+                            const prompt = 
+                              `Create a detailed step-by-step roadmap for building the following project:\n\n` +
+                              `**Project Title:** ${idea.title}\n\n` +
+                              `**Description:** ${idea.description}\n\n` +
+                              `**Tech Stack:** ${(idea.techStack || []).join(', ')}\n\n` +
+                              `**Estimated Hours:** ${idea.estimatedHours || 40} hours\n\n` +
+                              `Please provide:\n` +
+                              `1. A clear breakdown of phases/milestones\n` +
+                              `2. Specific tasks for each phase with estimated time\n` +
+                              `3. Key technologies and libraries to use for each part\n` +
+                              `4. Potential challenges and how to overcome them\n` +
+                              `5. Learning resources for any new skills needed\n` +
+                              `6. Best practices and tips for success`;
+                            
+                            try {
+                              await navigator.clipboard.writeText(prompt);
+                              alert('Prompt copied to clipboard! Paste it in Gemini to get your roadmap.');
+                              window.open('https://gemini.google.com/app', '_blank');
+                            } catch (err) {
+                              console.error('Failed to copy:', err);
+                              window.open('https://gemini.google.com/app', '_blank');
+                            }
+                          }}
+                          variant="ghost"
+                          className="flex-1 h-10 flex items-center justify-center text-sm font-semibold border-2 border-blue-500/40 hover:bg-blue-500/20 hover:border-blue-500/60 text-blue-400 hover:text-blue-300 transition-all duration-300 group/btn2"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2 group-hover/btn2:animate-pulse" />
+                          Ask Gemini For Roadmap
+                        </Button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>

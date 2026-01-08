@@ -159,7 +159,7 @@ export default function SavedProjectsModal({ isOpen, onClose }) {
                                 <Bookmark className="w-6 h-6 text-yellow-500" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Saved Projects</h2>
+                                <h2 className="text-xl font-bold text-white">Saved Repos</h2>
                                 <p className="text-sm text-slate-400">
                                     Your bookmarked open-source repositories
                                 </p>

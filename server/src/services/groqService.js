@@ -1073,8 +1073,9 @@ You are a cybersecurity expert. Be thorough and precise in identifying vulnerabi
      * @param {string[]} skillProfile.recentSkills - Recently learned skills
      * @param {string[]} skillProfile.projectTypes - Types of projects completed
      * @param {string} difficulty - beginner, intermediate, or advanced
+     * @param {string[]} excludeTitles - Previously shown project titles to avoid
      */
-    async generateProjectIdeas(skillProfile, difficulty = 'intermediate') {
+    async generateProjectIdeas(skillProfile, difficulty = 'intermediate', excludeTitles = []) {
         const difficultyGuide = {
             beginner: 'Simple projects achievable in 1-2 weeks, focusing on fundamentals',
             intermediate: 'Moderate complexity projects for 2-4 weeks, introducing new concepts',
@@ -1090,11 +1091,18 @@ Based on this developer's profile, generate 5 unique and exciting project ideas.
 - **Recently Learning**: ${skillProfile.recentSkills?.join(', ') || 'Various technologies'}
 - **Completed Project Types**: ${skillProfile.projectTypes?.join(', ') || 'Various projects'}
 
-### Requirements:
+${excludeTitles.length > 0 ? `### ⚠️ EXCLUDED PROJECTS (DO NOT SUGGEST THESE OR SIMILAR):
+The following projects have already been shown. DO NOT generate these or any variations of them:
+${excludeTitles.map(t => `- ${t}`).join('\n')}
+
+Generate COMPLETELY DIFFERENT and UNIQUE project ideas.
+
+` : ''}### Requirements:
 - **Difficulty Level**: ${difficulty} - ${difficultyGuide[difficulty] || difficultyGuide.intermediate}
 - Each project should BUILD ON existing skills while introducing 1-2 new technologies
 - Projects should be practical and portfolio-worthy
 - Include a mix of categories (web app, tool, API, etc.)
+- MUST be unique and different from excluded projects above
 
 ### Output Format (JSON):
 Return ONLY valid JSON in this exact structure:
