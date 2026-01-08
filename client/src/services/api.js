@@ -163,4 +163,8 @@ export const tasksApi = {
     toggle: (id) => api.patch(`/tasks/${id}/toggle`),
 };
 
+export const projectIdeasApi = {
+    generate: (options) => api.post('/project-ideas/generate', options),
+};
+
 export default api;

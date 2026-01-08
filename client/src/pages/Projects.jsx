@@ -1,6 +1,6 @@
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
-import { projectsApi, githubApi, geminiApi } from "../services/api";
+import { projectsApi, githubApi, geminiApi, projectIdeasApi } from "../services/api";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Lenis from "lenis";
@@ -24,6 +24,10 @@ import {
   PartyPopper,
   Sparkles,
   Search,
+  Lightbulb,
+  Clock,
+  GraduationCap,
+  Zap,
 } from "lucide-react";
 import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
 import SavedProjectsModal from "../components/projects/SavedProjectsModal";
@@ -1087,6 +1091,10 @@ export default function Projects() {
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
   const [showSimilarModal, setShowSimilarModal] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showIdeasModal, setShowIdeasModal] = useState(false);
+  const [projectIdeas, setProjectIdeas] = useState([]);
+  const [generatingIdeas, setGeneratingIdeas] = useState(false);
+  const [ideaDifficulty, setIdeaDifficulty] = useState('intermediate');
 
   const defaultFormData = {
     name: "",
@@ -1450,6 +1458,38 @@ export default function Projects() {
     };
   }, [projects]); // Re-init if projects change/load
 
+  // Generate AI project ideas
+  const handleGenerateIdeas = async () => {
+    try {
+      setGeneratingIdeas(true);
+      setProjectIdeas([]);
+      
+      const response = await projectIdeasApi.generate({ difficulty: ideaDifficulty });
+      
+      if (response.data?.success) {
+        setProjectIdeas(response.data.data.ideas || []);
+      }
+    } catch (err) {
+      console.error('Error generating ideas:', err);
+      alert('Failed to generate project ideas. Please try again.');
+    } finally {
+      setGeneratingIdeas(false);
+    }
+  };
+
+  // Start a project from an idea
+  const startIdeaAsProject = (idea) => {
+    setFormData({
+      name: idea.title,
+      description: idea.description,
+      status: 'Planning',
+      repositoryUrl: '',
+      technologies: idea.techStack?.join(', ') || ''
+    });
+    setShowIdeasModal(false);
+    setShowModal(true);
+  };
+
   return (
     <PixelTransition loading={loading}>
       <motion.div>
@@ -1464,6 +1504,14 @@ export default function Projects() {
               </p>
             </div>
             <div className="flex gap-3">
+              <Button
+                onClick={() => setShowIdeasModal(true)}
+                variant="ghost"
+                className="flex items-center gap-2 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+              >
+                <Lightbulb className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" />
+                Get Ideas
+              </Button>
               <Button
                 onClick={() => setShowSavedModal(true)}
                 variant="ghost"
@@ -1753,6 +1801,181 @@ export default function Projects() {
           isOpen={showSavedModal}
           onClose={() => setShowSavedModal(false)}
         />
+
+        {/* Project Ideas Modal */}
+        <Modal
+          isOpen={showIdeasModal}
+          onClose={() => {
+            setShowIdeasModal(false);
+            setProjectIdeas([]);
+          }}
+          title="🎯 AI Project Ideas"
+        >
+          <div className="space-y-6">
+            {/* Header Description with gradient text */}
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-purple-500/20 to-cyan-500/20 rounded-xl blur-xl opacity-50" />
+              <div className="relative p-4 rounded-xl bg-white/5 border border-white/10">
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Get <span className="text-emerald-400 font-medium">personalized project ideas</span> based on your skills, learning history, and current tech stack.
+                </p>
+              </div>
+            </div>
+
+            {/* Difficulty Selector - Enhanced Design */}
+            <div>
+              <label className="block text-sm font-medium text-white mb-3 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-400" />
+                Select Difficulty Level
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: 'beginner', label: 'Beginner', icon: '🌱', desc: '1-2 weeks', color: 'emerald' },
+                  { value: 'intermediate', label: 'Intermediate', icon: '🚀', desc: '2-4 weeks', color: 'purple' },
+                  { value: 'advanced', label: 'Advanced', icon: '⚡', desc: '4-8 weeks', color: 'orange' },
+                ].map((diff) => (
+                  <button
+                    key={diff.value}
+                    type="button"
+                    onClick={() => setIdeaDifficulty(diff.value)}
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-center group relative overflow-hidden ${
+                      ideaDifficulty === diff.value
+                        ? `bg-${diff.color}-500/20 border-${diff.color}-500 text-white shadow-lg shadow-${diff.color}-500/20`
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30 hover:bg-white/10'
+                    }`}
+                  >
+                    {ideaDifficulty === diff.value && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                    )}
+                    <div className="relative">
+                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">{diff.icon}</div>
+                      <div className="text-sm font-semibold mb-1">{diff.label}</div>
+                      <div className="text-[11px] text-slate-500">{diff.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Generate Button - Enhanced */}
+            <Button
+              onClick={handleGenerateIdeas}
+              disabled={generatingIdeas}
+              className="w-full h-12 flex items-center justify-center gap-3 text-base font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition-all duration-300 shadow-lg shadow-emerald-500/20"
+            >
+              {generatingIdeas ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Analyzing your skills...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  <span>Generate Project Ideas</span>
+                </>
+              )}
+            </Button>
+
+            {/* Ideas List - No nested scroll, let Modal's Lenis handle it */}
+            {projectIdeas.length > 0 && (
+              <div className="space-y-4 pt-5 border-t border-white/10">
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/20">
+                    <Lightbulb className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  Suggested Projects 
+                  <span className="ml-auto text-xs px-2 py-1 rounded-full bg-white/10 text-slate-400">
+                    {projectIdeas.length} ideas
+                  </span>
+                </h3>
+                
+                {/* Ideas Cards - Scrollable via Modal's Lenis */}
+                <div className="space-y-4">
+                  {projectIdeas.map((idea, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                      className="group p-5 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 hover:border-emerald-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <h4 className="font-bold text-white text-base leading-tight group-hover:text-emerald-300 transition-colors">
+                          {idea.title}
+                        </h4>
+                        <span className="flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+                          {idea.category || 'Project'}
+                        </span>
+                      </div>
+                      
+                      {/* Description */}
+                      <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-3">
+                        {idea.description}
+                      </p>
+                      
+                      {/* Tech Stack - Improved tags */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(idea.techStack || []).slice(0, 6).map((tech, i) => (
+                          <span
+                            key={i}
+                            className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 text-[11px] font-medium border border-purple-500/20"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                        {(idea.techStack || []).length > 6 && (
+                          <span className="px-2.5 py-1 rounded-lg bg-white/5 text-slate-500 text-[11px] font-medium">
+                            +{idea.techStack.length - 6} more
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Meta Info - Better layout */}
+                      <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 p-3 rounded-xl bg-white/5">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="text-slate-400">~{idea.estimatedHours || 40} hours</span>
+                        </span>
+                        <div className="w-px h-4 bg-white/10" />
+                        <span className="flex items-center gap-1.5 flex-1">
+                          <GraduationCap className="w-3.5 h-3.5 text-yellow-400" />
+                          <span className="text-slate-400 truncate">
+                            {(idea.newSkillsToLearn || []).slice(0, 2).join(', ') || 'New skills await'}
+                          </span>
+                        </span>
+                      </div>
+                      
+                      {/* Start Button - Enhanced */}
+                      <Button
+                        onClick={() => startIdeaAsProject(idea)}
+                        variant="ghost"
+                        className="w-full h-10 flex items-center justify-center text-sm font-semibold border-2 border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 transition-all duration-300 group/btn"
+                      >
+                        <Zap className="w-4 h-4 mr-2 group-hover/btn:animate-pulse" />
+                        Start This Project
+                      </Button>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State - Enhanced */}
+            {!generatingIdeas && projectIdeas.length === 0 && (
+              <div className="text-center py-12">
+                <div className="relative inline-block mb-4">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/30 to-purple-500/30 rounded-full blur-xl animate-pulse" />
+                  <div className="relative p-4 rounded-full bg-white/5 border border-white/10">
+                    <Lightbulb className="w-10 h-10 text-slate-500" />
+                  </div>
+                </div>
+                <p className="text-slate-400 text-sm font-medium mb-1">Ready to discover ideas?</p>
+                <p className="text-slate-600 text-xs">Click "Generate" to get AI-powered project recommendations</p>
+              </div>
+            )}
+          </div>
+        </Modal>
       </motion.div>
     </PixelTransition>
   );

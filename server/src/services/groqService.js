@@ -1061,6 +1061,110 @@ You are a cybersecurity expert. Be thorough and precise in identifying vulnerabi
             };
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PROJECT IDEAS GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Generate personalized project ideas based on user's skills
+     * @param {object} skillProfile - User's skill profile
+     * @param {string[]} skillProfile.primarySkills - Most used skills
+     * @param {string[]} skillProfile.recentSkills - Recently learned skills
+     * @param {string[]} skillProfile.projectTypes - Types of projects completed
+     * @param {string} difficulty - beginner, intermediate, or advanced
+     */
+    async generateProjectIdeas(skillProfile, difficulty = 'intermediate') {
+        const difficultyGuide = {
+            beginner: 'Simple projects achievable in 1-2 weeks, focusing on fundamentals',
+            intermediate: 'Moderate complexity projects for 2-4 weeks, introducing new concepts',
+            advanced: 'Complex projects for 4-8 weeks, involving system design and advanced patterns'
+        };
+
+        const prompt = `## 🎯 Project Ideas Generator
+
+Based on this developer's profile, generate 5 unique and exciting project ideas.
+
+### Developer Profile:
+- **Primary Skills**: ${skillProfile.primarySkills?.join(', ') || 'General programming'}
+- **Recently Learning**: ${skillProfile.recentSkills?.join(', ') || 'Various technologies'}
+- **Completed Project Types**: ${skillProfile.projectTypes?.join(', ') || 'Various projects'}
+
+### Requirements:
+- **Difficulty Level**: ${difficulty} - ${difficultyGuide[difficulty] || difficultyGuide.intermediate}
+- Each project should BUILD ON existing skills while introducing 1-2 new technologies
+- Projects should be practical and portfolio-worthy
+- Include a mix of categories (web app, tool, API, etc.)
+
+### Output Format (JSON):
+Return ONLY valid JSON in this exact structure:
+{
+  "ideas": [
+    {
+      "title": "Project Name",
+      "description": "2-3 sentence description of what it does and why it's useful",
+      "techStack": ["Tech1", "Tech2", "Tech3"],
+      "newSkillsToLearn": ["New skill 1", "New skill 2"],
+      "difficulty": "${difficulty}",
+      "estimatedHours": 40,
+      "learningOutcomes": ["What you'll learn 1", "What you'll learn 2"],
+      "category": "Web App | CLI Tool | API | Mobile | Game | DevTool"
+    }
+  ]
+}
+
+Generate exactly 5 project ideas. Return ONLY the JSON, no other text.`;
+
+        try {
+            const messages = [
+                {
+                    role: "system",
+                    content: `You are a senior developer mentor who suggests practical, engaging project ideas. 
+Your suggestions are always:
+- Relevant to the developer's current skills
+- Challenging but achievable
+- Portfolio-worthy and practical
+- Designed to teach valuable new skills
+
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanation, just the JSON object.`
+                },
+                { role: "user", content: prompt }
+            ];
+
+            const response = await this.makeRequest(messages, {
+                temperature: 0.8,
+                max_tokens: 3000,
+                jsonMode: true
+            });
+
+            // Parse the JSON response
+            let ideas;
+            try {
+                ideas = JSON.parse(response);
+            } catch (parseError) {
+                // Try to extract JSON if wrapped in markdown
+                const jsonMatch = response.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    ideas = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('Failed to parse AI response as JSON');
+                }
+            }
+
+            return {
+                success: true,
+                ideas: ideas.ideas || [],
+                model: this.model
+            };
+        } catch (error) {
+            console.error('Project ideas generation error:', error);
+            return {
+                success: false,
+                error: 'Failed to generate project ideas. Please try again.',
+                details: error.message
+            };
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
