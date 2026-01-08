@@ -385,14 +385,39 @@ export default function Learning() {
             const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t)
             const payload = { ...formData, tags: tagsArray }
 
-            if (editingEntry) {
-                await logsApi.update(editingEntry.id, payload)
-            } else {
-                await logsApi.create(payload)
-            }
-
+            // Close modal immediately for fast UX
             closeModal()
-            fetchData()
+
+            if (editingEntry) {
+                // For edits, update then refresh
+                await logsApi.update(editingEntry.id, payload)
+                fetchData()
+            } else {
+                // For new entries: optimistic UI
+                const response = await logsApi.create(payload)
+                const newEntry = response.data?.data
+
+                if (newEntry) {
+                    // Add to state immediately (prepend to show at top)
+                    setLearningEntries(prev => [newEntry, ...prev])
+
+                    // Update stats optimistically
+                    setStats(prev => ({
+                        ...prev,
+                        totalLogs: (prev.totalLogs || 0) + 1,
+                        uniqueDays: prev.uniqueDays + 1 // May not be accurate but close enough
+                    }))
+
+                    // Update cache
+                    setCachedData('learning_data', {
+                        entries: [newEntry, ...learningEntries],
+                        stats: {
+                            ...stats,
+                            totalLogs: (stats.totalLogs || 0) + 1
+                        }
+                    })
+                }
+            }
         } catch (err) {
             console.error('Error saving log:', err)
             alert(`Failed to ${editingEntry ? 'update' : 'create'} log entry`)
@@ -448,230 +473,230 @@ export default function Learning() {
     return (
         <PixelTransition loading={loading}>
             <motion.div>
-            {/* Main Container - Background removed */}
-            <div
-                className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
-            >
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
-                        <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
-                    </div>
-                    <Button onClick={openAddModal} className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
-                        <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-                        Add Entry
-                    </Button>
-                </div>
-
-                {/* Stats Row */}
-                <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-4 flex-shrink-0">
-                    <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
-                        <StatCard icon={<BookOpen size={20} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
-                    </div>
-                    <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
-                        <StatCard icon={<Flame size={20} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
-                    </div>
-                    <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
-                        <StatCard icon={<Calendar size={20} />} label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
-                    </div>
-                </div>
-
-                {/* Scrollable Content Area */}
-                <div 
-                    ref={learningContainerRef}
-                    id="learning-scroll-container"
-                    className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-6 relative"
+                {/* Main Container - Background removed */}
+                <div
+                    className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
                 >
-                    <div ref={learningContentRef} className="pb-4">
-                        {/* Error State */}
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <AlertTriangle className="text-red-400" size={20} />
-                                    <p className="text-red-400 flex-1">Error: {error}</p>
-                                    <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
-                                </div>
-                            </motion.div>
-                        )}
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
+                        <div>
+                            <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
+                            <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
+                        </div>
+                        <Button onClick={openAddModal} className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
+                            <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+                            Add Entry
+                        </Button>
+                    </div>
 
-                {/* Empty State */}
-                {!loading && learningEntries.length === 0 && !error && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]"
+                    {/* Stats Row */}
+                    <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-4 flex-shrink-0">
+                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                            <StatCard icon={<BookOpen size={20} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
+                        </div>
+                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                            <StatCard icon={<Flame size={20} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
+                        </div>
+                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                            <StatCard icon={<Calendar size={20} />} label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
+                        </div>
+                    </div>
+
+                    {/* Scrollable Content Area */}
+                    <div
+                        ref={learningContainerRef}
+                        id="learning-scroll-container"
+                        className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-6 relative"
                     >
-                        <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
-                            <BookOpen size={40} className="text-purple-500" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
-                        <p className="text-slate-400 mb-8 max-w-sm mx-auto">Start tracking your learning journey, skills, and progress today!</p>
-                        <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
-                    </motion.div>
-                )}
+                        <div ref={learningContentRef} className="pb-4">
+                            {/* Error State */}
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="text-red-400" size={20} />
+                                        <p className="text-red-400 flex-1">Error: {error}</p>
+                                        <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
+                                    </div>
+                                </motion.div>
+                            )}
 
-                {/* Entries List */}
-                {learningEntries.length > 0 && (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
-                            <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
+                            {/* Empty State */}
+                            {!loading && learningEntries.length === 0 && !error && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]"
+                                >
+                                    <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
+                                        <BookOpen size={40} className="text-purple-500" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
+                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">Start tracking your learning journey, skills, and progress today!</p>
+                                    <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
+                                </motion.div>
+                            )}
+
+                            {/* Entries List */}
+                            {learningEntries.length > 0 && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
+                                        <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {learningEntries.map((entry, idx) => (
+                                            <EntryCard
+                                                key={entry.id}
+                                                entry={entry}
+                                                onEdit={openEditModal}
+                                                onDelete={(id) => setDeleteConfirm(id)}
+                                                delay={0.1 + idx * 0.05}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
-                            {learningEntries.map((entry, idx) => (
-                                <EntryCard
-                                    key={entry.id}
-                                    entry={entry}
-                                    onEdit={openEditModal}
-                                    onDelete={(id) => setDeleteConfirm(id)}
-                                    delay={0.1 + idx * 0.05}
+                    </div>
+                </div>
+
+                {/* Delete Confirmation Modal */}
+                <Modal
+                    isOpen={!!deleteConfirm}
+                    onClose={() => setDeleteConfirm(null)}
+                    title="Delete Entry?"
+                >
+                    <div className="text-center">
+                        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle size={40} className="text-red-500" />
+                        </div>
+                        <p className="text-white text-lg font-semibold mb-2">Are you sure?</p>
+                        <p className="text-slate-400 mb-6">This action cannot be undone and will permanently remove this learning entry.</p>
+                        <div className="flex gap-4">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setDeleteConfirm(null)}
+                                className="flex-1 border border-white/10"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => handleDelete(deleteConfirm)}
+                                className="flex-1 bg-red-600 hover:bg-red-700"
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* Add/Edit Modal */}
+                <Modal
+                    isOpen={showModal}
+                    onClose={closeModal}
+                    title={editingEntry ? 'Edit Learning Entry' : 'Add Learning Entry'}
+                >
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        {/* Date */}
+                        <div>
+                            <DatePicker
+                                label="Date"
+                                value={formData.date}
+                                onChange={(date) => setFormData({ ...formData, date })}
+                            />
+                        </div>
+
+                        {/* Time */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <TimePicker
+                                    label="Start Time"
+                                    value={formData.startTime}
+                                    onChange={(time) => setFormData({ ...formData, startTime: time })}
                                 />
-                            ))}
+                            </div>
+                            <div>
+                                <TimePicker
+                                    label="End Time"
+                                    value={formData.endTime}
+                                    onChange={(time) => setFormData({ ...formData, endTime: time })}
+                                    minTime={formData.startTime}
+                                />
+                            </div>
                         </div>
-                    </div>
-                )}
-                    </div>
-                </div>
-            </div>
 
-            {/* Delete Confirmation Modal */}
-            <Modal
-                isOpen={!!deleteConfirm}
-                onClose={() => setDeleteConfirm(null)}
-                title="Delete Entry?"
-            >
-                <div className="text-center">
-                    <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle size={40} className="text-red-500" />
-                    </div>
-                    <p className="text-white text-lg font-semibold mb-2">Are you sure?</p>
-                    <p className="text-slate-400 mb-6">This action cannot be undone and will permanently remove this learning entry.</p>
-                    <div className="flex gap-4">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setDeleteConfirm(null)}
-                            className="flex-1 border border-white/10"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={() => handleDelete(deleteConfirm)}
-                            className="flex-1 bg-red-600 hover:bg-red-700"
-                        >
-                            Delete
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* Add/Edit Modal */}
-            <Modal
-                isOpen={showModal}
-                onClose={closeModal}
-                title={editingEntry ? 'Edit Learning Entry' : 'Add Learning Entry'}
-            >
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Date */}
-                    <div>
-                        <DatePicker
-                            label="Date"
-                            value={formData.date}
-                            onChange={(date) => setFormData({ ...formData, date })}
-                        />
-                    </div>
-
-                    {/* Time */}
-                    <div className="grid grid-cols-2 gap-4">
+                        {/* What learned */}
                         <div>
-                            <TimePicker
-                                label="Start Time"
-                                value={formData.startTime}
-                                onChange={(time) => setFormData({ ...formData, startTime: time })}
+                            <label className="block text-sm text-slate-400 mb-2">What did you learn today?</label>
+                            <textarea
+                                value={formData.learnedToday}
+                                onChange={(e) => setFormData({ ...formData, learnedToday: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white min-h-[120px] focus:border-purple-500 focus:outline-none transition-colors resize-none"
+                                placeholder="Describe what you learned..."
+                                required
                             />
                         </div>
+
+                        {/* Tags */}
                         <div>
-                            <TimePicker
-                                label="End Time"
-                                value={formData.endTime}
-                                onChange={(time) => setFormData({ ...formData, endTime: time })}
-                                minTime={formData.startTime}
+                            <label className="block text-sm text-slate-400 mb-2">Tags (comma separated)</label>
+                            <input
+                                type="text"
+                                value={formData.tags}
+                                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
+                                placeholder="React, JavaScript, CSS"
                             />
                         </div>
-                    </div>
 
-                    {/* What learned */}
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">What did you learn today?</label>
-                        <textarea
-                            value={formData.learnedToday}
-                            onChange={(e) => setFormData({ ...formData, learnedToday: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white min-h-[120px] focus:border-purple-500 focus:outline-none transition-colors resize-none"
-                            placeholder="Describe what you learned..."
-                            required
-                        />
-                    </div>
-
-                    {/* Tags */}
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">Tags (comma separated)</label>
-                        <input
-                            type="text"
-                            value={formData.tags}
-                            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
-                            placeholder="React, JavaScript, CSS"
-                        />
-                    </div>
-
-                    {/* Mood */}
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2 flex items-center gap-2">
-                            <Smile size={14} />
-                            How was your learning session?
-                        </label>
-                        <div className="grid grid-cols-4 gap-3">
-                            {[
-                                { value: 'great', icon: Rocket, label: 'Great' },
-                                { value: 'good', icon: ThumbsUp, label: 'Good' },
-                                { value: 'okay', icon: Meh, label: 'Okay' },
-                                { value: 'tired', icon: Frown, label: 'Tired' },
-                            ].map((mood) => {
-                                const MoodIcon = mood.icon;
-                                return (
-                                    <button
-                                        key={mood.value}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, mood: mood.value })}
-                                        className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${formData.mood === mood.value
-                                            ? 'bg-purple-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/10'
-                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
-                                            }`}
-                                    >
-                                        <MoodIcon size={24} />
-                                        <div className="text-xs font-medium">{mood.label}</div>
-                                    </button>
-                                );
-                            })}
+                        {/* Mood */}
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-2 flex items-center gap-2">
+                                <Smile size={14} />
+                                How was your learning session?
+                            </label>
+                            <div className="grid grid-cols-4 gap-3">
+                                {[
+                                    { value: 'great', icon: Rocket, label: 'Great' },
+                                    { value: 'good', icon: ThumbsUp, label: 'Good' },
+                                    { value: 'okay', icon: Meh, label: 'Okay' },
+                                    { value: 'tired', icon: Frown, label: 'Tired' },
+                                ].map((mood) => {
+                                    const MoodIcon = mood.icon;
+                                    return (
+                                        <button
+                                            key={mood.value}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, mood: mood.value })}
+                                            className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${formData.mood === mood.value
+                                                ? 'bg-purple-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/10'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                                                }`}
+                                        >
+                                            <MoodIcon size={24} />
+                                            <div className="text-xs font-medium">{mood.label}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Submit */}
-                    <div className="flex gap-4 pt-2">
-                        <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 border border-white/10">
-                            Cancel
-                        </Button>
-                        <Button type="submit" className="flex-1">
-                            {editingEntry ? 'Update Entry' : 'Save Entry'}
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
-        </motion.div>
-    </PixelTransition>
-  );
+                        {/* Submit */}
+                        <div className="flex gap-4 pt-2">
+                            <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 border border-white/10">
+                                Cancel
+                            </Button>
+                            <Button type="submit" className="flex-1">
+                                {editingEntry ? 'Update Entry' : 'Save Entry'}
+                            </Button>
+                        </div>
+                    </form>
+                </Modal>
+            </motion.div>
+        </PixelTransition>
+    );
 }

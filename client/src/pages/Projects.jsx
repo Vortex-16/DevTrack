@@ -175,9 +175,8 @@ function ProjectCard({
       className="group"
     >
       <div
-        className={`rounded-2xl p-6 border ${
-          isExpanded ? "border-purple-500/50" : "border-white/10"
-        } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
+        className={`rounded-2xl p-6 border ${isExpanded ? "border-purple-500/50" : "border-white/10"
+          } hover:border-purple-500/30 transition-all duration-300 flex flex-col`}
         style={{
           background:
             "linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))",
@@ -202,9 +201,8 @@ function ProjectCard({
               </motion.span>
             </div>
             <p
-              className={`text-slate-400 text-sm ${
-                isExpanded ? "" : "truncate"
-              }`}
+              className={`text-slate-400 text-sm ${isExpanded ? "" : "truncate"
+                }`}
             >
               {project.description || "No description"}
             </p>
@@ -214,6 +212,13 @@ function ProjectCard({
           >
             {project.status}
           </span>
+          {/* Show analyzing indicator when server is processing GitHub/AI data */}
+          {project.isAnalyzing && (
+            <span className="px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 ml-2 flex-shrink-0 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Analyzing
+            </span>
+          )}
         </div>
 
         {/* Progress Bar (Always visible but compact) */}
@@ -731,11 +736,10 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: false })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
-              !newRepoData.isPrivate
-                ? "border-purple-500 bg-purple-500/10"
-                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-            }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${!newRepoData.isPrivate
+              ? "border-purple-500 bg-purple-500/10"
+              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+              }`}
           >
             <p className="font-medium text-white">🌍 Public</p>
             <p className="text-xs text-slate-400">Anyone can see</p>
@@ -743,11 +747,10 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: true })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${
-              newRepoData.isPrivate
-                ? "border-purple-500 bg-purple-500/10"
-                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-            }`}
+            className={`flex-1 p-3 rounded-xl border-2 transition-all ${newRepoData.isPrivate
+              ? "border-purple-500 bg-purple-500/10"
+              : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+              }`}
           >
             <p className="font-medium text-white">🔒 Private</p>
             <p className="text-xs text-slate-400">Only you</p>
@@ -832,11 +835,10 @@ function ProjectForm({
               key={status}
               type="button"
               onClick={() => setFormData({ ...formData, status })}
-              className={`p-2 rounded-xl border text-xs font-medium transition-all ${
-                formData.status === status
-                  ? "bg-purple-500/20 border-purple-500 text-white"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
-              }`}
+              className={`p-2 rounded-xl border text-xs font-medium transition-all ${formData.status === status
+                ? "bg-purple-500/20 border-purple-500 text-white"
+                : "bg-white/5 border-white/10 text-slate-400 hover:border-white/30"
+                }`}
             >
               {status}
             </button>
@@ -912,8 +914,8 @@ function ProjectForm({
           {analyzing
             ? "🔍 Analyzing..."
             : isEdit
-            ? "Save Changes"
-            : "Create Project"}
+              ? "Save Changes"
+              : "Create Project"}
         </Button>
       </div>
     </form>
@@ -1192,58 +1194,48 @@ export default function Projects() {
 
       // Basic project data
       let projectData = { ...formData, technologies: techArray };
-      const hasRepo = !!formData.repositoryUrl;
 
-      // 1. Create project immediately with available data
-      setLoading(true);
-      const createResponse = await projectsApi.create(projectData);
-      const newProjectId =
-        createResponse.data?.data?.project?.id || createResponse.data?.data?.id;
-
-      // 2. Close modal and refresh      // 4. Clean up
+      // Close modal immediately for fast UX
       setShowModal(false);
       setFormData(defaultFormData);
 
-      // 5. Fetch latest
-      await fetchData();
+      // Create project (server returns immediately, runs analysis in background)
+      const createResponse = await projectsApi.create(projectData);
+      const newProject = createResponse.data?.data;
 
-      // 3. If repo exists, perform AI analysis in background
-      if (hasRepo && newProjectId) {
-        // We use a non-blocking async function here
-        (async () => {
-          try {
-            setIsBackgroundProcessing(true);
-            // Optional: Show some global global loading indicator or toast if needed
-            // But for now we just update silently and refresh when done
-            const analysisData = await analyzeWithGitHub(
-              projectData.repositoryUrl
-            );
+      if (newProject) {
+        // Optimistic UI: Add new project to state immediately
+        setProjects((prev) => [newProject, ...prev]);
 
-            if (analysisData) {
-              // Update the project with the analysis results
-              await projectsApi.update(newProjectId, {
-                ...analysisData,
-                technologies:
-                  analysisData.technologies.length > 0
-                    ? analysisData.technologies
-                    : projectData.technologies,
-              });
-              // Refresh list to show new data
-              fetchData();
-            }
-          } catch (bgErr) {
-            console.error("Background analysis failed:", bgErr);
-          } finally {
-            setIsBackgroundProcessing(false);
-          }
-        })();
+        // Update stats optimistically
+        setStats((prev) => ({
+          ...prev,
+          totalProjects: (prev.totalProjects || 0) + 1,
+          activeProjects: projectData.status === "Active"
+            ? (prev.activeProjects || 0) + 1
+            : prev.activeProjects || 0,
+        }));
+
+        // Update cache with new project
+        setCachedData("projects_data", {
+          projects: [newProject, ...projects],
+          stats: {
+            ...stats,
+            totalProjects: (stats.totalProjects || 0) + 1,
+          },
+        });
+      }
+
+      // Background: Server is analyzing GitHub data, poll for updates if needed
+      if (newProject?.isAnalyzing) {
+        // Poll for updates after a few seconds when server finishes analysis
+        setTimeout(() => {
+          fetchData(); // Refresh to get analyzed data
+        }, 8000); // Check after 8 seconds
       }
     } catch (err) {
       console.error("Error creating project:", err);
       alert("Failed to create project");
-    } finally {
-      setLoading(false);
-      setAnalyzing(false);
     }
   };
 

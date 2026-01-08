@@ -92,66 +92,98 @@ const getProject = async (req, res, next) => {
 /**
  * Create a new project
  * POST /api/projects
+ * 
+ * OPTIMIZED: Returns immediately, runs GitHub/AI analysis in background
  */
 const createProject = async (req, res, next) => {
     try {
         const { userId } = req.auth;
         const { name, description, projectIdea, status, repositoryUrl, technologies, progress, commits, githubData, aiAnalysis } = req.body;
 
-        let fetchedGithubData = githubData || null;
-        let fetchedAiAnalysis = aiAnalysis || null;
+        // If githubData is already provided (from client-side analysis), use it directly
+        const hasPreAnalyzedData = !!(githubData || aiAnalysis);
 
-        // Auto-fetch GitHub data if repositoryUrl is provided
-        if (repositoryUrl && !githubData) {
-            try {
-                const GitHubService = require('../services/githubService');
-                const { getGroqService } = require('../services/groqService');
-
-                const parsed = GitHubService.parseGitHubUrl(repositoryUrl);
-
-                if (parsed) {
-                    console.log(`📊 Auto-fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
-                    const github = new GitHubService();
-                    fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
-
-                    // Run AI analysis on the fetched data
-                    console.log('🤖 Running AI analysis...');
-                    const groqService = getGroqService();
-                    fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
-                    console.log('✅ AI analysis complete');
-                }
-            } catch (fetchError) {
-                console.error('Error auto-fetching GitHub data:', fetchError.message);
-                // Continue without GitHub data - don't fail the project creation
-            }
-        }
-
+        // Create project immediately with basic data (no blocking on GitHub/AI)
         const projectData = {
             uid: userId,
             name,
             description: description || '',
-            projectIdea: projectIdea || '', // Store project idea/goal
+            projectIdea: projectIdea || '',
             status: status || 'Planning',
             repositoryUrl: repositoryUrl || '',
             technologies: technologies || [],
-            progress: fetchedAiAnalysis?.progressPercentage || progress || 0,
-            commits: fetchedGithubData?.totalCommits || commits || 0,
-            githubData: fetchedGithubData,
-            aiAnalysis: fetchedAiAnalysis,
+            progress: aiAnalysis?.progressPercentage || progress || 0,
+            commits: githubData?.totalCommits || commits || 0,
+            githubData: githubData || null,
+            aiAnalysis: aiAnalysis || null,
+            // Flag to indicate if background analysis is pending
+            isAnalyzing: !!(repositoryUrl && !hasPreAnalyzedData),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
 
         const projectRef = await collections.projects().add(projectData);
+        const projectId = projectRef.id;
 
+        // Return immediately - don't block on GitHub/AI analysis
         res.status(201).json({
             success: true,
             message: 'Project created successfully',
             data: {
-                id: projectRef.id,
+                id: projectId,
                 ...projectData,
             },
         });
+
+        // ═══════════════════════════════════════════════════════════════════
+        // BACKGROUND PROCESSING: Run GitHub fetch + AI analysis asynchronously
+        // ═══════════════════════════════════════════════════════════════════
+        if (repositoryUrl && !hasPreAnalyzedData) {
+            // Use setImmediate to ensure response is sent first
+            setImmediate(async () => {
+                try {
+                    const GitHubService = require('../services/githubService');
+                    const { getGroqService } = require('../services/groqService');
+
+                    const parsed = GitHubService.parseGitHubUrl(repositoryUrl);
+
+                    if (parsed) {
+                        console.log(`📊 [Background] Fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
+                        const github = new GitHubService();
+                        const fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
+
+                        console.log('🤖 [Background] Running AI analysis...');
+                        const groqService = getGroqService();
+                        const fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
+
+                        // Update project with analyzed data
+                        await collections.projects().doc(projectId).update({
+                            githubData: fetchedGithubData,
+                            aiAnalysis: fetchedAiAnalysis,
+                            progress: fetchedAiAnalysis?.progressPercentage || 0,
+                            commits: fetchedGithubData?.totalCommits || 0,
+                            technologies: fetchedGithubData?.languages?.map(l => l.name) || technologies || [],
+                            isAnalyzing: false,
+                            updatedAt: new Date().toISOString(),
+                        });
+
+                        console.log(`✅ [Background] Project ${projectId} analysis complete`);
+                    }
+                } catch (bgError) {
+                    console.error(`❌ [Background] Analysis failed for project ${projectId}:`, bgError.message);
+                    // Mark analysis as failed but don't delete the project
+                    try {
+                        await collections.projects().doc(projectId).update({
+                            isAnalyzing: false,
+                            analysisError: bgError.message,
+                            updatedAt: new Date().toISOString(),
+                        });
+                    } catch (updateError) {
+                        console.error('Failed to update project with error status:', updateError);
+                    }
+                }
+            });
+        }
     } catch (error) {
         next(error);
     }
