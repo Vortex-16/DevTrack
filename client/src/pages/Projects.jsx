@@ -537,9 +537,10 @@ function ProjectForm({
   const [fetchingLanguages, setFetchingLanguages] = useState(false);
   const [fetchedLanguages, setFetchedLanguages] = useState([]);
   const [createRepoMode, setCreateRepoMode] = useState(false);
+  // Initialize newRepoData with formData values (for AI-suggested projects)
   const [newRepoData, setNewRepoData] = useState({
-    name: "",
-    description: "",
+    name: formData.name ? formData.name.toLowerCase().replace(/\s+/g, '-') : "",
+    description: formData.description || "",
     isPrivate: false,
   });
   const [creatingRepo, setCreatingRepo] = useState(false);

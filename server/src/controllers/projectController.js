@@ -122,26 +122,57 @@ const createProject = async (req, res, next) => {
                 throw new APIError('Please link your GitHub account in settings first', 400);
             }
 
-            // 3. Ownership Check (Case-insensitive)
-            if (parsed.owner.toLowerCase() !== userGithubUsername.toLowerCase()) {
-                throw new APIError(`You can only add repositories that belong to you (${userGithubUsername})`, 403);
-            }
-
-            // 4. Existence Check (Synchronous)
+            // 3. Check if user owns or is a contributor to the repo
+            const github = new GitHubService(userData.githubAccessToken);
+            
+            // First check if repo exists and get its info
+            let repoInfo;
             try {
-                // We just need to check if it exists, use a lightweight call if possible
-                // But getRepoInfo is what we have right now
-                const github = new GitHubService(userData.githubAccessToken); // Pass token if available for private repos
-                await github.octokit.rest.repos.get({
+                const repoResponse = await github.octokit.rest.repos.get({
                     owner: parsed.owner,
                     repo: parsed.repo,
                 });
+                repoInfo = repoResponse.data;
             } catch (err) {
                 if (err.status === 404) {
                     throw new APIError('Repository not found on GitHub', 404);
                 }
-                // If it's a private repo and we don't have access, it might also 404 or 403
-                 throw new APIError(`Cannot access repository: ${err.message}`, 400);
+                throw new APIError(`Cannot access repository: ${err.message}`, 400);
+            }
+
+            // Check ownership (case-insensitive)
+            const isOwner = parsed.owner.toLowerCase() === userGithubUsername.toLowerCase();
+            
+            // If not owner, check if user is a contributor
+            if (!isOwner) {
+                try {
+                    const contributorsResponse = await github.octokit.rest.repos.listContributors({
+                        owner: parsed.owner,
+                        repo: parsed.repo,
+                        per_page: 100, // Check first 100 contributors
+                    });
+                    
+                    const contributors = contributorsResponse.data || [];
+                    const isContributor = contributors.some(
+                        contributor => contributor.login.toLowerCase() === userGithubUsername.toLowerCase()
+                    );
+                    
+                    if (!isContributor) {
+                        throw new APIError(
+                            `You can only add repositories that you own or contribute to. You are not listed as a contributor to ${parsed.owner}/${parsed.repo}`,
+                            403
+                        );
+                    }
+                } catch (contributorErr) {
+                    // If we can't fetch contributors (e.g., private repo without access), fall back to ownership check
+                    if (contributorErr instanceof APIError) {
+                        throw contributorErr;
+                    }
+                    throw new APIError(
+                        `You can only add repositories that you own or contribute to (${userGithubUsername})`,
+                        403
+                    );
+                }
             }
         }
 
