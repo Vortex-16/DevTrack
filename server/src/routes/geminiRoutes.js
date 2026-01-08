@@ -27,4 +27,7 @@ router.post('/analyze-project', requireAuth, geminiController.analyzeProject);
 // Get chat history
 router.get('/history', requireAuth, geminiController.getChatHistory);
 
+// Clear chat history
+router.delete('/history', requireAuth, geminiController.deleteChatHistory);
+
 module.exports = router;

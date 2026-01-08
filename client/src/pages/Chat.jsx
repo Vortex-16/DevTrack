@@ -39,11 +39,16 @@ const MarkdownMessage = ({ content }) => {
                 li: ({ children }) => (
                     <li className="text-slate-200">{children}</li>
                 ),
-                code: ({ inline, children }) => (
-                    inline
-                        ? <code className="bg-white/10 text-emerald-400 px-1.5 py-0.5 rounded text-sm">{children}</code>
-                        : <pre className="bg-white/5 text-emerald-400 p-3 rounded-xl my-2 overflow-x-auto text-sm border border-white/10"><code>{children}</code></pre>
+                pre: ({ children }) => (
+                    <pre className="bg-white/5 text-emerald-400 p-3 rounded-xl my-2 overflow-x-auto text-sm border border-white/10">{children}</pre>
                 ),
+                code: ({ inline, className, children, ...props }) => {
+                    // Check if it's inline code or within a pre block
+                    if (inline) {
+                        return <code className="bg-white/10 text-emerald-400 px-1.5 py-0.5 rounded text-sm" {...props}>{children}</code>
+                    }
+                    return <code className={className} {...props}>{children}</code>
+                },
                 p: ({ children }) => {
                     const text = String(children)
                     if (text.includes('❌') || text.includes('🚨') || text.includes('⚠️')) {
@@ -219,7 +224,7 @@ export default function Chat() {
 
         lenis.on('scroll', ({ scroll, limit, velocity }) => {
             const isFarUp = limit - scroll > 150
-            
+
             if (!isFarUp) {
                 setShowScrollBottom(false)
             } else {
@@ -232,7 +237,7 @@ export default function Chat() {
                 }
             }
         })
-        
+
         function raf(time) {
             lenis.raf(time)
             requestAnimationFrame(raf)
@@ -276,10 +281,14 @@ export default function Chat() {
                         timestamp: log.createdAt || log.timestamp
                     }))
 
-                    return historyMessages.length > 0 ? historyMessages : [{
-                        role: 'assistant',
-                        content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
-                    }]
+                    return historyMessages.length > 0 ? historyMessages : (
+                        localStorage.getItem('has_chatted_before')
+                            ? [{ role: 'assistant', content: `Hi, what's today?` }]
+                            : [{
+                                role: 'assistant',
+                                content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+                            }]
+                    )
                 })
                 setHistoryLoaded(true)
                 setCachedData('chat-history', true)
@@ -287,10 +296,14 @@ export default function Chat() {
         } catch (err) {
             console.error('Error fetching chat history:', err)
             setError('Failed to load chat history.')
-            setMessages([{
-                role: 'assistant',
-                content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
-            }])
+            setMessages(
+                localStorage.getItem('has_chatted_before')
+                    ? [{ role: 'assistant', content: `Hi, what's today?` }]
+                    : [{
+                        role: 'assistant',
+                        content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+                    }]
+            )
         } finally {
             setLoading(false)
         }
@@ -388,6 +401,7 @@ export default function Chat() {
             const response = await geminiApi.chat(userMessage, buildContext())
             const aiMessage = response.data.data.message
             setMessages(prev => [...prev, { role: 'assistant', content: aiMessage }])
+            localStorage.setItem('has_chatted_before', 'true');
         } catch (err) {
             console.error('Chat error:', err)
             setMessages(prev => [...prev, { role: 'assistant', content: '❌ Sorry, I encountered an error. Please try again.' }])
@@ -405,149 +419,161 @@ export default function Chat() {
 
     return (
         <PixelTransition loading={loading && messages.length === 0}>
-        <motion.div
-            className="h-[calc(100vh-4rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
-        >
-            {/* Loader Overlay removed - replaced by PixelTransition */}
-
-
-            {/* Sidebar Removed */}
-
-            {/* Main Chat Container - Background removed, padding maximized */}
-            <div
-                className="px-4 md:px-6 py-0 flex-1 flex flex-col overflow-hidden relative"
+            <motion.div
+                className="h-[calc(100vh-4rem)] flex gap-4 lg:gap-6 overflow-hidden relative"
             >
-                {/* Header toggle removed */}
-                {/* Header */}
-                <div className="flex flex-row justify-between items-center gap-4 mb-2">
-                    <div className="flex items-center gap-3">
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">DevTrack AI</h1>
-                            <p className="text-slate-400 text-xs sm:text-sm">Experimental Technical Assistant</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="hidden sm:flex items-center gap-2 border-white/5 hover:bg-white/10 bg-white/5 rounded-full px-4"
-                            onClick={() => {
-                                sessionStorage.removeItem('chat_messages');
-                                setMessages([{
-                                    role: 'assistant',
-                                    content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
-                                }]);
-                            }}
-                        >
-                            <Plus size={16} />
-                            <span>New Chat</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="sm:hidden flex items-center justify-center text-white w-10 h-10 p-0 hover:bg-white/10 rounded-full"
-                            onClick={() => {
-                                sessionStorage.removeItem('chat_messages');
-                                setMessages([{
-                                    role: 'assistant',
-                                    content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
-                                }]);
-                            }}
-                        >
-                            <SquarePen size={26} />
-                        </Button>
-                    </div>
-                </div>
+                {/* Loader Overlay removed - replaced by PixelTransition */}
 
-                {/* Quick Prompts */}
-                <div className="flex items-center gap-2 mb-2 overflow-hidden">
-                    <div className="flex-1 flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide mask-fade-right">
-                        {quickPrompts.map((qp, idx) => (
-                            <QuickPromptButton
-                                key={idx}
-                                icon={qp.icon}
-                                label={qp.label}
-                                onClick={() => setInput(qp.prompt)}
-                                disabled={loading}
-                            />
-                        ))}
-                    </div>
-                </div>
 
-                {/* Messages Area */}
+                {/* Sidebar Removed */}
+
+                {/* Main Chat Container - Background removed, padding maximized */}
                 <div
-                    ref={containerRef}
-                    id="chat-scroll-container"
-                    className="flex-1 overflow-y-auto min-h-0 mb-2 overscroll-behavior-contain relative z-0 pointer-events-auto"
-                    style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                    className="px-4 md:px-6 py-0 flex-1 flex flex-col overflow-hidden relative"
                 >
-                    <div ref={contentRef} className="space-y-4 pr-6 pb-4">
-                        <AnimatePresence>
-                            {messages.map((msg, idx) => (
-                                <MessageBubble key={idx} message={msg} idx={idx} />
-                            ))}
-                        </AnimatePresence>
-
-                        {loading && <TypingIndicator />}
-                        <div ref={messagesEndRef} />
-                    </div>
-                </div>
-
-                <AnimatePresence>
-                    {showScrollBottom && (
-                        <motion.button
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
-                            onClick={scrollToBottom}
-                            className="absolute bottom-24 right-8 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg shadow-purple-900/50 border border-purple-400/30 z-20 transition-colors"
-                        >
-                            <ArrowDown size={20} />
-                        </motion.button>
-                    )}
-                </AnimatePresence>
-
-                {/* Input Area */}
-                <form onSubmit={handleSubmit} className="flex gap-3">
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask me anything about your projects, learning, or coding..."
-                            className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none transition-colors"
-                            disabled={loading}
-                        />
-                        {/* Visual timer removed */}
-                    </div>
-                    <Button
-                        type="submit"
-                        disabled={loading || !input.trim()}
-                        className="px-6 rounded-full"
-                    >
-                        {loading ? (
-                            <motion.div
-                                animate={{ 
-                                    x: [0, 15, -15, 0], 
-                                    y: [0, -15, 15, 0],
-                                    opacity: [1, 0, 0, 1] 
-                                }}
-                                transition={{ 
-                                    duration: 1, 
-                                    repeat: Infinity, 
-                                    ease: ["easeIn", "linear", "easeOut"],
-                                    times: [0, 0.45, 0.45, 1]
+                    {/* Header toggle removed */}
+                    {/* Header */}
+                    <div className="flex flex-row justify-between items-center gap-4 mb-2">
+                        <div className="flex items-center gap-3">
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">DevTrack AI</h1>
+                                <p className="text-slate-400 text-xs sm:text-sm">Experimental Technical Assistant</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="hidden sm:flex items-center gap-2 border-white/5 hover:bg-white/10 bg-white/5 rounded-full px-4"
+                                onClick={async () => {
+                                    try {
+                                        await geminiApi.deleteHistory();
+                                        setCachedData('chat-history', false); // Invalidating cache
+                                    } catch (e) {
+                                        console.error("Failed to clear history", e);
+                                    }
+                                    sessionStorage.removeItem('chat_messages');
+                                    setMessages([{
+                                        role: 'assistant',
+                                        content: `Hi, what's today?`
+                                    }]);
                                 }}
                             >
-                                <Send size={18} />
-                            </motion.div>
-                        ) : (
-                            <Send size={18} />
+                                <Plus size={16} />
+                                <span>New Chat</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="sm:hidden flex items-center justify-center text-white w-10 h-10 p-0 hover:bg-white/10 rounded-full"
+                                onClick={async () => {
+                                    try {
+                                        await geminiApi.deleteHistory();
+                                        setCachedData('chat-history', false);
+                                    } catch (e) {
+                                        console.error("Failed to clear history", e);
+                                    }
+                                    sessionStorage.removeItem('chat_messages');
+                                    setMessages([{
+                                        role: 'assistant',
+                                        content: `Hi, what's today?`
+                                    }]);
+                                }}
+                            >
+                                <SquarePen size={26} />
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Quick Prompts */}
+                    <div className="flex items-center gap-2 mb-2 overflow-hidden">
+                        <div className="flex-1 flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-hide mask-fade-right">
+                            {quickPrompts.map((qp, idx) => (
+                                <QuickPromptButton
+                                    key={idx}
+                                    icon={qp.icon}
+                                    label={qp.label}
+                                    onClick={() => setInput(qp.prompt)}
+                                    disabled={loading}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Messages Area */}
+                    <div
+                        ref={containerRef}
+                        id="chat-scroll-container"
+                        className="flex-1 overflow-y-auto min-h-0 mb-2 overscroll-behavior-contain relative z-0 pointer-events-auto"
+                        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                    >
+                        <div ref={contentRef} className="space-y-4 pr-6 pb-4">
+                            <AnimatePresence>
+                                {messages.map((msg, idx) => (
+                                    <MessageBubble key={idx} message={msg} idx={idx} />
+                                ))}
+                            </AnimatePresence>
+
+                            {loading && <TypingIndicator />}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    </div>
+
+                    <AnimatePresence>
+                        {showScrollBottom && (
+                            <motion.button
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                onClick={scrollToBottom}
+                                className="absolute bottom-24 right-8 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg shadow-purple-900/50 border border-purple-400/30 z-20 transition-colors"
+                            >
+                                <ArrowDown size={20} />
+                            </motion.button>
                         )}
-                    </Button>
-                </form>
-            </div>
-        </motion.div>
+                    </AnimatePresence>
+
+                    {/* Input Area */}
+                    <form onSubmit={handleSubmit} className="flex gap-3">
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Ask me anything about your projects, learning, or coding..."
+                                className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-slate-500 focus:border-purple-500 focus:outline-none transition-colors"
+                                disabled={loading}
+                            />
+                            {/* Visual timer removed */}
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={loading || !input.trim()}
+                            className="px-6 rounded-full"
+                        >
+                            {loading ? (
+                                <motion.div
+                                    animate={{
+                                        x: [0, 15, -15, 0],
+                                        y: [0, -15, 15, 0],
+                                        opacity: [1, 0, 0, 1]
+                                    }}
+                                    transition={{
+                                        duration: 1,
+                                        repeat: Infinity,
+                                        ease: ["easeIn", "linear", "easeOut"],
+                                        times: [0, 0.45, 0.45, 1]
+                                    }}
+                                >
+                                    <Send size={18} />
+                                </motion.div>
+                            ) : (
+                                <Send size={18} />
+                            )}
+                        </Button>
+                    </form>
+                </div>
+            </motion.div>
         </PixelTransition>
     )
 }

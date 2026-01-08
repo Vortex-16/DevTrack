@@ -475,9 +475,14 @@ I'm designed to be an elite-tier coding assistant with deep expertise in softwar
                 };
             }
 
-            // Enhanced Safety Filter
+            // Enhanced Safety Filter with word boundary matching
             const sensitiveKeywords = ['politics', 'election', 'religion', 'adult', 'nsfw', 'racist', 'hate', 'suicide', 'kill', 'drug', 'violence'];
-            if (sensitiveKeywords.some(keyword => lowerMsg.includes(keyword))) {
+            const hasSensitiveContent = sensitiveKeywords.some(keyword => {
+                // Use word boundary regex to avoid false positives (e.g., "skills" containing "kill")
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                return regex.test(lowerMsg);
+            });
+            if (hasSensitiveContent) {
                 return {
                     success: true,
                     message: `## 🛡️ Staying Focused
@@ -520,9 +525,15 @@ Let's channel that energy into building something amazing! What coding challenge
 
             // Add project context if provided
             if (context) {
+                // Check if context contains memory summary
+                const hasMemory = context.includes('🧠 Memory');
                 messages.push({
                     role: "system",
-                    content: `## 📋 Current Context
+                    content: hasMemory
+                        ? `${context}
+
+IMPORTANT: You have persistent memory of this user from previous conversations. USE this memory to personalize your responses. When the user asks "do you remember" or similar questions, refer to what you know about them from your memory. Never say you don't have memory or can't remember - you DO have the memory shown above.`
+                        : `## 📋 Current Context
 The user is working on:
 ${context}
 
@@ -1058,6 +1069,72 @@ You are a cybersecurity expert. Be thorough and precise in identifying vulnerabi
                 success: false,
                 error: 'Security audit failed. Please try again.',
                 details: error.message
+            };
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONVERSATION MEMORY SUMMARIZATION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Summarize a conversation to create persistent memory
+     * @param {Array} messages - Array of conversation messages
+     * @param {string} existingSummary - Previous summary to incorporate
+     * @returns {object} - Summary result
+     */
+    async summarizeConversation(messages, existingSummary = '') {
+        if (!messages || messages.length === 0) {
+            return {
+                success: true,
+                summary: existingSummary || ''
+            };
+        }
+
+        const conversationText = messages
+            .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n\n');
+
+        const prompt = `You are creating a MEMORY SUMMARY for a coding assistant. This summary will be used to remember key information about the user across conversations.
+
+${existingSummary ? `## Previous Memory:\n${existingSummary}\n\n---\n\n` : ''}
+
+## New Conversation to Summarize:
+${conversationText}
+
+---
+
+Create a concise memory summary that captures:
+1. **User Profile**: Their name (if mentioned), skill level, role, interests
+2. **Projects**: What projects they're working on, tech stacks used
+3. **Topics Discussed**: Key coding topics, problems solved, concepts learned
+4. **Preferences**: Their coding style preferences, preferred technologies
+5. **Important Context**: Any deadlines, goals, or important details mentioned
+
+**FORMAT YOUR RESPONSE AS A SINGLE PARAGRAPH** (max 500 words) that can be used to quickly recall who this user is and what they've discussed. Write in third person (e.g., "The user is working on...").
+
+If the previous memory exists, MERGE the new information with it, keeping the most relevant and recent details. Remove outdated information.`;
+
+        try {
+            const response = await this.makeRequest([
+                { role: "system", content: "You are a memory summarization expert. Create concise, useful summaries that capture the essence of conversations for future reference." },
+                { role: "user", content: prompt }
+            ], {
+                temperature: 0.3,
+                max_tokens: 800
+            });
+
+            return {
+                success: true,
+                summary: response.trim(),
+                model: this.model
+            };
+        } catch (error) {
+            console.error('Summarization error:', error);
+            return {
+                success: false,
+                error: 'Failed to summarize conversation',
+                summary: existingSummary || ''
             };
         }
     }

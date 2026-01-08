@@ -5,7 +5,7 @@
 
 const { getGroqService } = require('../services/groqService');
 const { APIError } = require('../middleware/errorHandler');
-const { collections } = require('../config/firebase');
+const { collections, getFirestore } = require('../config/firebase');
 
 /**
  * Chat with AI
@@ -26,8 +26,10 @@ const chat = async (req, res, next) => {
 
         // Fetch recent history for context (last 5 rounds of conversation)
         let history = [];
+        let memorySummary = '';
         if (userId) {
             try {
+                // Fetch chat history
                 const historySnapshot = await collections.users()
                     .doc(userId)
                     .collection('chatHistory')
@@ -38,12 +40,25 @@ const chat = async (req, res, next) => {
                 history = historySnapshot.docs
                     .map(doc => doc.data())
                     .reverse(); // Chronological order
+
+                // Fetch memory summary for persistent context
+                const userDoc = await collections.users().doc(userId).get();
+                memorySummary = userDoc.data()?.memorySummary || '';
             } catch (historyFetchError) {
                 console.error('Failed to fetch history for context:', historyFetchError);
             }
         }
 
-        const response = await groqService.chat(message, context, history);
+        // Build enhanced context with memory summary
+        let enhancedContext = context || '';
+        if (memorySummary) {
+            console.log('📝 Memory summary found for user:', memorySummary.substring(0, 100) + '...');
+            enhancedContext = `## 🧠 Memory (What you know about this user from previous conversations):\n${memorySummary}\n\n---\n\n${enhancedContext}`;
+        } else {
+            console.log('📝 No memory summary found for user');
+        }
+
+        const response = await groqService.chat(message, enhancedContext, history);
 
         console.log('AI response:', { success: response.success, hasMessage: !!response.message });
 
@@ -222,6 +237,65 @@ const getChatHistory = async (req, res, next) => {
     }
 };
 
+/**
+ * Clear chat history for user (with memory summarization)
+ * DELETE /api/gemini/history
+ */
+const deleteChatHistory = async (req, res, next) => {
+    try {
+        const userId = req.user.uid;
+        console.log('🗑️ Clearing chat history for user:', userId);
+
+        // Fetch current history to summarize (without orderBy to avoid index requirement)
+        const historyRef = collections.users().doc(userId).collection('chatHistory');
+        const historySnapshot = await historyRef.get();
+
+        const messages = historySnapshot.docs.map(doc => doc.data());
+        console.log(`📜 Found ${messages.length} messages to process`);
+
+        // Try to summarize if there are messages
+        let newSummary = '';
+        if (messages.length > 0) {
+            try {
+                const groqService = getGroqService();
+
+                // Fetch existing memory summary
+                const userDoc = await collections.users().doc(userId).get();
+                const existingSummary = userDoc.data()?.memorySummary || '';
+
+                const summaryResult = await groqService.summarizeConversation(messages, existingSummary);
+                if (summaryResult.success && summaryResult.summary) {
+                    newSummary = summaryResult.summary;
+                    console.log('✅ Summary created:', newSummary.substring(0, 100) + '...');
+
+                    // Store the updated memory summary
+                    await collections.users().doc(userId).set({
+                        memorySummary: newSummary,
+                        memorySummaryUpdatedAt: new Date()
+                    }, { merge: true });
+                }
+            } catch (summaryError) {
+                console.error('⚠️ Summarization failed (continuing with delete):', summaryError.message);
+                // Continue with delete even if summarization fails
+            }
+        }
+
+        // Delete the chat history - use Promise.all for individual deletes
+        const deletePromises = historySnapshot.docs.map(doc => doc.ref.delete());
+        await Promise.all(deletePromises);
+        console.log('✅ Chat history deleted');
+
+        res.status(200).json({
+            success: true,
+            message: 'Chat history cleared and summarized',
+            hasSummary: !!newSummary
+        });
+    } catch (error) {
+        console.error('❌ Delete chat history error:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     chat,
     getMotivation,
@@ -229,4 +303,5 @@ module.exports = {
     healthCheck,
     analyzeProject,
     getChatHistory,
+    deleteChatHistory
 };
