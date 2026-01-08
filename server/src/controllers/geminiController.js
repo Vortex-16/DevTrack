@@ -14,7 +14,7 @@ const { collections, getFirestore } = require('../config/firebase');
 const chat = async (req, res, next) => {
     try {
         const { message, context } = req.body;
-        const userId = req.user?.uid;
+        const userId = req.auth?.userId;
 
         console.log('Chat request received:', { message: message?.substring(0, 50), hasContext: !!context });
 
@@ -212,7 +212,7 @@ const analyzeProject = async (req, res, next) => {
  */
 const getChatHistory = async (req, res, next) => {
     try {
-        const userId = req.user.uid;
+        const userId = req.auth.userId;
 
         const historySnapshot = await collections.users()
             .doc(userId)
@@ -243,7 +243,7 @@ const getChatHistory = async (req, res, next) => {
  */
 const deleteChatHistory = async (req, res, next) => {
     try {
-        const userId = req.user.uid;
+        const userId = req.auth.userId;
         console.log('🗑️ Clearing chat history for user:', userId);
 
         // Fetch current history to summarize (without orderBy to avoid index requirement)
