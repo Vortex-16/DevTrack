@@ -26,6 +26,7 @@ import {
   Search,
 } from "lucide-react";
 import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
+import SavedProjectsModal from "../components/projects/SavedProjectsModal";
 import PixelTransition from "../components/ui/PixelTransition";
 
 // SVG Icon Components
@@ -1069,6 +1070,7 @@ export default function Projects() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isBackgroundProcessing, setIsBackgroundProcessing] = useState(false);
   const [showSimilarModal, setShowSimilarModal] = useState(false);
+  const [showSavedModal, setShowSavedModal] = useState(false);
 
   const defaultFormData = {
     name: "",
@@ -1428,6 +1430,14 @@ export default function Projects() {
             </div>
             <div className="flex gap-3">
               <Button
+                onClick={() => setShowSavedModal(true)}
+                variant="ghost"
+                className="flex items-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-yellow-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+              >
+                <Star className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-yellow-500 fill-yellow-500" />
+                Saved
+              </Button>
+              <Button
                 onClick={() => setShowSimilarModal(true)}
                 variant="ghost"
                 className="flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
@@ -1504,7 +1514,7 @@ export default function Projects() {
                     <p className="text-red-400 flex-1">Error: {error}</p>
                     <Button
                       variant="ghost"
-                      onClick={fetchProjects}
+                      onClick={fetchData}
                       className="text-sm"
                     >
                       Retry
@@ -1699,6 +1709,12 @@ export default function Projects() {
               ),
             ].slice(0, 3)
           }
+        />
+        
+        {/* Saved Projects Modal */}
+        <SavedProjectsModal
+          isOpen={showSavedModal}
+          onClose={() => setShowSavedModal(false)}
         />
       </motion.div>
     </PixelTransition>

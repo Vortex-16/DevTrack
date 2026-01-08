@@ -146,6 +146,13 @@ export const notificationsApi = {
     sendTest: () => api.post('/notifications/test'),
 };
 
+export const bookmarksApi = {
+    getAll: () => api.get('/bookmarks'),
+    add: (repoData) => api.post('/bookmarks', repoData),
+    checkStatus: (repoIds) => api.post('/bookmarks/check', { repoIds }),
+    remove: (repoId) => api.delete(`/bookmarks/${repoId}`),
+};
+
 export const tasksApi = {
     getAll: (params) => api.get('/tasks', { params }),
     getByRange: (start, end) => api.get('/tasks/range', { params: { start, end } }),

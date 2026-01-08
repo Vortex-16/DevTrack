@@ -995,14 +995,20 @@ class GitHubService {
                 q: searchQuery,
                 sort: 'stars',
                 order: 'desc',
-                per_page: perPage,
+                per_page: 50, // Fetch more to shuffle
             });
 
             console.log(`✅ Found ${data.total_count} repos, returning top ${data.items.length}`);
 
+            // Shuffle the results to make it dynamic
+            const shuffled = data.items.sort(() => 0.5 - Math.random());
+            
+            // Return only the requested number of items
+            const selectedRepos = shuffled.slice(0, perPage);
+
             return {
                 totalCount: data.total_count,
-                repos: data.items.map(repo => ({
+                repos: selectedRepos.map(repo => ({
                     id: repo.id,
                     name: repo.name,
                     fullName: repo.full_name,

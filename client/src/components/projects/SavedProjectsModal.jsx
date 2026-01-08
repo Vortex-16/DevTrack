@@ -1,21 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, GitFork, ExternalLink, Sparkles, Search, Loader2, Bookmark } from 'lucide-react';
-import { githubApi, bookmarksApi } from '../../services/api';
+import { X, Star, GitFork, ExternalLink, Bookmark, Loader2, Trash2 } from 'lucide-react';
+import { bookmarksApi } from '../../services/api';
 import Lenis from 'lenis';
 import { useLenis } from 'lenis/react';
 
 /**
- * Modal to display similar open-source projects based on user's tech stack
+ * Modal to display user's bookmarked projects
  */
-export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = [] }) {
+export default function SavedProjectsModal({ isOpen, onClose }) {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [searchedLanguages, setSearchedLanguages] = useState([]);
-    const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
-    const [checkingBookmarks, setCheckingBookmarks] = useState(false);
 
     const scrollWrapperRef = useRef(null);
     const scrollContentRef = useRef(null);
@@ -23,7 +20,7 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
 
     useEffect(() => {
         if (isOpen) {
-            fetchSimilarProjects();
+            fetchBookmarks();
         }
     }, [isOpen]);
 
@@ -77,94 +74,38 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
         };
     }, [isOpen, loading]);
 
-    const fetchSimilarProjects = async () => {
+    const fetchBookmarks = async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await githubApi.getSimilarProjects(
-                userLanguages.length > 0 ? userLanguages : null,
-                null, // topics
-                100,  // minStars
-                12    // limit
-            );
-            const repos = response.data?.data?.repos || [];
-            setProjects(repos);
-            setSearchedLanguages(userLanguages.length > 0 ? userLanguages : ['JavaScript', 'TypeScript', 'Python']);
-            
-            // Check bookmark status for these repos
-            if (repos.length > 0) {
-                checkBookmarks(repos.map(r => r.id));
-            }
+            const response = await bookmarksApi.getAll();
+            setProjects(response.data?.data || []);
         } catch (err) {
-            console.error('Error fetching similar projects:', err);
-            setError('Failed to fetch similar projects. Please try again.');
+            console.error('Error fetching bookmarks:', err);
+            setError('Failed to load saved projects.');
         } finally {
             setLoading(false);
         }
     };
 
-    const checkBookmarks = async (repoIds) => {
-        setCheckingBookmarks(true);
-        try {
-            const response = await bookmarksApi.checkStatus(repoIds);
-            const statusMap = response.data?.data || {};
-            
-            const newBookmarkedIds = new Set();
-            Object.entries(statusMap).forEach(([id, isBookmarked]) => {
-                if (isBookmarked) newBookmarkedIds.add(parseInt(id));
-            });
-            setBookmarkedIds(newBookmarkedIds);
-        } catch (error) {
-            console.error('Error checking bookmarks:', error);
-        } finally {
-            setCheckingBookmarks(false);
-        }
-    };
-
-    const toggleBookmark = async (e, project) => {
+    const removeBookmark = async (e, projectId) => {
         e.preventDefault();
         e.stopPropagation();
 
-        const isBookmarked = bookmarkedIds.has(project.id);
-        
         // Optimistic update
-        const newSet = new Set(bookmarkedIds);
-        if (isBookmarked) {
-            newSet.delete(project.id);
-        } else {
-            newSet.add(project.id);
-        }
-        setBookmarkedIds(newSet);
+        setProjects(prev => prev.filter(p => p.id !== projectId));
 
         try {
-            if (isBookmarked) {
-                await bookmarksApi.remove(project.id);
-            } else {
-                await bookmarksApi.add({
-                    id: project.id,
-                    name: project.name,
-                    fullName: project.fullName,
-                    url: project.url,
-                    description: project.description,
-                    stars: project.stars,
-                    language: project.language,
-                    owner: project.owner,
-                    updatedAt: project.updatedAt
-                });
-            }
+            await bookmarksApi.remove(projectId);
         } catch (error) {
-            console.error('Error toggling bookmark:', error);
-            // Revert on error
-            setBookmarkedIds(prev => {
-                const reverted = new Set(prev);
-                if (isBookmarked) reverted.add(project.id);
-                else reverted.delete(project.id);
-                return reverted;
-            });
+            console.error('Error removing bookmark:', error);
+            // Reload on error to restore state
+            fetchBookmarks();
         }
     };
 
     const formatStars = (count) => {
+        if (!count) return '0';
         if (count >= 1000) {
             return (count / 1000).toFixed(1) + 'k';
         }
@@ -172,6 +113,7 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) return '';
         const date = new Date(dateString);
         const now = new Date();
         const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
@@ -213,13 +155,13 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20">
-                                <Search className="w-6 h-6 text-purple-400" />
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20">
+                                <Bookmark className="w-6 h-6 text-yellow-500" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Discover Similar Projects</h2>
+                                <h2 className="text-xl font-bold text-white">Saved Projects</h2>
                                 <p className="text-sm text-slate-400">
-                                    Open-source projects matching your tech stack
+                                    Your bookmarked open-source repositories
                                 </p>
                             </div>
                         </div>
@@ -231,22 +173,6 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
                         </button>
                     </div>
 
-                    {/* Languages Tag */}
-                    {searchedLanguages.length > 0 && (
-                        <div className="px-6 py-3 border-b border-white/5 flex items-center gap-2 flex-wrap flex-shrink-0">
-                            <Search className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-500">Searching:</span>
-                            {searchedLanguages.map((lang, i) => (
-                                <span
-                                    key={i}
-                                    className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                >
-                                    {lang}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
                     {/* Content - Scrollable with Lenis */}
                     <div 
                         ref={scrollWrapperRef}
@@ -255,22 +181,26 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
                         <div ref={scrollContentRef} className="p-6">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-16">
-                                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-4" />
-                                    <p className="text-slate-400">Searching GitHub for similar projects...</p>
+                                    <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
+                                    <p className="text-slate-400">Loading your bookmarks...</p>
                                 </div>
                             ) : error ? (
                                 <div className="flex flex-col items-center justify-center py-16">
                                     <p className="text-red-400 mb-4">{error}</p>
                                     <button
-                                        onClick={fetchSimilarProjects}
-                                        className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+                                        onClick={fetchBookmarks}
+                                        className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors"
                                     >
                                         Try Again
                                     </button>
                                 </div>
                             ) : projects.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16">
-                                    <p className="text-slate-400">No similar projects found.</p>
+                                    <Bookmark className="w-12 h-12 text-slate-700 mb-4" />
+                                    <p className="text-slate-400 text-lg mb-2">No saved projects yet</p>
+                                    <p className="text-slate-500 text-sm max-w-xs text-center">
+                                        Use the "Discover Similar" feature to find and bookmark interesting repositories.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -283,33 +213,33 @@ export default function SimilarProjectsModal({ isOpen, onClose, userLanguages = 
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            className="group block p-4 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-white/10 transition-all duration-300 relative"
+                                            className="group block p-4 rounded-xl bg-white/5 border border-white/10 hover:border-yellow-500/50 hover:bg-white/10 transition-all duration-300 relative"
                                         >
-                                            {/* Bookmark Button */}
+                                            {/* Remove Button */}
                                             <button 
-                                                onClick={(e) => toggleBookmark(e, project)}
-                                                className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/20 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors z-10"
-                                                title={bookmarkedIds.has(project.id) ? "Remove Bookmark" : "Bookmark this project"}
+                                                onClick={(e) => removeBookmark(e, project.id.toString())}
+                                                className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/20 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors z-10"
+                                                title="Remove from saved"
                                             >
-                                                <Bookmark 
-                                                    className={`w-4 h-4 ${bookmarkedIds.has(project.id) ? "fill-purple-400 text-purple-400" : ""}`} 
-                                                />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
 
                                             {/* Owner */}
                                             <div className="flex items-center gap-2 mb-3">
-                                                <img
-                                                    src={project.owner.avatarUrl}
-                                                    alt={project.owner.login}
-                                                    className="w-6 h-6 rounded-full"
-                                                />
+                                                {project.owner?.avatarUrl && (
+                                                    <img
+                                                        src={project.owner.avatarUrl}
+                                                        alt={project.owner.login || 'Owner'}
+                                                        className="w-6 h-6 rounded-full"
+                                                    />
+                                                )}
                                                 <span className="text-xs text-slate-400 truncate">
-                                                    {project.owner.login}
+                                                    {project.owner?.login || 'Unknown'}
                                                 </span>
                                             </div>
 
                                             {/* Name */}
-                                            <h3 className="font-semibold text-white group-hover:text-purple-300 transition-colors mb-2 truncate pr-6">
+                                            <h3 className="font-semibold text-white group-hover:text-yellow-400 transition-colors mb-2 truncate pr-6">
                                                 {project.name}
                                             </h3>
 
