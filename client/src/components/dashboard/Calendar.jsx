@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { tasksApi } from '../../services/api'
-import { Calendar as CalendarIcon, ArrowLeft, ChevronDown, X } from 'lucide-react'
+import { Calendar as CalendarIcon, ArrowLeft, ChevronDown, X, Check } from 'lucide-react'
 
 // Calendar Component with Task Management
 export default function Calendar({ onExpand, compact }) {
@@ -63,7 +63,7 @@ export default function Calendar({ onExpand, compact }) {
             const dueTomorrow = urgentTasks.filter(t => t.dueDate === tomorrowStr)
 
             if (dueToday.length > 0) {
-                new Notification('⚠️ High Priority Tasks Due Today!', {
+                new Notification('High Priority Tasks Due Today!', {
                     body: dueToday.map(t => t.title).join(', '),
                     icon: '/devtrack-BG.png',
                     tag: 'high-priority-today'
@@ -71,7 +71,7 @@ export default function Calendar({ onExpand, compact }) {
             }
 
             if (dueTomorrow.length > 0) {
-                new Notification('📌 High Priority Tasks Due Tomorrow', {
+                new Notification('High Priority Tasks Due Tomorrow', {
                     body: dueTomorrow.map(t => t.title).join(', '),
                     icon: '/devtrack-BG.png',
                     tag: 'high-priority-tomorrow'
@@ -155,7 +155,7 @@ export default function Calendar({ onExpand, compact }) {
                     const tomorrowStr = getDateString(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
 
                     if (createdTask.dueDate === todayStr || createdTask.dueDate === tomorrowStr) {
-                        new Notification('🔥 High Priority Task Added!', {
+                        new Notification('High Priority Task Added!', {
                             body: `"${createdTask.title}" is due ${createdTask.dueDate === todayStr ? 'today' : 'tomorrow'}`,
                             icon: '/devtrack-BG.png'
                         })
@@ -392,7 +392,7 @@ export default function Calendar({ onExpand, compact }) {
                                                     }
                                                 `}
                                             >
-                                                {task.completed && <span className="text-white text-xs">✓</span>}
+                                                {task.completed && <Check className="w-3 h-3 text-white" />}
                                             </button>
                                             <span className={`text-sm flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-white'} truncate`}>
                                                 {task.title}

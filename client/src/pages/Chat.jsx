@@ -8,7 +8,7 @@ import Lenis from 'lenis'
 import ReactMarkdown from 'react-markdown'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Plus, Target, BookOpen, Dumbbell, BarChart2, Zap, Send, User, ArrowDown, Bot, SquarePen } from 'lucide-react'
+import { Plus, Target, BookOpen, Dumbbell, BarChart2, Zap, Send, User, ArrowDown, Bot, SquarePen, XCircle, HandMetal, Lightbulb } from 'lucide-react'
 
 // Custom styled markdown renderer
 const MarkdownMessage = ({ content }) => {
@@ -286,7 +286,7 @@ export default function Chat() {
                             ? [{ role: 'assistant', content: `Hi, what's today?` }]
                             : [{
                                 role: 'assistant',
-                                content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+                                content: `**Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
                             }]
                     )
                 })
@@ -301,7 +301,7 @@ export default function Chat() {
                     ? [{ role: 'assistant', content: `Hi, what's today?` }]
                     : [{
                         role: 'assistant',
-                        content: `👋 **Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> 💡 **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
+                        content: `**Hi! I'm your Gemini 2.0 flash coding assistant.**\nI'm here to help you build better software faster.\n\nI can help you with:\n- **Code implementation**\n- **Debugging**\n- **Architecture**\n- **Best practices**\n\n> **Tip**: I specialize strictly in coding. Just share your code or ask any programming question!`
                     }]
             )
         } finally {
@@ -404,7 +404,7 @@ export default function Chat() {
             localStorage.setItem('has_chatted_before', 'true');
         } catch (err) {
             console.error('Chat error:', err)
-            setMessages(prev => [...prev, { role: 'assistant', content: '❌ Sorry, I encountered an error. Please try again.' }])
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }])
         } finally {
             setLoading(false)
         }

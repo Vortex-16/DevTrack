@@ -30,6 +30,9 @@ import {
   Zap,
   Bookmark,
   Leaf,
+  Lock,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
 import SavedProjectsModal from "../components/projects/SavedProjectsModal";
@@ -762,7 +765,7 @@ function ProjectForm({
               : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
               }`}
           >
-            <p className="font-medium text-white">🔒 Private</p>
+            <p className="font-medium text-white flex items-center gap-1.5"><Lock className="w-4 h-4" /> Private</p>
             <p className="text-xs text-slate-400">Only you</p>
           </button>
         </div>
@@ -788,7 +791,7 @@ function ProjectForm({
             className="flex-1"
             disabled={creatingRepo || !newRepoData.name}
           >
-            {creatingRepo ? "🔄 Creating..." : "🚀 Create Repository"}
+            {creatingRepo ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Rocket className="w-4 h-4 mr-2" />Create Repository</>}
           </Button>
         </div>
       </div>
@@ -915,7 +918,7 @@ function ProjectForm({
       {error && (
         <div className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-2">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-red-400 text-lg">❌</span>
+            <XCircle className="w-5 h-5 text-red-400" />
             <span className="text-red-400 font-semibold">Could not create project</span>
           </div>
           <p className="text-red-300 text-sm pl-7">
@@ -936,7 +939,7 @@ function ProjectForm({
         </Button>
         <Button type="submit" className="flex-1" disabled={analyzing}>
           {analyzing
-            ? "🔍 Analyzing..."
+            ? <><Search className="w-4 h-4 mr-2 animate-pulse" />Analyzing...</>
             : isEdit
               ? "Save Changes"
               : "Create Project"}
@@ -1248,7 +1251,7 @@ export default function Projects() {
 
       // Create project
       const createResponse = await projectsApi.create(projectData);
-      
+
       // If we get here, it succeeded
       setShowModal(false);
       setFormData(defaultFormData);
@@ -1472,21 +1475,21 @@ export default function Projects() {
     try {
       setGeneratingIdeas(true);
       setProjectIdeas([]);
-      
+
       // Get titles that have already been shown twice (need to be excluded)
       const excludeTitles = Object.entries(shownIdeaTitles)
         .filter(([_, count]) => count >= 2)
         .map(([title]) => title);
-      
-      const response = await projectIdeasApi.generate({ 
+
+      const response = await projectIdeasApi.generate({
         difficulty: ideaDifficulty,
-        excludeTitles 
+        excludeTitles
       });
-      
+
       if (response.data?.success) {
         const newIdeas = response.data.data.ideas || [];
         setProjectIdeas(newIdeas);
-        
+
         // Update shown titles count
         setShownIdeaTitles(prev => {
           const updated = { ...prev };
@@ -1521,7 +1524,7 @@ export default function Projects() {
   // Toggle save/unsave an idea
   const toggleSaveIdea = async (idea) => {
     const isSaved = savedIdeaTitles.has(idea.title);
-    
+
     // Optimistic update
     setSavedIdeaTitles(prev => {
       const newSet = new Set(prev);
@@ -1667,7 +1670,7 @@ export default function Projects() {
                   className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-red-400">⚠️</span>
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
                     <p className="text-red-400 flex-1">Error: {error}</p>
                     <Button
                       variant="ghost"
@@ -1739,7 +1742,9 @@ export default function Projects() {
           title="Delete Project?"
         >
           <div className="text-center">
-            <div className="text-5xl mb-4">⚠️</div>
+            <div className="flex justify-center mb-4">
+              <AlertTriangle className="w-12 h-12 text-yellow-500" />
+            </div>
             <p className="text-slate-400 mb-6">This action cannot be undone.</p>
             <div className="flex gap-4">
               <Button
@@ -1869,7 +1874,7 @@ export default function Projects() {
             ].slice(0, 3)
           }
         />
-        
+
         {/* Saved Repos Modal */}
         <SavedProjectsModal
           isOpen={showSavedModal}
@@ -1919,24 +1924,22 @@ export default function Projects() {
                     key={diff.value}
                     type="button"
                     onClick={() => setIdeaDifficulty(diff.value)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-center group relative overflow-hidden ${
-                      ideaDifficulty === diff.value
-                        ? `bg-${diff.color}-500/20 border-${diff.color}-500 text-white shadow-lg shadow-${diff.color}-500/20`
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30 hover:bg-white/10'
-                    }`}
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-center group relative overflow-hidden ${ideaDifficulty === diff.value
+                      ? `bg-${diff.color}-500/20 border-${diff.color}-500 text-white shadow-lg shadow-${diff.color}-500/20`
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30 hover:bg-white/10'
+                      }`}
                   >
                     {ideaDifficulty === diff.value && (
                       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                     )}
                     <div className="relative">
                       <div className="flex justify-center mb-2">
-                        <diff.Icon className={`w-7 h-7 group-hover:scale-110 transition-transform duration-300 ${
-                          ideaDifficulty === diff.value 
-                            ? diff.color === 'emerald' ? 'text-emerald-400' 
-                              : diff.color === 'purple' ? 'text-purple-400' 
+                        <diff.Icon className={`w-7 h-7 group-hover:scale-110 transition-transform duration-300 ${ideaDifficulty === diff.value
+                          ? diff.color === 'emerald' ? 'text-emerald-400'
+                            : diff.color === 'purple' ? 'text-purple-400'
                               : 'text-orange-400'
-                            : 'text-slate-400 group-hover:text-white'
-                        }`} />
+                          : 'text-slate-400 group-hover:text-white'
+                          }`} />
                       </div>
                       <div className="text-sm font-semibold mb-1">{diff.label}</div>
                       <div className="text-[11px] text-slate-500">{diff.desc}</div>
@@ -1972,12 +1975,12 @@ export default function Projects() {
                   <div className="p-1.5 rounded-lg bg-emerald-500/20">
                     <Lightbulb className="w-4 h-4 text-emerald-400" />
                   </div>
-                  Suggested Projects 
+                  Suggested Projects
                   <span className="ml-auto text-xs px-2 py-1 rounded-full bg-white/10 text-slate-400">
                     {projectIdeas.length} ideas
                   </span>
                 </h3>
-                
+
                 {/* Ideas Cards - Scrollable via Modal's Lenis */}
                 <div className="space-y-4">
                   {projectIdeas.map((idea, idx) => (
@@ -2000,11 +2003,10 @@ export default function Projects() {
                               e.stopPropagation();
                               toggleSaveIdea(idea);
                             }}
-                            className={`p-1.5 rounded-lg transition-all duration-200 ${
-                              savedIdeaTitles.has(idea.title)
-                                ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
-                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-teal-400'
-                            }`}
+                            className={`p-1.5 rounded-lg transition-all duration-200 ${savedIdeaTitles.has(idea.title)
+                              ? 'bg-teal-500/20 text-teal-400 hover:bg-teal-500/30'
+                              : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-teal-400'
+                              }`}
                             title={savedIdeaTitles.has(idea.title) ? 'Remove from saved' : 'Save idea'}
                           >
                             <Bookmark className={`w-4 h-4 ${savedIdeaTitles.has(idea.title) ? 'fill-teal-400' : ''}`} />
@@ -2014,12 +2016,12 @@ export default function Projects() {
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Description */}
                       <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-3">
                         {idea.description}
                       </p>
-                      
+
                       {/* Tech Stack - Improved tags */}
                       <div className="flex flex-wrap gap-2 mb-4">
                         {(idea.techStack || []).slice(0, 6).map((tech, i) => (
@@ -2036,7 +2038,7 @@ export default function Projects() {
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Meta Info - Better layout */}
                       <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 p-3 rounded-xl bg-white/5 overflow-hidden">
                         <span className="flex items-center gap-1.5 flex-shrink-0">
@@ -2051,7 +2053,7 @@ export default function Projects() {
                           </span>
                         </span>
                       </div>
-                      
+
                       {/* Action Buttons */}
                       <div className="flex gap-3">
                         {/* Start Button - Enhanced */}
@@ -2063,11 +2065,11 @@ export default function Projects() {
                           <Zap className="w-4 h-4 mr-2 group-hover/btn:animate-pulse" />
                           Start This Project
                         </Button>
-                        
+
                         {/* Ask Gemini For Roadmap Button */}
                         <Button
                           onClick={async () => {
-                            const prompt = 
+                            const prompt =
                               `Create a detailed step-by-step roadmap for building the following project:\n\n` +
                               `**Project Title:** ${idea.title}\n\n` +
                               `**Description:** ${idea.description}\n\n` +
@@ -2080,7 +2082,7 @@ export default function Projects() {
                               `4. Potential challenges and how to overcome them\n` +
                               `5. Learning resources for any new skills needed\n` +
                               `6. Best practices and tips for success`;
-                            
+
                             try {
                               await navigator.clipboard.writeText(prompt);
                               alert('Prompt copied to clipboard! Paste it in Gemini to get your roadmap.');
