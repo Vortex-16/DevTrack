@@ -18,6 +18,17 @@ cloudinary.config({
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Escape HTML to prevent XSS in emails
+const escapeHtml = (str) => {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+};
+
 /**
  * Get all showcases (optionally excluding current user's for discovery)
  * GET /api/showcase
@@ -337,6 +348,10 @@ const addComment = async (req, res, next) => {
             throw new APIError('Comment content is required', 400);
         }
 
+        if (content.length > 2000) {
+            throw new APIError('Comment must not exceed 2000 characters', 400);
+        }
+
         const docRef = collections.showcases().doc(id);
         const doc = await docRef.get();
 
@@ -372,7 +387,7 @@ const addComment = async (req, res, next) => {
                             <h2 style="color: #7c3aed;">New Comment on Your Showcase</h2>
                             <p><strong>${authorName || 'Someone'}</strong> commented on your project <strong>"${showcaseData.projectName}"</strong>:</p>
                             <blockquote style="border-left: 4px solid #7c3aed; padding-left: 16px; margin: 16px 0; color: #374151;">
-                                ${content}
+                                ${escapeHtml(content)}
                             </blockquote>
                             <p style="color: #6b7280; font-size: 14px;">
                                 View your showcase on DevTrack to reply.
