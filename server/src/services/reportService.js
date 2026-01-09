@@ -258,6 +258,7 @@ class ReportService {
 
                      recentActivity.reposWorkedOn.slice(0, 3).forEach((repo, index) => {
                         const color = repoColors[index % repoColors.length];
+                        const repoUrl = `https://github.com/${repo}`;
                         
                         // Card Background
                         doc.roundedRect(repoX, currentY, repoBoxWidth, 35, 6).fill(this.colors.lighter);
@@ -270,8 +271,9 @@ class ReportService {
                         doc.rect(repoX, currentY, 4, 35).fill(color);
                         doc.restore();
                         
-                        // Repo Name
-                        doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.text).text(repo, repoX + 15, currentY + 11, { width: repoBoxWidth - 25, align: 'left', lineBreak: false, ellipsis: true });
+                        // Repo Name (clickable link to GitHub)
+                        doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.primary)
+                           .text(repo, repoX + 15, currentY + 11, { width: repoBoxWidth - 25, align: 'left', lineBreak: false, ellipsis: true, link: repoUrl, underline: false });
                         
                         repoX += repoBoxWidth + 10;
                      });
@@ -293,8 +295,8 @@ class ReportService {
                     const yPos = currentY + (index * 28); // Increased line height
                     doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.text).text(repo.name, 60, yPos, { width: 200 });
                     doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(`Issues: ${repo.open_issues_count || 0}`, 280, yPos);
-                    doc.font('Helvetica-Bold').fontSize(9).fillColor(this.colors.success).text(repo.language || '—', 380, yPos);
-                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(String(repo.stars || 0), 450, yPos);
+                    doc.font('Helvetica-Bold').fontSize(9).fillColor(this.colors.success).text(repo.language || '—', 370, yPos);
+                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(`Stars: ${repo.stars || 0}`, 460, yPos);
                 });
 
                 currentY += (topRepos.length * 28) + 30; // Increased spacing
