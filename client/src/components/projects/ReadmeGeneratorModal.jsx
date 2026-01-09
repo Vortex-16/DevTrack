@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    X, FileText, Copy, Download, GitCommitHorizontal, 
+import {
+    X, FileText, Copy, Download, GitCommitHorizontal,
     Loader2, Check, Eye, Code, RefreshCcw, Github
 } from 'lucide-react';
 import { readmeApi } from '../../services/api';
@@ -63,11 +63,11 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
 
     const generateReadme = async () => {
         if (!project?.id) return;
-        
+
         setLoading(true);
         setError(null);
         setCommitted(false);
-        
+
         try {
             const response = await readmeApi.generate(project.id);
             const data = response.data?.data;
@@ -108,10 +108,10 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
 
     const handleCommit = async () => {
         if (!project?.id || !readme) return;
-        
+
         setCommitting(true);
         setError(null);
-        
+
         try {
             const response = await readmeApi.commit(project.id, readme, commitMessage);
             const data = response.data?.data;
@@ -129,7 +129,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
     // Simple markdown to HTML renderer for preview
     const renderMarkdown = (md) => {
         if (!md) return '';
-        
+
         let html = md
             // Escape HTML
             .replace(/</g, '&lt;')
@@ -158,7 +158,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
             // Paragraphs (preserve line breaks)
             .replace(/\n\n/g, '</p><p class="text-slate-300 mb-3">')
             .replace(/\n/g, '<br />');
-        
+
         return `<p class="text-slate-300 mb-3">${html}</p>`;
     };
 
@@ -182,9 +182,9 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                     initial={{ scale: 0.9, opacity: 0, y: 30 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    transition={{ 
-                        type: 'spring', 
-                        damping: 30, 
+                    transition={{
+                        type: 'spring',
+                        damping: 30,
                         stiffness: 400,
                         mass: 0.8
                     }}
@@ -214,33 +214,31 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
 
                     {/* Tabs & Actions */}
                     {readme && !loading && (
-                        <div className="px-6 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                            <div className="flex gap-2">
+                        <div className="px-6 py-3 border-b border-white/5 flex items-center justify-between flex-shrink-0 overflow-x-auto scrollbar-hide">
+                            <div className="flex gap-2 flex-shrink-0">
                                 <button
                                     onClick={() => setActiveTab('preview')}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-                                        activeTab === 'preview' 
-                                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                                            : 'text-slate-400 hover:bg-white/5'
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'preview'
+                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                        : 'text-slate-400 hover:bg-white/5'
+                                        }`}
                                 >
                                     <Eye className="w-4 h-4" />
                                     Preview
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('raw')}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-                                        activeTab === 'raw' 
-                                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                                            : 'text-slate-400 hover:bg-white/5'
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${activeTab === 'raw'
+                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                        : 'text-slate-400 hover:bg-white/5'
+                                        }`}
                                 >
                                     <Code className="w-4 h-4" />
                                     Raw
                                 </button>
                             </div>
-                            
-                            <div className="flex gap-2">
+
+                            <div className="flex gap-2 flex-shrink-0">
                                 <button
                                     onClick={generateReadme}
                                     className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
@@ -265,11 +263,10 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                                 <button
                                     onClick={() => setShowCommitDialog(true)}
                                     disabled={committed}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-                                        committed
-                                            ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                            : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white'
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${committed
+                                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                        : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white'
+                                        }`}
                                 >
                                     {committed ? (
                                         <>
@@ -288,7 +285,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                     )}
 
                     {/* Content - Scrollable with Lenis */}
-                    <ReactLenis 
+                    <ReactLenis
                         root={false}
                         options={{
                             duration: 1.2,
@@ -325,7 +322,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                             ) : readme ? (
                                 <div>
                                     {activeTab === 'preview' ? (
-                                        <div 
+                                        <div
                                             className="prose prose-invert max-w-none"
                                             dangerouslySetInnerHTML={{ __html: renderMarkdown(readme) }}
                                         />
@@ -348,9 +345,9 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                             <div className="flex items-center gap-2 text-sm">
                                 <Check className="w-4 h-4 text-green-400" />
                                 <span className="text-green-300">README committed successfully!</span>
-                                <a 
-                                    href={commitUrl} 
-                                    target="_blank" 
+                                <a
+                                    href={commitUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-purple-400 hover:text-purple-300 underline ml-2"
                                 >
@@ -382,7 +379,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                                     <GitCommitHorizontal className="w-5 h-5 text-purple-400" />
                                     Commit to GitHub
                                 </h3>
-                                
+
                                 <div className="mb-4">
                                     <label className="block text-sm text-slate-400 mb-2">
                                         Commit Message
