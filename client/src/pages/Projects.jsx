@@ -1302,10 +1302,44 @@ export default function Projects() {
 
       // Background: Server is analyzing GitHub data, poll for updates if needed
       if (newProject?.isAnalyzing) {
-        // Poll for updates after a few seconds when server finishes analysis
-        setTimeout(() => {
-          fetchData(); // Refresh to get analyzed data
-        }, 8000); // Check after 8 seconds
+        // Start polling for analysis completion
+        let pollCount = 0;
+        const maxPolls = 10; // Maximum 10 polls (30 seconds total)
+        const pollInterval = 3000; // Poll every 3 seconds
+
+        const pollForCompletion = async () => {
+          pollCount++;
+          try {
+            // Fetch just this specific project to check status
+            const response = await projectsApi.getById(newProject.id);
+            const updatedProject = response.data?.data;
+
+            if (updatedProject && !updatedProject.isAnalyzing) {
+              // Analysis complete, update state with fresh data
+              setProjects((prev) =>
+                prev.map((p) => (p.id === newProject.id ? updatedProject : p))
+              );
+              // Also refresh all data to ensure stats are up to date
+              fetchData();
+              return; // Stop polling
+            }
+
+            // Still analyzing, continue polling if we haven't exceeded max
+            if (pollCount < maxPolls) {
+              setTimeout(pollForCompletion, pollInterval);
+            } else {
+              // Max polls reached, do one final fetchData
+              fetchData();
+            }
+          } catch (err) {
+            console.error('Error polling for project completion:', err);
+            // On error, fall back to fetchData
+            fetchData();
+          }
+        };
+
+        // Start polling after initial delay
+        setTimeout(pollForCompletion, pollInterval);
       }
     } catch (err) {
       console.error("Error creating project:", err);
@@ -1588,14 +1622,15 @@ export default function Projects() {
         {/* Main Container - Background removed */}
         <div className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
+          <div className="flex justify-between items-start sm:items-center gap-4 mb-2 md:mb-4 flex-shrink-0">
             <div>
               <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
               <p className="text-slate-400 text-sm">
                 Track your development projects and milestones
               </p>
             </div>
-            <div className="flex gap-3">
+            {/* Desktop buttons - hidden on mobile */}
+            <div className="hidden md:flex gap-3">
               <Button
                 onClick={() => setShowIdeasModal(true)}
                 variant="ghost"
@@ -1636,6 +1671,49 @@ export default function Projects() {
                 New Project
               </Button>
             </div>
+          </div>
+
+          {/* Mobile buttons row - scrollable */}
+          <div className="md:hidden flex gap-3 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 flex-shrink-0">
+            <Button
+              onClick={() => setShowIdeasModal(true)}
+              variant="ghost"
+              className="flex-shrink-0 flex items-center gap-2 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-xs h-8 px-3"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-emerald-400" />
+              Get Ideas
+            </Button>
+            <Button
+              onClick={() => setShowSavedIdeasModal(true)}
+              variant="ghost"
+              className="flex-shrink-0 flex items-center gap-2 border border-teal-500/30 hover:border-teal-500/50 hover:bg-teal-500/10 text-xs h-8 px-3"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-teal-400" />
+              Saved Ideas
+            </Button>
+            <Button
+              onClick={() => setShowSavedModal(true)}
+              variant="ghost"
+              className="flex-shrink-0 flex items-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-yellow-500/10 text-xs h-8 px-3"
+            >
+              <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+              Saved Repos
+            </Button>
+            <Button
+              onClick={() => setShowSimilarModal(true)}
+              variant="ghost"
+              className="flex-shrink-0 flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10 text-xs h-8 px-3"
+            >
+              <Search className="w-3.5 h-3.5 text-purple-400" />
+              Discover Similar
+            </Button>
+            <Button
+              onClick={() => setShowModal(true)}
+              className="flex-shrink-0 flex items-center gap-2 text-xs h-8 px-3"
+            >
+              <Plus className="w-4 h-4" />
+              New Project
+            </Button>
           </div>
 
           {/* Stats Row */}
