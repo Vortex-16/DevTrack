@@ -6,8 +6,7 @@ import {
     Loader2, Check, Eye, Code, RefreshCcw, Github
 } from 'lucide-react';
 import { readmeApi } from '../../services/api';
-import Lenis from 'lenis';
-import { useLenis } from 'lenis/react';
+import { ReactLenis, useLenis } from 'lenis/react';
 
 /**
  * Modal to generate and commit README files for projects
@@ -24,8 +23,6 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
     const [commitMessage, setCommitMessage] = useState('docs: update README.md');
     const [showCommitDialog, setShowCommitDialog] = useState(false);
 
-    const scrollWrapperRef = useRef(null);
-    const scrollContentRef = useRef(null);
     const globalLenis = useLenis();
 
     useEffect(() => {
@@ -62,40 +59,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
         };
     }, [isOpen, globalLenis]);
 
-    // Local Lenis smooth scroll for modal content
-    useEffect(() => {
-        if (!isOpen || !scrollWrapperRef.current || !scrollContentRef.current) return;
 
-        const lenis = new Lenis({
-            wrapper: scrollWrapperRef.current,
-            content: scrollContentRef.current,
-            duration: 1.2,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            gestureOrientation: 'vertical',
-            smoothWheel: true,
-            wheelMultiplier: 1,
-            touchMultiplier: 2,
-        });
-
-        const resizeObserver = new ResizeObserver(() => {
-            lenis.resize();
-        });
-
-        resizeObserver.observe(scrollContentRef.current);
-
-        function raf(time) {
-            lenis.raf(time);
-            requestAnimationFrame(raf);
-        }
-
-        const animationId = requestAnimationFrame(raf);
-
-        return () => {
-            resizeObserver.disconnect();
-            cancelAnimationFrame(animationId);
-            lenis.destroy();
-        };
-    }, [isOpen, loading, readme]);
 
     const generateReadme = async () => {
         if (!project?.id) return;
@@ -324,11 +288,19 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                     )}
 
                     {/* Content - Scrollable with Lenis */}
-                    <div 
-                        ref={scrollWrapperRef}
+                    <ReactLenis 
+                        root={false}
+                        options={{
+                            duration: 1.2,
+                            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                            gestureOrientation: 'vertical',
+                            smoothWheel: true,
+                            wheelMultiplier: 1,
+                            touchMultiplier: 2,
+                        }}
                         className="flex-1 overflow-y-auto custom-scrollbar"
                     >
-                        <div ref={scrollContentRef} className="p-6">
+                        <div className="p-6">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-16">
                                     <div className="relative">
@@ -368,7 +340,7 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
                                 </div>
                             ) : null}
                         </div>
-                    </div>
+                    </ReactLenis>
 
                     {/* Commit URL after success */}
                     {committed && commitUrl && (

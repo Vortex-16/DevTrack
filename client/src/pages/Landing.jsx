@@ -257,16 +257,16 @@ function NeonText({ children, color = "cyan" }) {
 
 // --- Unique Animation Components ---
 
-const CodeAnimation = ({ size }) => (
+const CodeAnimation = ({ size, isHovered }) => (
   <div className="absolute right-4 bottom-4 w-32 h-24 pointer-events-none overflow-visible">
     {/* Moving Terminal Window */}
     <motion.div
       className="absolute bg-slate-900/5 border border-slate-700/20 rounded-lg overflow-hidden shadow-lg w-full h-full origin-bottom-right"
       initial={{ y: 5, rotate: 2 }}
-      animate={{
+      animate={isHovered ? {
         y: [5, 0, 5],
         rotate: [2, 0, 2],
-      }}
+      } : { y: 5, rotate: 2 }}
       transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
     >
       {/* Header */}
@@ -284,15 +284,15 @@ const CodeAnimation = ({ size }) => (
         {/* Progress Bars */}
         <div className="space-y-1">
           <div className="w-full h-1 bg-slate-700/20 rounded-full overflow-hidden">
-            <motion.div className="h-full bg-green-500/50" animate={{ width: ["0%", "80%", "100%"] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
+            <motion.div className="h-full bg-green-500/50" animate={isHovered ? { width: ["0%", "80%", "100%"] } : { width: "0%" }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }} />
           </div>
           <div className="w-3/4 h-1 bg-slate-700/20 rounded-full overflow-hidden">
-            <motion.div className="h-full bg-cyan-500/50" animate={{ width: ["0%", "60%", "90%"] }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }} />
+            <motion.div className="h-full bg-cyan-500/50" animate={isHovered ? { width: ["0%", "60%", "90%"] } : { width: "0%" }} transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }} />
           </div>
         </div>
         <motion.div
           className="text-slate-400/60 text-[7px]"
-          animate={{ opacity: [0, 0.8, 0] }}
+          animate={isHovered ? { opacity: [0, 0.8, 0] } : { opacity: 0 }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
           src/main.jsx linked
@@ -302,16 +302,16 @@ const CodeAnimation = ({ size }) => (
 
     {/* Scanning Line Tracker */}
     <motion.div
-      className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-400/50 to-transparent opacity-0 group-hover:opacity-100"
-      animate={{ top: ["10%", "90%", "10%"], opacity: [0, 1, 0] }}
+      className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-400/50 to-transparent"
+      animate={isHovered ? { top: ["10%", "90%", "10%"], opacity: [0, 1, 0] } : { opacity: 0 }}
       transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
       style={{ boxShadow: "0 0 8px rgba(74, 222, 128, 0.3)" }}
     />
   </div>
 );
 
-const AIAnimation = () => (
-  <div className="absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+const AIAnimation = ({ isHovered }) => (
+  <div className={`absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-20'}`}>
     <div className="relative w-full h-full">
       {/* Robot Head */}
       <motion.svg viewBox="0 0 100 100" className="w-full h-full text-purple-400">
@@ -319,8 +319,8 @@ const AIAnimation = () => (
           d="M20 40 Q 20 20 50 20 Q 80 20 80 40 V 80 H 20 Z"
           fill="none" stroke="currentColor" strokeWidth="2"
         />
-        <motion.circle cx="35" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-        <motion.circle cx="65" cy="50" r="5" fill="currentColor" animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
+        <motion.circle cx="35" cy="50" r="5" fill="currentColor" animate={isHovered ? { opacity: [1, 0.2, 1] } : { opacity: 1 }} transition={{ duration: 2, repeat: Infinity }} />
+        <motion.circle cx="65" cy="50" r="5" fill="currentColor" animate={isHovered ? { opacity: [1, 0.2, 1] } : { opacity: 1 }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
         <path d="M40 70 Q 50 80 60 70" fill="none" stroke="currentColor" strokeWidth="2" />
         {/* Antenna */}
         <line x1="50" y1="20" x2="50" y2="5" stroke="currentColor" strokeWidth="2" />
@@ -331,26 +331,26 @@ const AIAnimation = () => (
       <motion.div
         className="absolute -top-2 -right-2 bg-white text-black text-[6px] font-bold px-1.5 py-0.5 rounded-t-lg rounded-br-lg rounded-bl-none shadow-lg"
         initial={{ scale: 0, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 1, type: "spring" }}
+        animate={isHovered ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+        transition={{ delay: 0.3, type: "spring" }}
       >
         <div className="flex gap-0.5">
-          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity }} />
-          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }} />
-          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={{ y: [0, -2, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={isHovered ? { y: [0, -2, 0] } : { y: 0 }} transition={{ duration: 0.6, repeat: Infinity }} />
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={isHovered ? { y: [0, -2, 0] } : { y: 0 }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }} />
+          <motion.div className="w-0.5 h-0.5 bg-black rounded-full" animate={isHovered ? { y: [0, -2, 0] } : { y: 0 }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
         </div>
       </motion.div>
     </div>
   </div>
 );
 
-const GitAnimation = () => (
-  <div className="absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center opacity-30 group-hover:opacity-80 transition-opacity duration-500">
+const GitAnimation = ({ isHovered }) => (
+  <div className={`absolute right-4 bottom-4 w-24 h-24 flex items-center justify-center transition-opacity duration-500 ${isHovered ? 'opacity-80' : 'opacity-30'}`}>
     <div className="relative w-full h-full">
       {/* Rotating Sync Circle */}
       <motion.div
         className="absolute inset-2 border-2 border-t-cyan-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full"
-        animate={{ rotate: 360 }}
+        animate={isHovered ? { rotate: 360 } : { rotate: 0 }}
         transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
       />
       {/* Center Git Icon */}
@@ -362,12 +362,12 @@ const GitAnimation = () => (
       {/* Particles exchanging */}
       <motion.div
         className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full"
-        animate={{ y: [0, 80, 0], opacity: [0, 1, 0] }}
+        animate={isHovered ? { y: [0, 80, 0], opacity: [0, 1, 0] } : { y: 0, opacity: 0 }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         className="absolute bottom-0 right-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full"
-        animate={{ y: [0, -80, 0], opacity: [0, 1, 0] }}
+        animate={isHovered ? { y: [0, -80, 0], opacity: [0, 1, 0] } : { y: 0, opacity: 0 }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
     </div>
@@ -376,35 +376,39 @@ const GitAnimation = () => (
 
 
 
-const StreakAnimation = () => {
+const StreakAnimation = ({ isHovered }) => {
   const [count, setCount] = useState(1);
 
   useEffect(() => {
+    if (!isHovered) {
+      setCount(1);
+      return;
+    }
     const interval = setInterval(() => {
       setCount(prev => prev < 30 ? prev + 1 : 1);
     }, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [isHovered]);
 
   return (
-    <div className="absolute right-4 bottom-4 w-28 h-28 opacity-20 group-hover:opacity-60 transition-opacity duration-500">
+    <div className={`absolute right-4 bottom-4 w-28 h-28 transition-opacity duration-500 ${isHovered ? 'opacity-60' : 'opacity-20'}`}>
       <div className="relative w-full h-full flex items-center justify-center">
         {/* Realistic Layered Fire */}
         <motion.div
           className="absolute w-20 h-20 bg-red-500/30 blur-xl rounded-full translate-y-2"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          animate={isHovered ? { scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] } : { scale: 1, opacity: 0.3 }}
           transition={{ duration: 2, repeat: Infinity }}
         />
         {/* Orange core */}
         <motion.div
           className="absolute w-16 h-16 bg-orange-500/40 blur-md rounded-t-full rounded-b-lg"
-          animate={{ scaleY: [1, 1.1, 1], y: [0, -5, 0] }}
+          animate={isHovered ? { scaleY: [1, 1.1, 1], y: [0, -5, 0] } : { scaleY: 1, y: 0 }}
           transition={{ duration: 0.8, repeat: Infinity }}
         />
         {/* Inner flame */}
         <motion.div
           className="absolute w-10 h-10 bg-yellow-400/40 blur-sm rounded-t-full rounded-b-lg translate-y-2"
-          animate={{ scale: [1, 0.9, 1], rotate: [-5, 5, -5] }}
+          animate={isHovered ? { scale: [1, 0.9, 1], rotate: [-5, 5, -5] } : { scale: 1, rotate: 0 }}
           transition={{ duration: 0.6, repeat: Infinity }}
         />
 
@@ -417,16 +421,15 @@ const StreakAnimation = () => {
   );
 };
 
-const GrowthAnimation = () => (
-  <div className="absolute bottom-6 right-6 w-24 h-20 flex items-end justify-between gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+const GrowthAnimation = ({ isHovered }) => (
+  <div className={`absolute bottom-6 right-6 w-24 h-20 flex items-end justify-between gap-2 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-50'}`}>
     {[30, 50, 40, 70, 90].map((h, i) => (
       <motion.div
         key={i}
         className="w-3 bg-gradient-to-t from-emerald-500 to-transparent rounded-t"
         initial={{ height: 0 }}
-        whileInView={{ height: `${h}%` }}
-        transition={{ duration: 1, delay: i * 0.1 }}
-        viewport={{ once: true }}
+        animate={isHovered ? { height: `${h}%` } : { height: 0 }}
+        transition={{ duration: 0.5, delay: i * 0.1 }}
         whileHover={{ height: `${h + 10}%` }}
       />
     ))}
@@ -438,8 +441,8 @@ const GrowthAnimation = () => (
         stroke="#34d399" // Emerald-400
         strokeWidth="2"
         initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        transition={{ duration: 1.5, delay: 0.5 }}
+        animate={isHovered ? { pathLength: 1 } : { pathLength: 0 }}
+        transition={{ duration: 1.5, delay: 0.3 }}
       />
     </svg>
   </div>
@@ -448,6 +451,8 @@ const GrowthAnimation = () => (
 
 // Feature card - Bento grid with unique sizes
 function FeatureCard({ feature, index }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const gradients = {
     cyan: "from-cyan-500/20 via-cyan-500/5 to-transparent",
     purple: "from-purple-500/20 via-purple-500/5 to-transparent",
@@ -477,11 +482,11 @@ function FeatureCard({ feature, index }) {
 
   const renderAnimation = () => {
     switch (feature.title) {
-      case "Daily Coding Tracker": return <CodeAnimation size={feature.size} />;
-      case "AI Error Assistance": return <AIAnimation />;
-      case "GitHub Sync": return <GitAnimation />;
-      case "Streak Calendar": return <StreakAnimation />;
-      case "Skill Growth": return <GrowthAnimation />;
+      case "Daily Coding Tracker": return <CodeAnimation size={feature.size} isHovered={isHovered} />;
+      case "AI Error Assistance": return <AIAnimation isHovered={isHovered} />;
+      case "GitHub Sync": return <GitAnimation isHovered={isHovered} />;
+      case "Streak Calendar": return <StreakAnimation isHovered={isHovered} />;
+      case "Skill Growth": return <GrowthAnimation isHovered={isHovered} />;
       default: return null;
     }
   };
@@ -493,6 +498,8 @@ function FeatureCard({ feature, index }) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       viewport={{ once: true, margin: "-50px" }}
       whileHover={{ scale: 1.02, y: -5, transition: { type: "spring", stiffness: 400, damping: 10 } }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
       className={`relative p-6 md:p-8 rounded-2xl bg-gradient-to-br ${gradients[feature.color]
         } backdrop-blur-xl border ${borderColors[feature.color]} ${sizeClasses[feature.size]
         } transition-colors duration-300 group overflow-hidden`}
@@ -536,6 +543,7 @@ function FeatureCard({ feature, index }) {
     </motion.div>
   );
 }
+
 
 // Dashboard mockup
 function DashboardMockup() {
