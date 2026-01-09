@@ -1439,21 +1439,34 @@ SECTION 1: HERO HEADER (STUNNING FIRST IMPRESSION)
   4. Close with \`</div>\`
 
 ═══════════════════════════════════════════════════════════════════════════════
-SECTION 2: TABLE OF CONTENTS (NAVIGABLE)
+SECTION 2: TABLE OF CONTENTS (PROFESSIONAL NAVIGATION)
 ═══════════════════════════════════════════════════════════════════════════════
-- Collapsible with \`<details>\` tag, open by default: \`<details open>\`
-- Summary: \`<summary><strong>📖 Table of Contents</strong></summary>\`
-- Nested bullet list with emoji prefixes and anchor links:
-  \`\`\`
-  - [✨ Features](#-features)
-  - [🏗️ Tech Stack](#️-tech-stack)
-  - [🚀 Getting Started](#-getting-started)
-  - [📖 Usage](#-usage)
-  - [📁 Project Structure](#-project-structure)
-  - [🔌 API Reference](#-api-reference)
-  - [🤝 Contributing](#-contributing)
-  - [📄 License](#-license)
-  \`\`\`
+- Use a clean, professional format with proper GitHub anchor links
+- Wrap in collapsible details tag (open by default)
+- Use TWO-COLUMN TABLE layout for compact navigation:
+
+\`\`\`html
+<details open>
+<summary><b>🗺️ Table of Contents</b></summary>
+
+| Section | Description |
+|:--------|:------------|
+| [✨ Features](#-features) | What this project offers |
+| [🛠️ Tech Stack](#️-tech-stack) | Technologies used |
+| [🚀 Getting Started](#-getting-started) | Setup instructions |
+| [📖 Usage](#-usage) | How to use |
+| [📁 Project Structure](#-project-structure) | Codebase organization |
+| [🔌 API Reference](#-api-reference) | Endpoints documentation |
+| [🤝 Contributing](#-contributing) | How to contribute |
+| [📄 License](#-license) | License info |
+
+</details>
+\`\`\`
+
+- **CRITICAL**: Use EXACT anchor format that GitHub generates:
+  * Emoji sections: \`#-features\` (dash before word)
+  * Multi-word: \`#getting-started\` (lowercase, hyphenated)
+  * Special chars removed from anchors
 
 ═══════════════════════════════════════════════════════════════════════════════
 SECTION 3: DESCRIPTION (COMPELLING NARRATIVE)
@@ -1634,30 +1647,26 @@ SECTION 8: PROJECT STRUCTURE (ARCHITECTURE OVERVIEW)
 │   │   ├── 📂 models/              # Database schemas
 │   │   ├── 📂 routes/              # API routes
 │   │   ├── 📂 services/            # Business logic
-│   │   └── 📄 app.js               # Express config
-│   └── 📄 package.json
-│
-├── 📄 docker-compose.yml           # Container orchestration
-├── 📄 .env.example                 # Environment template
-└── 📄 README.md                    # You are here! 📍
+│   │   ├── � utils/               # Helpers
+│   │   └── 📄 app.js               # App setup
+│   ├── 📄 package.json
+│   └── 📄 .env.example
+├── 📄 README.md
+└── 📄 .gitignore
 \`\`\`
 
 ═══════════════════════════════════════════════════════════════════════════════
 SECTION 9: API REFERENCE (IF APPLICABLE)
 ═══════════════════════════════════════════════════════════════════════════════
-- Only include if routes/ or controllers/ exist
-- Professional table with method badges:
-
-| Method | Endpoint | Description | Auth |
-|:------:|:---------|:------------|:----:|
-| \`GET\` | \`/api/users\` | Get all users | ✅ |
-| \`POST\` | \`/api/users\` | Create user | ✅ |
-| \`GET\` | \`/api/users/:id\` | Get user by ID | ✅ |
-
-> 📚 Full API documentation available at \`/api/docs\`
+- Use a markdown table with method badges:
+  | Method | Endpoint | Description | Auth |
+  |:-------|:---------|:------------|:----:|
+  | ![GET](https://img.shields.io/badge/GET-blue) | \`/api/projects\` | Get all projects | 🔒 |
+  | ![POST](https://img.shields.io/badge/POST-green) | \`/api/projects\` | Create project | 🔒 |
+- Only generate if you definitely see API routes/controllers
 
 ═══════════════════════════════════════════════════════════════════════════════
-SECTION 10: CONTRIBUTING (WELCOMING GUIDE)
+SECTION 10: CONTRIBUTING (WELCOMING)
 ═══════════════════════════════════════════════════════════════════════════════
 Friendly contribution guide:
 
@@ -1754,6 +1763,16 @@ Return ONLY raw Markdown content. Do not wrap in code blocks or add explanations
       };
     } catch (error) {
       console.error("README generation error:", error);
+      
+      // Handle rate limits specifically
+      if (error.status === 429 || error.message?.includes('429')) {
+        return {
+           success: false,
+           error: "Rate limit exceeded. Please wait a moment before trying again.",
+           details: error.message
+        };
+      }
+
       return {
         success: false,
         error: "Failed to generate README. Please try again.",
