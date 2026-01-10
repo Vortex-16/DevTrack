@@ -496,7 +496,7 @@ function Modal({ isOpen, onClose, title, children }) {
   return createPortal(
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[12000] p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -1622,19 +1622,19 @@ export default function Projects() {
         {/* Main Container - Background removed */}
         <div className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden">
           {/* Header */}
-          <div className="flex justify-between items-start sm:items-center gap-4 mb-2 md:mb-4 flex-shrink-0">
-            <div>
+          <div className="flex flex-col md:flex-col lg:flex-row justify-between items-start md:items-start lg:items-center gap-4 mb-2 md:mb-4 flex-shrink-0">
+            <div className="w-full md:w-full lg:w-auto">
               <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-400 text-sm whitespace-nowrap md:whitespace-nowrap lg:whitespace-normal">
                 Track your development projects and milestones
               </p>
             </div>
-            {/* Desktop buttons - hidden on mobile */}
-            <div className="hidden md:flex gap-3">
+            {/* Desktop buttons - modified for md screen */}
+            <div className="hidden md:flex flex-row lg:flex-row gap-3 w-full lg:w-auto overflow-x-auto lg:overflow-visible scrollbar-hide pb-2 lg:pb-0">
               <Button
                 onClick={() => setShowIdeasModal(true)}
                 variant="ghost"
-                className="flex items-center gap-2 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                className="flex items-center gap-2 border border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
                 <Lightbulb className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" />
                 Get Ideas
@@ -1642,7 +1642,7 @@ export default function Projects() {
               <Button
                 onClick={() => setShowSavedIdeasModal(true)}
                 variant="ghost"
-                className="flex items-center gap-2 border border-teal-500/30 hover:border-teal-500/50 hover:bg-teal-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                className="flex items-center gap-2 border border-teal-500/30 hover:border-teal-500/50 hover:bg-teal-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
                 <Bookmark className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-teal-400" />
                 Saved Ideas
@@ -1650,7 +1650,7 @@ export default function Projects() {
               <Button
                 onClick={() => setShowSavedModal(true)}
                 variant="ghost"
-                className="flex items-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-yellow-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                className="flex items-center gap-2 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-yellow-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
                 <Star className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-yellow-500 fill-yellow-500" />
                 Saved Repos
@@ -1658,14 +1658,14 @@ export default function Projects() {
               <Button
                 onClick={() => setShowSimilarModal(true)}
                 variant="ghost"
-                className="flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                className="flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
                 <Search className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-purple-400" />
                 Discover Similar
               </Button>
               <Button
                 onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                 New Project
@@ -2033,33 +2033,52 @@ export default function Projects() {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { value: 'beginner', label: 'Beginner', Icon: Leaf, desc: '1-2 weeks', color: 'emerald' },
-                  { value: 'intermediate', label: 'Intermediate', Icon: Rocket, desc: '2-4 weeks', color: 'purple' },
-                  { value: 'advanced', label: 'Advanced', Icon: Zap, desc: '4-8 weeks', color: 'orange' },
+                  { 
+                    value: 'beginner', 
+                    label: 'Beginner', 
+                    Icon: Leaf, 
+                    desc: '1-2 weeks', 
+                    activeClass: 'bg-emerald-500/20 border-emerald-500 shadow-lg shadow-emerald-500/20 text-white',
+                    iconClass: 'text-emerald-400'
+                  },
+                  { 
+                    value: 'intermediate', 
+                    label: 'Intermediate', 
+                    Icon: Rocket, 
+                    desc: '2-4 weeks', 
+                    activeClass: 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/20 text-white',
+                    iconClass: 'text-purple-400'
+                  },
+                  { 
+                    value: 'advanced', 
+                    label: 'Advanced', 
+                    Icon: Zap, 
+                    desc: '4-8 weeks', 
+                    activeClass: 'bg-orange-500/20 border-orange-500 shadow-lg shadow-orange-500/20 text-white',
+                    iconClass: 'text-orange-400'
+                  },
                 ].map((diff) => (
                   <button
                     key={diff.value}
                     type="button"
                     onClick={() => setIdeaDifficulty(diff.value)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-center group relative overflow-hidden ${ideaDifficulty === diff.value
-                      ? `bg-${diff.color}-500/20 border-${diff.color}-500 text-white shadow-lg shadow-${diff.color}-500/20`
+                    className={`p-2 sm:p-4 rounded-xl border-2 transition-all duration-300 text-center group relative overflow-hidden flex flex-col items-center justify-center ${ideaDifficulty === diff.value
+                      ? diff.activeClass
                       : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30 hover:bg-white/10'
                       }`}
                   >
                     {ideaDifficulty === diff.value && (
                       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                     )}
-                    <div className="relative">
-                      <div className="flex justify-center mb-2">
-                        <diff.Icon className={`w-7 h-7 group-hover:scale-110 transition-transform duration-300 ${ideaDifficulty === diff.value
-                          ? diff.color === 'emerald' ? 'text-emerald-400'
-                            : diff.color === 'purple' ? 'text-purple-400'
-                              : 'text-orange-400'
+                    <div className="relative w-full">
+                      <div className="flex justify-center mb-1 sm:mb-2">
+                        <diff.Icon className={`w-5 h-5 sm:w-7 sm:h-7 group-hover:scale-110 transition-transform duration-300 ${ideaDifficulty === diff.value
+                          ? diff.iconClass
                           : 'text-slate-400 group-hover:text-white'
                           }`} />
                       </div>
-                      <div className="text-sm font-semibold mb-1">{diff.label}</div>
-                      <div className="text-[11px] text-slate-500">{diff.desc}</div>
+                      <div className="text-[10px] sm:text-sm font-semibold mb-0.5 sm:mb-1">{diff.label}</div>
+                      <div className="text-[9px] sm:text-[11px] text-slate-500">{diff.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -2079,7 +2098,7 @@ export default function Projects() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
+                  <GeminiIcon className="w-5 h-5" />
                   <span>Generate Project Ideas</span>
                 </>
               )}
@@ -2172,14 +2191,14 @@ export default function Projects() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         {/* Start Button - Enhanced */}
                         <Button
                           onClick={() => startIdeaAsProject(idea)}
                           variant="ghost"
-                          className="flex-1 h-10 flex items-center justify-center text-sm font-semibold border-2 border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 transition-all duration-300 group/btn"
+                          className="flex-1 h-8 sm:h-10 flex items-center justify-center text-[10px] sm:text-sm whitespace-nowrap font-semibold border-2 border-emerald-500/40 hover:bg-emerald-500/20 hover:border-emerald-500/60 text-emerald-400 hover:text-emerald-300 transition-all duration-300 group/btn px-1 sm:px-4"
                         >
-                          <Zap className="w-4 h-4 mr-2 group-hover/btn:animate-pulse" />
+                          <Zap className="w-3 h-3 mr-1 sm:w-4 sm:h-4 sm:mr-2 group-hover/btn:animate-pulse" />
                           Start This Project
                         </Button>
 
@@ -2210,9 +2229,9 @@ export default function Projects() {
                             }
                           }}
                           variant="ghost"
-                          className="flex-1 h-10 flex items-center justify-center text-sm font-semibold border-2 border-blue-500/40 hover:bg-blue-500/20 hover:border-blue-500/60 text-blue-400 hover:text-blue-300 transition-all duration-300 group/btn2"
+                          className="flex-1 h-8 sm:h-10 flex items-center justify-center text-[10px] sm:text-sm whitespace-nowrap font-semibold border-2 border-blue-500/40 hover:bg-blue-500/20 hover:border-blue-500/60 text-blue-400 hover:text-blue-300 transition-all duration-300 group/btn2 px-1 sm:px-4"
                         >
-                          <Sparkles className="w-4 h-4 mr-2 group-hover/btn2:animate-pulse" />
+                          <GeminiIcon className="w-3 h-3 mr-1 sm:w-4 sm:h-4 sm:mr-2 group-hover/btn2:animate-pulse" />
                           Ask Gemini For Roadmap
                         </Button>
                       </div>
