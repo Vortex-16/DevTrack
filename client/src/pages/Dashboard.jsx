@@ -1,3 +1,4 @@
+
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -809,7 +810,7 @@ export default function Dashboard() {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="flex-1 flex flex-col items-center justify-center min-h-[400px]"
+                                className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-160px)] md:min-h-[400px]"
                             >
                                 <Card className="text-center py-20 border-2 border-dashed border-purple-500/30 w-full max-w-5xl">
                                     <motion.div
@@ -823,7 +824,7 @@ export default function Dashboard() {
                                     <p className="text-slate-400 mb-8 max-w-lg mx-auto">
                                         Start your developer journey by adding a project or logging your first learning session.
                                     </p>
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                                         <Link to="/projects">
                                             <Button size="lg" className="flex items-center gap-2">
                                                 <Rocket size={20} />
