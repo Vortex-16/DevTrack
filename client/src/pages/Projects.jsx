@@ -857,7 +857,7 @@ function ProjectForm({
 
       <div>
         <label className="block text-sm text-slate-400 mb-2">Status</label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {["Planning", "Active", "On Hold", "Completed"].map((status) => (
             <button
               key={status}
@@ -952,12 +952,12 @@ function ProjectForm({
         >
           Cancel
         </Button>
-        <Button type="submit" className="flex-1" disabled={analyzing}>
+        <Button type="submit" className="flex-1 whitespace-nowrap px-2 md:px-6" disabled={analyzing}>
           {analyzing
             ? <><Search className="w-4 h-4 mr-2 animate-pulse" />Analyzing...</>
             : isEdit
               ? "Save Changes"
-              : "Create Project"}
+              : <span className="text-sm md:text-base">Create Project</span>}
         </Button>
       </div>
     </form>
