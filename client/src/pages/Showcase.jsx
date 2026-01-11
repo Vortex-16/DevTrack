@@ -993,14 +993,12 @@ export default function Showcase() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-2 md:mb-8 mt-4 md:mt-0"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/20">
-              <Trophy className="w-6 h-6 text-white" />
-            </div>
+
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
+              <h1 className="text-3xl font-bold text-white">
                 Project Showcase
               </h1>
               <p className="text-slate-400 text-sm">
