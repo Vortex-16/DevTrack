@@ -1801,7 +1801,10 @@ export default function Projects() {
                     Track your coding projects, link your GitHub repos, and let
                     AI analyze your progress!
                   </p>
-                  <Button onClick={() => setShowModal(true)} size="lg">
+                  <Button onClick={() => setShowModal(true)} size="md" className="md:hidden">
+                    Create Your First Project
+                  </Button>
+                  <Button onClick={() => setShowModal(true)} size="lg" className="hidden md:inline-flex">
                     Create Your First Project
                   </Button>
                 </motion.div>
