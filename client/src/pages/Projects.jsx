@@ -1789,7 +1789,7 @@ export default function Projects() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30"
+                  className="text-center py-16 rounded-2xl border-2 border-dashed border-purple-500/30 ml-2 -mr-2 md:ml-0 md:mr-0"
                 >
                   <div className="flex justify-center mb-4">
                     <Rocket className="w-16 h-16 text-purple-500" />
