@@ -321,7 +321,8 @@ function MobileNavbar({ onOpenSettings }) {
                     </motion.div>
                 </Link>
                 {/* Nav items */}
-                <div className="flex items-center gap-0.8 flex-1 justify-start sm:justify-center">
+                {/* Nav items */}
+                <div className="flex items-center flex-1 justify-between sm:justify-center gap-1 sm:gap-0.8 pr-3 sm:pr-0">
                     {navItems.map((item) => (
                         <Link
                             key={item.path}
@@ -329,7 +330,7 @@ function MobileNavbar({ onOpenSettings }) {
                             className="relative flex flex-col items-center"
                         >
                             <motion.div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center
+                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center
                                     ${location.pathname === item.path
                                         ? 'bg-gradient-to-br from-purple-500 to-purple-700'
                                         : 'hover:bg-white/10'
