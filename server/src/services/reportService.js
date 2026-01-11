@@ -245,38 +245,110 @@ class ReportService {
 
                 // Active Repositories Section - Professional Design
                 if (recentActivity.reposWorkedOn && recentActivity.reposWorkedOn.length > 0) {
-                    doc.font('Helvetica-Bold').fontSize(9).fillColor(this.colors.muted).text('ACTIVE REPOSITORIES', 50, currentY + 5);
+                    // Use consistent section header styling
+                    currentY = this.drawSectionHeader(doc, 'Active Repositories This Week', currentY);
 
-                    currentY += 30; // Increased spacing
+                    // Subtitle with count
+                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted)
+                        .text(`${recentActivity.reposWorkedOn.length} ${recentActivity.reposWorkedOn.length === 1 ? 'repository' : 'repositories'} with commits in the last 7 days`, 50, currentY);
 
-                    // Calculate widths for a grid of 3
-                    const repoBoxWidth = (doc.page.width - 120) / 3;
+                    currentY += 25;
+
+                    // Calculate widths for a grid of 2 (larger cards)
+                    const repoBoxWidth = (doc.page.width - 110) / 2;
+                    const cardHeight = 72;
                     let repoX = 50;
-                    // Better color rotation
-                    const repoColors = [this.colors.success, this.colors.warning, this.colors.primary, this.colors.accent];
 
-                    recentActivity.reposWorkedOn.slice(0, 3).forEach((repo, index) => {
-                        const color = repoColors[index % repoColors.length];
-                        const repoUrl = `https://github.com/${repo}`;
+                    // Color palette for accent bars - professional colors
+                    const accentColors = [this.colors.primary, this.colors.success, this.colors.accent, this.colors.warning];
 
-                        // Card Background
-                        doc.roundedRect(repoX, currentY, repoBoxWidth, 35, 6).fill(this.colors.lighter);
-                        doc.roundedRect(repoX, currentY, repoBoxWidth, 35, 6).strokeColor(this.colors.light).lineWidth(1).stroke();
+                    recentActivity.reposWorkedOn.slice(0, 4).forEach((repoData, index) => {
+                        // Handle both old format (string) and new format (object with metadata)
+                        const repoName = typeof repoData === 'string' ? repoData : repoData.name;
+                        const shortName = typeof repoData === 'object' && repoData.shortName ? repoData.shortName : repoName.split('/')[1] || repoName;
+                        const isPrivate = typeof repoData === 'object' ? repoData.isPrivate : false;
+                        const isOwner = typeof repoData === 'object' ? repoData.isOwner : true;
+                        const language = typeof repoData === 'object' ? repoData.language : null;
+                        const stars = typeof repoData === 'object' ? repoData.stars : 0;
+                        const commits = typeof repoData === 'object' ? repoData.commitsThisWeek : 0;
+                        const repoUrl = `https://github.com/${repoName}`;
+                        const accentColor = accentColors[index % accentColors.length];
 
-                        // Left Accent Bar using path for precise corner handling
+                        // Position calculation for 2-column grid
+                        if (index > 0 && index % 2 === 0) {
+                            currentY += cardHeight + 15;
+                            repoX = 50;
+                        }
+
+                        // Card Background - clean white with subtle border
+                        doc.roundedRect(repoX, currentY, repoBoxWidth, cardHeight, 6).fill(this.colors.lighter);
+                        doc.roundedRect(repoX, currentY, repoBoxWidth, cardHeight, 6).strokeColor(this.colors.light).lineWidth(1).stroke();
+
+                        // Left accent bar
                         doc.save();
                         doc.roundedRect(repoX, currentY, 4, cardHeight, 6).clip();
                         doc.rect(repoX, currentY, 4, cardHeight).fill(accentColor);
                         doc.restore();
 
-                        // Repo Name (clickable link to GitHub)
-                        doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.primary)
-                            .text(repo, repoX + 15, currentY + 11, { width: repoBoxWidth - 25, align: 'left', lineBreak: false, ellipsis: true, link: repoUrl, underline: false });
+                        // Repo Name (larger, clickable, darker)
+                        doc.font('Helvetica-Bold').fontSize(11).fillColor(this.colors.text)
+                            .text(shortName, repoX + 14, currentY + 12, { width: repoBoxWidth - 28, align: 'left', lineBreak: false, ellipsis: true, link: repoUrl, underline: false });
+
+                        // Stats row - Language, Commits, Stars
+                        const statsY = currentY + 30;
+                        let statsX = repoX + 14;
+
+                        // Language badge (if available)
+                        if (language) {
+                            const langWidth = Math.min(language.length * 5.5 + 14, 65);
+                            doc.roundedRect(statsX, statsY, langWidth, 15, 3).fill(this.colors.darkGray);
+                            doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
+                                .text(language, statsX, statsY + 4, { width: langWidth, align: 'center' });
+                            statsX += langWidth + 8;
+                        }
+
+                        // Commits this week
+                        if (commits > 0) {
+                            const commitText = `${commits} commit${commits !== 1 ? 's' : ''}`;
+                            doc.font('Helvetica').fontSize(8).fillColor(this.colors.textLight)
+                                .text(commitText, statsX, statsY + 3);
+                            statsX += doc.widthOfString(commitText) + 12;
+                        }
+
+                        // Stars (if any)
+                        if (stars > 0) {
+                            doc.font('Helvetica').fontSize(8).fillColor(this.colors.warning)
+                                .text(`${stars} stars`, statsX, statsY + 3);
+                        }
+
+                        // Tags row - Private/Public and Owner/Contributor
+                        const tagY = currentY + 50;
+                        let tagX = repoX + 14;
+
+                        // Private/Public tag
+                        const visibilityLabel = isPrivate ? 'Private' : 'Public';
+                        const visibilityColor = isPrivate ? this.colors.warning : this.colors.success;
+                        const visibilityWidth = 42;
+                        doc.roundedRect(tagX, tagY, visibilityWidth, 15, 3).fill(visibilityColor);
+                        doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
+                            .text(visibilityLabel, tagX, tagY + 4, { width: visibilityWidth, align: 'center' });
+
+                        tagX += visibilityWidth + 6;
+
+                        // Owner/Contributor tag
+                        const roleLabel = isOwner ? 'Owner' : 'Contributor';
+                        const roleColor = isOwner ? this.colors.primary : this.colors.secondary;
+                        const roleWidth = isOwner ? 42 : 60;
+                        doc.roundedRect(tagX, tagY, roleWidth, 15, 3).fill(roleColor);
+                        doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
+                            .text(roleLabel, tagX, tagY + 4, { width: roleWidth, align: 'center' });
 
                         repoX += repoBoxWidth + 10;
                     });
 
-                    currentY += 70; // Increased spacing
+                    // Calculate space used based on number of rows
+                    const numRows = Math.ceil(Math.min(recentActivity.reposWorkedOn.length, 4) / 2);
+                    currentY += (cardHeight * numRows) + (15 * (numRows - 1)) + 30;
                 } else {
                     currentY += 30;
                 }
