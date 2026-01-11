@@ -993,7 +993,7 @@ export default function Showcase() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2 md:mb-8 mt-4 md:mt-0"
+          className="mb-2 md:mb-8 mt-2 md:mt-0"
         >
           <div className="flex items-center gap-3 mb-2">
 
