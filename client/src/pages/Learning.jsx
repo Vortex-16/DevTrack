@@ -535,7 +535,7 @@ export default function Learning() {
                                         <BookOpen size={40} className="text-purple-500" />
                                     </div>
                                     <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
-                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">Start tracking your learning journey, skills, and progress today!</p>
+                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto text-xs md:text-base px-4 md:px-0">Start tracking your learning journey, skills, and progress today!</p>
                                     <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
                                 </motion.div>
                             )}

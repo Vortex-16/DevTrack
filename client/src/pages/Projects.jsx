@@ -1625,7 +1625,7 @@ export default function Projects() {
           <div className="flex flex-col md:flex-col lg:flex-row justify-between items-start md:items-start lg:items-center gap-4 mb-2 md:mb-4 flex-shrink-0">
             <div className="w-full md:w-full lg:w-auto">
               <h1 className="text-3xl font-bold text-white mb-1">Projects</h1>
-              <p className="text-slate-400 text-sm whitespace-nowrap md:whitespace-nowrap lg:whitespace-normal">
+              <p className="text-slate-400 text-xs md:text-sm whitespace-nowrap md:whitespace-nowrap lg:whitespace-normal">
                 Track your development projects and milestones
               </p>
             </div>
@@ -1797,7 +1797,7 @@ export default function Projects() {
                   <h3 className="text-xl font-semibold text-white mb-2">
                     No Projects Yet
                   </h3>
-                  <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                  <p className="text-slate-400 mb-6 max-w-md mx-auto text-xs md:text-base px-4 md:px-0">
                     Track your coding projects, link your GitHub repos, and let
                     AI analyze your progress!
                   </p>

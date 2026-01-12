@@ -298,13 +298,13 @@ function MobileNavbar({ onOpenSettings }) {
 
     return (
         <motion.nav
-            className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-4"
+            className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-2"
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: isHidden ? -100 : 0, opacity: isHidden ? 0 : 1 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
         >
             <div
-                className="rounded-full px-4 py-2 flex items-center justify-between backdrop-blur-xl"
+                className="rounded-full px-2 py-2 flex items-center justify-between backdrop-blur-xl"
                 style={{
                     background: 'rgba(30, 30, 40, 0.6)',
                     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',

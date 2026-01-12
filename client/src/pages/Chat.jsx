@@ -437,7 +437,7 @@ export default function Chat() {
                         <div className="flex items-center gap-3">
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">DevTrack AI</h1>
-                                <p className="text-slate-400 text-xs sm:text-sm">Experimental Technical Assistant</p>
+                                <p className="text-slate-400 text-xs sm:text-sm">Technical Assistant</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
