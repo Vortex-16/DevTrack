@@ -63,4 +63,25 @@ class ApiEndpoints {
   static const String notifications = '/notifications';
   static const String notificationsToken = '/notifications/token';
   static const String notificationsTest = '/notifications/test';
+
+  // Showcase
+  static const String showcase = '/showcase';
+  static const String showcaseMine = '/showcase/mine';
+  static const String showcaseTrending = '/showcase/trending';
+  static String showcaseCheck(String id) => '/showcase/check/$id';
+  static String showcaseStar(String id) => '/showcase/$id/star';
+  static String showcaseComments(String id) => '/showcase/$id/comments';
+  static String showcaseCommentDelete(String showcaseId, String commentId) =>
+      '/showcase/$showcaseId/comments/$commentId';
+
+  // Project Ideas
+  static const String savedIdeas = '/saved-ideas';
+  static const String checkSavedIdeas = '/saved-ideas/check';
+  static String savedIdeaById(String id) => '/saved-ideas/$id';
+  static const String generateIdeas = '/project-ideas/generate';
+
+  // Bookmarks
+  static const String bookmarks = '/bookmarks';
+  static const String checkBookmarks = '/bookmarks/check';
+  static String bookmarkById(String id) => '/bookmarks/$id';
 }

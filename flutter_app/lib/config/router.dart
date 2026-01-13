@@ -11,6 +11,11 @@ import '../screens/projects/projects_screen.dart';
 import '../screens/chat/chat_screen.dart';
 import '../screens/calendar/calendar_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/showcase/showcase_screen.dart';
+import '../screens/ideas/ideas_screen.dart';
+import '../screens/bookmarks/bookmarks_screen.dart';
+import '../screens/dashboard/insights_screen.dart';
+import '../widgets/app_drawer.dart';
 import 'theme.dart';
 
 /// Route names as constants
@@ -23,7 +28,12 @@ class AppRoutes {
   static const String projects = '/projects';
   static const String chat = '/chat';
   static const String calendar = '/calendar';
+  static const String calendar = '/calendar';
   static const String settings = '/settings';
+  static const String showcase = '/showcase';
+  static const String ideas = '/ideas';
+  static const String bookmarks = '/bookmarks';
+  static const String insights = '/insights';
 }
 
 /// Router provider for Riverpod
@@ -83,6 +93,24 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.settings,
       builder: (context, state) => const SettingsScreen(),
+    ),
+
+    // New Feature Routes
+    GoRoute(
+      path: AppRoutes.showcase,
+      builder: (context, state) => const ShowcaseScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.ideas,
+      builder: (context, state) => const IdeasScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.bookmarks,
+      builder: (context, state) => const BookmarksScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.insights,
+      builder: (context, state) => const InsightsScreen(),
     ),
 
     // Deep link routes
@@ -157,6 +185,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getSelectedIndex(context),

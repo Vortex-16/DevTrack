@@ -100,6 +100,8 @@ class StorageService {
   static const String keyProjectsCache = 'cache_projects';
   static const String keyTasksCache = 'cache_tasks';
   static const String keyStatsCache = 'cache_stats';
+  static const String keyBookmarksCache = 'cache_bookmarks';
+  static const String keySavedIdeasCache = 'cache_saved_ideas';
   static const String keyLastSync = 'last_sync';
   static const String keyOfflineQueue = 'offline_queue';
 
@@ -154,6 +156,26 @@ class StorageService {
   /// Get cached stats
   Map<String, dynamic>? getCachedStats() {
     return getJson(keyStatsCache);
+  }
+
+  /// Cache bookmarks
+  Future<void> cacheBookmarks(List<Map<String, dynamic>> bookmarks) async {
+    await setJsonList(keyBookmarksCache, bookmarks);
+  }
+
+  /// Get cached bookmarks
+  List<Map<String, dynamic>>? getCachedBookmarks() {
+    return getJsonList(keyBookmarksCache);
+  }
+
+  /// Cache saved ideas
+  Future<void> cacheSavedIdeas(List<Map<String, dynamic>> ideas) async {
+    await setJsonList(keySavedIdeasCache, ideas);
+  }
+
+  /// Get cached saved ideas
+  List<Map<String, dynamic>>? getCachedSavedIdeas() {
+    return getJsonList(keySavedIdeasCache);
   }
 
   /// Check if cache is stale (older than duration)
