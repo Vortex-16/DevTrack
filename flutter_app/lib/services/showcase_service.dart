@@ -13,7 +13,7 @@ class ShowcaseService {
     try {
       final response = await _api.get(
         ApiEndpoints.showcase,
-        params: {
+        queryParameters: {
           'excludeOwn': excludeOwn,
           'search': search,
           'technology': technology,

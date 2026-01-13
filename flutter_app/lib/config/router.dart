@@ -28,7 +28,6 @@ class AppRoutes {
   static const String projects = '/projects';
   static const String chat = '/chat';
   static const String calendar = '/calendar';
-  static const String calendar = '/calendar';
   static const String settings = '/settings';
   static const String showcase = '/showcase';
   static const String ideas = '/ideas';

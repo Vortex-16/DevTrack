@@ -375,6 +375,30 @@ class SyncService {
     }
   }
 
+  Future<void> _processBookmarkItem(String action, Map<String, dynamic> data) async {
+    switch (action) {
+      case 'create':
+        await _api.post(ApiEndpoints.bookmarks, data: data);
+        break;
+      case 'delete':
+        final id = data['id'];
+        await _api.delete(ApiEndpoints.bookmarkById(id));
+        break;
+    }
+  }
+
+  Future<void> _processIdeaItem(String action, Map<String, dynamic> data) async {
+    switch (action) {
+      case 'create':
+        await _api.post(ApiEndpoints.savedIdeas, data: data);
+        break;
+      case 'delete':
+        final id = data['id'];
+        await _api.delete(ApiEndpoints.savedIdeaById(id));
+        break;
+    }
+  }
+
   /// Add item to offline queue for later sync
   Future<void> queueOfflineAction({
     required String type,
