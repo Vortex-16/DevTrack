@@ -6,6 +6,7 @@ import '../../config/theme.dart';
 import '../../config/router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/log_provider.dart';
+import '../../widgets/app_drawer.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});

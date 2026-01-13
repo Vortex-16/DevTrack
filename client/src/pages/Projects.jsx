@@ -764,7 +764,7 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: false })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${!newRepoData.isPrivate
+            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${!newRepoData.isPrivate
               ? "border-purple-500 bg-purple-500/10"
               : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
               }`}
@@ -775,7 +775,7 @@ function ProjectForm({
           <button
             type="button"
             onClick={() => setNewRepoData({ ...newRepoData, isPrivate: true })}
-            className={`flex-1 p-3 rounded-xl border-2 transition-all ${newRepoData.isPrivate
+            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left ${newRepoData.isPrivate
               ? "border-purple-500 bg-purple-500/10"
               : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
               }`}
@@ -806,7 +806,17 @@ function ProjectForm({
             className="flex-1"
             disabled={creatingRepo || !newRepoData.name}
           >
-            {creatingRepo ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Rocket className="w-4 h-4 mr-2" />Create Repository</>}
+            {creatingRepo ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="whitespace-nowrap">Creating...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <Rocket className="w-4 h-4" />
+                <span className="whitespace-nowrap">Create Repository</span>
+              </div>
+            )}
           </Button>
         </div>
       </div>

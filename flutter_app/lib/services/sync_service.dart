@@ -85,7 +85,15 @@ class SyncService {
       await _syncProjects();
       syncedItems++;
 
-      // 5. Process offline queue
+      // 5. Sync bookmarks
+      await _syncBookmarks();
+      syncedItems++;
+
+      // 6. Sync saved ideas
+      await _syncSavedIdeas();
+      syncedItems++;
+
+      // 7. Process offline queue
       await _processOfflineQueue();
 
       // Update last sync time
@@ -218,6 +226,42 @@ class SyncService {
     }
   }
 
+  /// Sync bookmarks from server
+  Future<void> _syncBookmarks() async {
+    try {
+      final response = await _api.get(ApiEndpoints.bookmarks);
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final bookmarks = (data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        await _storage.cacheBookmarks(bookmarks);
+        print('✅ Bookmarks synced: ${bookmarks.length} items');
+      }
+    } catch (e) {
+      print('⚠️ Bookmarks sync error: $e');
+    }
+  }
+
+  /// Sync saved ideas from server
+  Future<void> _syncSavedIdeas() async {
+    try {
+      final response = await _api.get(ApiEndpoints.savedIdeas);
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final ideas = (data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        await _storage.cacheSavedIdeas(ideas);
+        print('✅ Saved Ideas synced: ${ideas.length} items');
+      }
+    } catch (e) {
+      print('⚠️ Saved Ideas sync error: $e');
+    }
+  }
+
   /// Process offline queue - push locally created/updated items to server
   Future<void> _processOfflineQueue() async {
     final queue = _storage.getOfflineQueue();
@@ -267,6 +311,12 @@ class SyncService {
         break;
       case 'project':
         await _processProjectItem(action, data);
+        break;
+      case 'bookmark':
+        await _processBookmarkItem(action, data);
+        break;
+      case 'idea':
+        await _processIdeaItem(action, data);
         break;
       default:
         throw Exception('Unknown queue item type: $type');
@@ -321,6 +371,30 @@ class SyncService {
       case 'delete':
         final id = data['id'];
         await _api.delete('${ApiEndpoints.projects}/$id');
+        break;
+    }
+  }
+
+  Future<void> _processBookmarkItem(String action, Map<String, dynamic> data) async {
+    switch (action) {
+      case 'create':
+        await _api.post(ApiEndpoints.bookmarks, data: data);
+        break;
+      case 'delete':
+        final id = data['id'];
+        await _api.delete(ApiEndpoints.bookmarkById(id));
+        break;
+    }
+  }
+
+  Future<void> _processIdeaItem(String action, Map<String, dynamic> data) async {
+    switch (action) {
+      case 'create':
+        await _api.post(ApiEndpoints.savedIdeas, data: data);
+        break;
+      case 'delete':
+        final id = data['id'];
+        await _api.delete(ApiEndpoints.savedIdeaById(id));
         break;
     }
   }
