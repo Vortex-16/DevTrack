@@ -101,20 +101,49 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
 
     const days = getDaysForPeriod(selectedPeriod)
 
-    // Generate chart data based on selected period
-    const chartData = Array.from({ length: Math.min(days, 30) }, (_, i) => {
-        const date = new Date()
-        const daysBack = Math.min(days, 30) - 1 - i
-        date.setDate(date.getDate() - daysBack)
-        const dateStr = getDateString(date)
+    // Determine bucket size based on period (for better visualization of longer periods)
+    const getBucketDays = (period) => {
+        switch (period) {
+            case '1D': return 1
+            case '1W': return 1
+            case '1M': return 1
+            case '3M': return 7  // Weekly buckets for 3 months
+            case '1Y': return 30 // Monthly buckets for 1 year
+            case 'All': return 30 // Monthly buckets for all time
+            default: return 1
+        }
+    }
 
-        // Filter logs within the period
-        const periodStart = new Date()
-        periodStart.setDate(periodStart.getDate() - days)
+    const bucketDays = getBucketDays(selectedPeriod)
+    const numBuckets = Math.ceil(days / bucketDays)
+    const displayBuckets = Math.min(numBuckets, 30) // Max 30 points on chart
 
+    // Helper to get date at midnight
+    const getMidnight = (date) => {
+        const d = new Date(date)
+        d.setHours(0, 0, 0, 0)
+        return d
+    }
+
+    // Generate chart data based on selected period with proper bucketing
+    const chartData = Array.from({ length: displayBuckets }, (_, i) => {
+        const today = getMidnight(new Date())
+        const bucketsBack = displayBuckets - 1 - i
+
+        // Calculate bucket end date
+        const bucketEnd = new Date(today)
+        bucketEnd.setDate(bucketEnd.getDate() - (bucketsBack * bucketDays))
+
+        // Calculate bucket start date
+        const bucketStart = new Date(bucketEnd)
+        bucketStart.setDate(bucketStart.getDate() - bucketDays + 1)
+
+        // Count logs in this bucket
         return logs.filter(log => {
-            const logDate = getDateString(log.date)
-            return logDate === dateStr
+            const logDateStr = getDateString(log.date)
+            if (!logDateStr) return false
+            const logDate = getMidnight(new Date(logDateStr))
+            return logDate >= bucketStart && logDate <= bucketEnd
         }).length
     })
 
@@ -128,12 +157,12 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
     const areaPoints = `10,45 ${points} 190,45`  // Adjusted baseline
 
     // Calculate period stats
-    const periodStart = new Date()
+    const periodStart = getMidnight(new Date())
     periodStart.setDate(periodStart.getDate() - days)
     const periodLogs = logs.filter(log => {
         const logDateStr = getDateString(log.date)
         if (!logDateStr) return false
-        const logDate = new Date(logDateStr)
+        const logDate = getMidnight(new Date(logDateStr))
         return logDate >= periodStart
     })
 
@@ -822,11 +851,17 @@ export default function Dashboard() {
                                     </motion.div>
                                     <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
                                     <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-                                        Start your developer journey by adding a project or logging your first learning session.
+                                        Start your developer journey by importing your GitHub repos or logging your first learning session.
                                     </p>
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        <Link to="/projects">
+                                        <Link to="/projects?import=github">
                                             <Button size="lg" className="flex items-center gap-2">
+                                                <Github size={20} />
+                                                Import from GitHub
+                                            </Button>
+                                        </Link>
+                                        <Link to="/projects">
+                                            <Button variant="secondary" size="lg" className="flex items-center gap-2">
                                                 <Rocket size={20} />
                                                 Add a Project
                                             </Button>
