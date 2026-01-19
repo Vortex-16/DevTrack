@@ -3,6 +3,7 @@ import Button from "../components/ui/Button";
 import { projectsApi, githubApi, geminiApi, projectIdeasApi, savedIdeasApi, readmeApi } from "../services/api";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import Lenis from "lenis";
 import { useLenis } from "lenis/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +38,8 @@ import {
   ArrowLeft,
   ChevronDown,
   Projector,
+  Github,
+  Download,
 } from "lucide-react";
 import SimilarProjectsModal from "../components/projects/SimilarProjectsModal";
 import SavedProjectsModal from "../components/projects/SavedProjectsModal";
@@ -271,21 +274,19 @@ function ProjectCard({
               className="overflow-hidden"
             >
               <div className="pt-4 space-y-4">
-                {/* AI Analysis (Compact in details) */}
+                {/* AI Next Steps (What to add/fix) */}
                 {project.aiAnalysis && (
                   <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
                     <div className="flex items-center gap-2 mb-2">
                       <GeminiIcon className="w-3.5 h-3.5 text-purple-400" />
                       <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
-                        AI Status Report
+                        AI Suggestions
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed italic">
-                      "
-                      {project.aiAnalysis.progressSummary ||
-                        project.aiAnalysis.reasoning ||
-                        "Project is proceeding normally."}
-                      "
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {project.aiAnalysis.nextRecommendedTasks?.length > 0
+                        ? `Consider: ${project.aiAnalysis.nextRecommendedTasks.slice(0, 2).join(', ')}`
+                        : project.aiAnalysis.progressSummary || "Project looks well-maintained. Keep up the good work!"}
                     </p>
                   </div>
                 )}
@@ -1136,6 +1137,22 @@ export default function Projects() {
   const [showReadmeModal, setShowReadmeModal] = useState(false);
   const [readmeProject, setReadmeProject] = useState(null);
 
+  // Import GitHub Repos Modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [githubRepos, setGithubRepos] = useState([]);
+  const [selectedRepos, setSelectedRepos] = useState(new Set());
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [importingRepos, setImportingRepos] = useState(false);
+
+  // Check URL params for auto-open import modal
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('import') === 'github') {
+      setShowImportModal(true);
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
+
   const defaultFormData = {
     name: "",
     description: "",
@@ -1626,6 +1643,77 @@ export default function Projects() {
     }
   };
 
+  // Fetch GitHub public repos for import
+  const fetchGitHubRepos = async () => {
+    setLoadingRepos(true);
+    try {
+      const response = await githubApi.getRepos(100);
+      // API returns { data: { username, totalRepos, repos } }
+      const repos = response.data?.data?.repos || [];
+      // Filter to only public repos and exclude already-added projects
+      const existingRepoUrls = new Set(
+        projects.map(p => p.repositoryUrl?.toLowerCase()).filter(Boolean)
+      );
+      const publicRepos = repos.filter(
+        repo => !repo.isPrivate && !existingRepoUrls.has(repo.url?.toLowerCase())
+      );
+      setGithubRepos(publicRepos);
+      setSelectedRepos(new Set());
+    } catch (err) {
+      console.error('Error fetching GitHub repos:', err);
+      setGithubRepos([]);
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
+  // Open import modal and fetch repos
+  const handleOpenImportModal = () => {
+    setShowImportModal(true);
+    fetchGitHubRepos();
+  };
+
+  // Import selected repos as projects
+  const handleImportRepos = async () => {
+    if (selectedRepos.size === 0) return;
+
+    setImportingRepos(true);
+    const reposToImport = githubRepos.filter(repo => selectedRepos.has(repo.name));
+
+    try {
+      for (const repo of reposToImport) {
+        await projectsApi.create({
+          name: repo.name,
+          description: repo.description || '',
+          status: 'Active',
+          repositoryUrl: repo.url,
+          technologies: repo.language ? [repo.language] : [],
+        });
+      }
+      setShowImportModal(false);
+      setSelectedRepos(new Set());
+      fetchData(); // Refresh projects list
+    } catch (err) {
+      console.error('Error importing repos:', err);
+      alert('Failed to import some repositories. Please try again.');
+    } finally {
+      setImportingRepos(false);
+    }
+  };
+
+  // Toggle repo selection
+  const toggleRepoSelection = (repoName) => {
+    setSelectedRepos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(repoName)) {
+        newSet.delete(repoName);
+      } else {
+        newSet.add(repoName);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <PixelTransition loading={loading}>
       <motion.div>
@@ -1674,6 +1762,14 @@ export default function Projects() {
                 Discover Similar
               </Button>
               <Button
+                onClick={handleOpenImportModal}
+                variant="ghost"
+                className="flex items-center gap-2 border border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
+              >
+                <Github className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-cyan-400" />
+                Import from GitHub
+              </Button>
+              <Button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4 whitespace-nowrap"
               >
@@ -1716,6 +1812,14 @@ export default function Projects() {
             >
               <Search className="w-3.5 h-3.5 text-purple-400" />
               Discover Similar
+            </Button>
+            <Button
+              onClick={handleOpenImportModal}
+              variant="ghost"
+              className="flex-shrink-0 flex items-center gap-2 border border-cyan-500/30 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-xs h-8 px-3"
+            >
+              <Github className="w-3.5 h-3.5 text-cyan-400" />
+              Import
             </Button>
             <Button
               onClick={() => setShowModal(true)}
@@ -2013,6 +2117,127 @@ export default function Projects() {
           project={readmeProject}
         />
 
+        {/* Import GitHub Repos Modal */}
+        <Modal
+          isOpen={showImportModal}
+          onClose={() => {
+            setShowImportModal(false);
+            setSelectedRepos(new Set());
+          }}
+          title={
+            <div className="flex items-center gap-2">
+              <Github className="w-6 h-6 text-cyan-400" />
+              <span>Import from GitHub</span>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-slate-400 text-sm">
+              Select public repositories to import as projects. Already added repos are hidden.
+            </p>
+
+            {loadingRepos ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                <span className="ml-2 text-slate-400">Loading repositories...</span>
+              </div>
+            ) : githubRepos.length === 0 ? (
+              <div className="text-center py-12">
+                <Github className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-500">No new public repositories to import</p>
+                <p className="text-slate-600 text-sm mt-1">All your public repos are already added</p>
+              </div>
+            ) : (
+              <>
+                {/* Select All / Clear */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-slate-500">
+                    {selectedRepos.size} of {githubRepos.length} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedRepos(new Set(githubRepos.map(r => r.name)))}
+                      className="text-xs text-cyan-400 hover:text-cyan-300"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => setSelectedRepos(new Set())}
+                      className="text-xs text-slate-500 hover:text-slate-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Repos List */}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                  {githubRepos.map((repo) => (
+                    <motion.div
+                      key={repo.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      onClick={() => toggleRepoSelection(repo.name)}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedRepos.has(repo.name)
+                        ? 'border-cyan-500/50 bg-cyan-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 ${selectedRepos.has(repo.name)
+                          ? 'bg-cyan-500'
+                          : 'bg-white/10 border border-white/20'
+                          }`}>
+                          {selectedRepos.has(repo.name) && (
+                            <CheckCircle className="w-3.5 h-3.5 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white truncate">{repo.name}</p>
+                          <p className="text-xs text-slate-500 truncate mt-0.5">
+                            {repo.description || 'No description'}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                            {repo.language && (
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-purple-400" />
+                                {repo.language}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Star className="w-3 h-3" />
+                              {repo.stars || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Import Button */}
+                <Button
+                  onClick={handleImportRepos}
+                  disabled={selectedRepos.size === 0 || importingRepos}
+                  className="w-full mt-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500"
+                >
+                  {importingRepos ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Import {selectedRepos.size} {selectedRepos.size === 1 ? 'Repository' : 'Repositories'}
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </Modal>
+
         {/* Project Ideas Modal */}
         <Modal
           isOpen={showIdeasModal}
@@ -2046,27 +2271,27 @@ export default function Projects() {
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { 
-                    value: 'beginner', 
-                    label: 'Beginner', 
-                    Icon: Leaf, 
-                    desc: '1-2 weeks', 
+                  {
+                    value: 'beginner',
+                    label: 'Beginner',
+                    Icon: Leaf,
+                    desc: '1-2 weeks',
                     activeClass: 'bg-emerald-500/20 border-emerald-500 shadow-lg shadow-emerald-500/20 text-white',
                     iconClass: 'text-emerald-400'
                   },
-                  { 
-                    value: 'intermediate', 
-                    label: 'Intermediate', 
-                    Icon: Rocket, 
-                    desc: '2-4 weeks', 
+                  {
+                    value: 'intermediate',
+                    label: 'Intermediate',
+                    Icon: Rocket,
+                    desc: '2-4 weeks',
                     activeClass: 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/20 text-white',
                     iconClass: 'text-purple-400'
                   },
-                  { 
-                    value: 'advanced', 
-                    label: 'Advanced', 
-                    Icon: Zap, 
-                    desc: '4-8 weeks', 
+                  {
+                    value: 'advanced',
+                    label: 'Advanced',
+                    Icon: Zap,
+                    desc: '4-8 weeks',
                     activeClass: 'bg-orange-500/20 border-orange-500 shadow-lg shadow-orange-500/20 text-white',
                     iconClass: 'text-orange-400'
                   },
