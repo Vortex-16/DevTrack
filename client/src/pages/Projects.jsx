@@ -285,7 +285,7 @@ function ProjectCard({
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed">
                       {project.aiAnalysis.nextRecommendedTasks?.length > 0
-                        ? `Consider: ${project.aiAnalysis.nextRecommendedTasks.slice(0, 2).join(', ')}`
+                        ? `Consider: ${project.aiAnalysis.nextRecommendedTasks.slice(0, 2).map(t => typeof t === 'object' ? t.task : t).join(', ')}`
                         : project.aiAnalysis.progressSummary || "Project looks well-maintained. Keep up the good work!"}
                     </p>
                   </div>
