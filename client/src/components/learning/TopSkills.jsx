@@ -27,7 +27,7 @@ export default function TopSkills({ entries }) {
                 percentage: Math.round((count / totalTags) * 100)
             }))
             .sort((a, b) => b.count - a.count)
-            .slice(0, 5); // Top 5 skills
+            .slice(0, 5);
     }, [entries]);
 
     if (skillsData.length === 0) {

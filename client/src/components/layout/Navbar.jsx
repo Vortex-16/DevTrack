@@ -221,20 +221,17 @@ function MobileNavbar({ onOpenSettings }) {
 
         // Try immediately
         if (!attachToContainer()) {
-            // Poll if not found (briefly)
             checkForContainer = setInterval(() => {
                 if (attachToContainer()) {
                     clearInterval(checkForContainer)
                 }
             }, 500)
 
-            // Safety timeout
             timeout = setTimeout(() => {
                 clearInterval(checkForContainer)
             }, 5000)
         }
         // Continuous integrity check: ensure we're listening to the live element
-        // (React might re-mount the container, detaching our listener from the DOM)
         const currentContainerRef = { current: null }
 
         const checkAndAttach = () => {
@@ -320,7 +317,6 @@ function MobileNavbar({ onOpenSettings }) {
                         <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
                     </motion.div>
                 </Link>
-                {/* Nav items */}
                 {/* Nav items */}
                 <div className="flex items-center flex-1 justify-between sm:justify-center gap-1 sm:gap-0.8 pr-3 sm:pr-0">
                     {navItems.map((item) => (

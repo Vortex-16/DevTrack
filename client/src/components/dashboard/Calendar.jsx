@@ -18,14 +18,14 @@ export default function Calendar({ onExpand, compact }) {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
 
-    // Get first day of month and total days
+
     const firstDayOfMonth = new Date(year, month, 1).getDay()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December']
 
-    // Get date string in YYYY-MM-DD format
+
     const getDateString = (y, m, d) => {
         return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     }

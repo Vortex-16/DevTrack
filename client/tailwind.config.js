@@ -33,7 +33,7 @@ export default {
                     900: '#0f172a',
                     950: '#020617',
                 },
-                border: '#1e293b', // Mapped to dark-800
+                border: '#1e293b',
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],

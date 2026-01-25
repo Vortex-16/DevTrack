@@ -12,7 +12,7 @@ export default function LeetCodeStats() {
     const [isEditing, setIsEditing] = useState(false);
     const [usernameInput, setUsernameInput] = useState('');
     const [saving, setSaving] = useState(false);
-    const [verificationStep, setVerificationStep] = useState('INPUT'); // INPUT, VERIFY
+    const [verificationStep, setVerificationStep] = useState('INPUT');
     const [verificationCode, setVerificationCode] = useState('');
 
     useEffect(() => {
