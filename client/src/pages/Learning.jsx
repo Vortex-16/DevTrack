@@ -12,6 +12,7 @@ import DatePicker from '../components/ui/DatePicker'
 import TimePicker from '../components/ui/TimePicker'
 import LeetCodeStats from '../components/learning/LeetCodeStats'
 import TopSkills from '../components/learning/TopSkills'
+import ActivityStats from '../components/learning/ActivityStats'
 
 
 import { createPortal } from 'react-dom'
@@ -291,6 +292,7 @@ export default function Learning() {
     const [showModal, setShowModal] = useState(false)
     const [editingEntry, setEditingEntry] = useState(null)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [showExtensionModal, setShowExtensionModal] = useState(false)
 
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
@@ -439,9 +441,12 @@ export default function Learning() {
 
     const learningContainerRef = useRef(null);
     const learningContentRef = useRef(null);
+    const sidebarContainerRef = useRef(null);
+    const sidebarContentRef = useRef(null);
     const lenisRef = useRef(null);
+    const sidebarLenisRef = useRef(null);
 
-    // Initialize Lenis for smooth scrolling
+    // Initialize Lenis for Main Content
     useEffect(() => {
         if (!learningContainerRef.current || !learningContentRef.current) return;
 
@@ -471,6 +476,37 @@ export default function Learning() {
             lenis.destroy();
         };
     }, [learningEntries]);
+
+    // Initialize Lenis for Sidebar
+    useEffect(() => {
+        if (!sidebarContainerRef.current || !sidebarContentRef.current) return;
+
+        const lenis = new Lenis({
+            wrapper: sidebarContainerRef.current,
+            content: sidebarContentRef.current,
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            touchMultiplier: 2,
+        });
+
+        sidebarLenisRef.current = lenis;
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
+        const rafId = requestAnimationFrame(raf);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            lenis.destroy();
+        };
+    }, []);
 
     return (
         <PixelTransition loading={loading}>
@@ -557,15 +593,21 @@ export default function Learning() {
                                                     {learningEntries.length} entries
                                                 </span>
                                             </div>
-                                            <div className="grid grid-cols-1 gap-3">
+                                            <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-2 sm:before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-purple-500/50 before:via-white/5 before:to-transparent">
                                                 {learningEntries.map((entry, idx) => (
-                                                    <EntryCard
-                                                        key={entry.id}
-                                                        entry={entry}
-                                                        onEdit={openEditModal}
-                                                        onDelete={(id) => setDeleteConfirm(id)}
-                                                        delay={0.1 + idx * 0.05}
-                                                    />
+                                                    <div key={entry.id} className="relative group">
+                                                        {/* Timeline Dot */}
+                                                        <div className={`absolute -left-[29px] sm:-left-[33px] top-6 w-3 h-3 rounded-full border-2 border-[#0B0C15] transition-all duration-300 z-10 
+                                                                    ${idx === 0 ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-125' : 'bg-white/20 group-hover:bg-purple-400 group-hover:scale-110'}`}
+                                                        />
+
+                                                        <EntryCard
+                                                            entry={entry}
+                                                            onEdit={openEditModal}
+                                                            onDelete={(id) => setDeleteConfirm(id)}
+                                                            delay={0.1 + idx * 0.05}
+                                                        />
+                                                    </div>
                                                 ))}
                                             </div>
                                         </div>
@@ -574,30 +616,71 @@ export default function Learning() {
                             </div>
                         </div>
 
-                        {/* Right Sidebar (Fixed) */}
-                        <div className="hidden lg:flex w-80 flex-shrink-0 flex-col gap-4 overflow-hidden">
-                            {/* LeetCode Integration */}
-                            <div className="flex-1 min-h-0">
-                                <LeetCodeStats />
-                            </div>
+                        <div
+                            ref={sidebarContainerRef}
+                            className="hidden lg:flex w-[400px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar h-full relative"
+                        >
+                            <div ref={sidebarContentRef} className="flex flex-col gap-4 pb-6 pr-2">
+                                {/* Activity Tracker */}
+                                <div className="h-[200px] flex-shrink-0">
+                                    <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
+                                </div>
 
-                            {/* Top Skills Analysis */}
-                            <div className="flex-1 min-h-0">
-                                <TopSkills entries={learningEntries} />
+                                {/* LeetCode Integration */}
+                                <div className="h-[350px] flex-shrink-0">
+                                    <LeetCodeStats />
+                                </div>
+
+                                {/* Top Skills */}
+                                <div className="h-[250px] flex-shrink-0">
+                                    <TopSkills entries={learningEntries} />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Mobile LeetCode & Skills (visible only on small screens) */}
-                        <div className="lg:hidden flex flex-col gap-6 mb-8 flex-shrink-0">
-                            <div className="h-96">
-                                <LeetCodeStats />
-                            </div>
-                            <div className="h-80">
+                        {/* Mobile Cards - Horizontal scroll on small screens */}
+                        <div className="lg:hidden flex flex-col gap-4 mb-8 flex-shrink-0">
+                            {/* Activity + Skills Row */}
+                            <div className="grid grid-cols-2 gap-3 h-[200px]">
+                                <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
                                 <TopSkills entries={learningEntries} />
+                            </div>
+                            {/* LeetCode Full Width */}
+                            <div className="h-[320px]">
+                                <LeetCodeStats />
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Extension Help Modal */}
+                <Modal
+                    isOpen={showExtensionModal}
+                    onClose={() => setShowExtensionModal(false)}
+                    title="Connect Browser Extension"
+                >
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                            <p className="text-sm text-purple-200">
+                                To track website activity, you need to load the helper extension in Chrome/Edge manually (Dev Mode).
+                            </p>
+                        </div>
+
+                        <ol className="list-decimal list-inside space-y-3 text-slate-300 text-sm">
+                            <li>Open <b>chrome://extensions</b> in your browser.</li>
+                            <li>Enable <b>Developer mode</b> toggle in the top right.</li>
+                            <li>Click <b>Load unpacked</b> (top left).</li>
+                            <li>Select this folder: <code className="bg-white/10 px-1 rounded text-white">d:\hdd\DevTrack\Shell\extension</code></li>
+                            <li>Click the specific <b>Refresh</b> (rotate icon) on the card if it was already there.</li>
+                        </ol>
+
+                        <div className="pt-4 border-t border-white/10 text-center">
+                            <Button onClick={() => setShowExtensionModal(false)} className="w-full">
+                                Got it, I've loaded it
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
 
                 {/* Delete Confirmation Modal */}
                 <Modal
