@@ -13,6 +13,11 @@ import Onboarding from './pages/Onboarding'
 import MobileAuth from './pages/MobileAuth'
 import GitHubInsights from './pages/GitHubInsights'
 import Showcase from './pages/Showcase'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import CreateChallenge from './pages/admin/CreateChallenge'
+import AdminMonitor from './pages/admin/AdminMonitor'
+import LiveEnvironment from './pages/competition/LiveEnvironment'
+import ChallengeLobby from './pages/competition/ChallengeLobby'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -124,6 +129,11 @@ function App() {
                         <Route path="/github-insights" element={<GitHubInsights />} />
                         <Route path="/showcase" element={<Showcase />} />
                         <Route path="/system-info" element={<SystemInfo />} />
+                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                        <Route path="/admin/challenges/create" element={<CreateChallenge />} />
+                        <Route path="/admin/monitor/:id" element={<AdminMonitor />} />
+                        <Route path="/competitions" element={<ChallengeLobby />} />
+                        <Route path="/competition/:id" element={<LiveEnvironment />} />
                     </Route>
 
                     {/* Preview Landing Page (for testing while signed in) */}

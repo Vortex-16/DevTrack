@@ -201,6 +201,15 @@ export const leetCodeApi = {
     updateConfig: (username, verificationCode) => api.post('/leetcode/config', { username, verificationCode }),
 };
 
+export const challengesApi = {
+    getAll: () => api.get('/challenges'),
+    getById: (id) => api.get(`/challenges/${id}`),
+    create: (data) => api.post('/challenges', data),
+    start: (id) => api.post(`/challenges/${id}/start`),
+    submit: (data) => api.post('/challenges/submit', data),
+    getSubmissions: (id) => api.get(`/challenges/${id}/submissions`),
+};
+
 export default api;
 
 

@@ -432,7 +432,7 @@ function ActivityTable({ logs, logStats, githubCommits, compact }) {
     )
 }
 
-// Promo Card - DARK themed
+// Promo Card - Challenge Mode
 function PromoCard() {
     return (
         <motion.div
@@ -444,27 +444,27 @@ function PromoCard() {
             <div
                 className="rounded-3xl p-6 h-full relative overflow-hidden border border-white/10"
                 style={{
-                    background: 'linear-gradient(135deg, #1a1b2e 0%, #0d0e1a 100%)',
+                    background: 'linear-gradient(135deg, #2a1b3d 0%, #1a0e1a 100%)',
                 }}
             >
                 {/* Decorative shapes */}
                 <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-white/5 rotate-12" />
                 <div className="absolute bottom-8 right-8 w-12 h-12 rounded-xl bg-white/5 -rotate-6" />
-                <div className="absolute top-1/2 right-12 w-8 h-8 rounded-lg bg-purple-500/20 rotate-45" />
+                <div className="absolute top-1/2 right-12 w-8 h-8 rounded-lg bg-red-500/20 rotate-45 animate-pulse" />
 
                 <div className="relative z-10">
                     <h3 className="text-xl font-bold text-white mb-2">
-                        Track Your <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Growth</span>
+                        Enter <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded">Challenge</span>
                     </h3>
                     <h3 className="text-xl font-bold text-white mb-4">
-                        with DevTrack!
+                        Mode
                     </h3>
                     <p className="text-slate-400 text-sm mb-6 max-w-[200px]">
-                        Log your learning daily and watch your consistency grow!
+                        Compete with others in live coding battles!
                     </p>
-                    <Link to="/learning">
-                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-medium">
-                            Start Now
+                    <Link to="/competitions">
+                        <Button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-medium shadow-lg shadow-red-900/40">
+                            Enter Arena <Rocket size={16} className="ml-2 inline" />
                         </Button>
                     </Link>
                 </div>

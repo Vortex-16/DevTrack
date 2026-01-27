@@ -8,6 +8,9 @@ const { initializeScheduler } = require('./src/utils/scheduler');
 
 const PORT = process.env.PORT || 9000;
 
+const http = require('http');
+const { initializeSocket } = require('./src/socket/socketManager');
+
 // Initialize Firebase before starting server
 const startServer = async () => {
     try {
@@ -18,8 +21,15 @@ const startServer = async () => {
         // Initialize Scheduler
         initializeScheduler();
 
-        // Start Express server
-        app.listen(PORT, () => {
+        // Create HTTP server for Socket.io
+        const server = http.createServer(app);
+
+        // Initialize Socket.io
+        initializeSocket(server);
+        console.log('✅ Socket.io initialized');
+
+        // Start Server
+        server.listen(PORT, () => {
             console.log(`🚀 DevTrack server running on port ${PORT}`);
             console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);

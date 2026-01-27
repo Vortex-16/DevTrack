@@ -148,6 +148,7 @@ app.use('/api/saved-ideas', savedIdeasRoutes);
 app.use('/api/showcase', showcaseRoutes);
 app.use('/api/readme', readmeRoutes);
 app.use('/api/leetcode', leetCodeRoutes);
+app.use('/api/challenges', require('./routes/challengeRoutes'));
 
 // ======================
 // 404 HANDLER
