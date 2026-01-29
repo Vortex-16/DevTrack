@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, ExternalLink } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
 import { ReactLenis } from 'lenis/react'
 
@@ -808,16 +808,18 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-4">
                             {/* GitHub Link */}
+                            {/* Public Profile Toggle */}
                             {githubUsername ? (
-                                <a
-                                    href={`https://github.com/${githubUsername}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                                >
-                                    <GitHubIcon />
-                                    <span className="text-sm text-white font-medium hidden sm:block">{githubUsername}</span>
-                                </a>
+                                <div className="flex items-center gap-3">
+                                    <Link
+                                        to={`/u/${githubUsername}`}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-500/20 transition-all group"
+                                    >
+                                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                                        <span className="text-sm text-cyan-400 font-medium hidden sm:block group-hover:text-cyan-300">View Public Profile</span>
+                                        <ExternalLink size={14} className="text-cyan-400 group-hover:text-cyan-300" />
+                                    </Link>
+                                </div>
                             ) : (
                                 <a
                                     href="https://github.com"

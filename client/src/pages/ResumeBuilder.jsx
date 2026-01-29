@@ -20,6 +20,8 @@ import {
     Phone,
     Github,
     CheckCircle2,
+    Trophy,
+    Link as LinkIcon,
     Sparkles,
     Loader2
 } from 'lucide-react'
@@ -33,196 +35,235 @@ import confetti from 'canvas-confetti'
 // ==========================================
 const ResumePaper = ({ data, projects, verifiedSkills = [] }) => {
     return (
-        <div id="resume-preview" className="bg-white text-slate-800 w-[210mm] min-h-[297mm] p-[15mm] shadow-2xl mx-auto origin-top transform scale-[0.6] lg:scale-[0.75] xl:scale-[0.85] transition-transform duration-300 print:transform-none print:scale-100 print:shadow-none print:m-0 print:w-full print:h-auto font-serif">
-            {/* Header */}
-            <header className="border-b-2 border-slate-900 pb-4 mb-6">
-                <h1 className="text-4xl font-bold uppercase tracking-tight mb-2 text-slate-900">
+        <div id="resume-preview" className="relative bg-white text-slate-800 w-[210mm] min-h-[297mm] p-0 shadow-2xl mx-auto origin-top transform scale-[0.6] lg:scale-[0.75] xl:scale-[0.85] transition-transform duration-300 print:transform-none print:scale-100 print:shadow-none print:m-0 print:w-full print:h-auto font-sans overflow-hidden">
+
+            {/* Visual Page Break Guide (Screen Only) */}
+            <div className="absolute top-[297mm] left-0 w-full border-b-2 border-red-400 border-dashed opacity-50 pointer-events-none print:hidden z-50 flex items-end justify-end pr-2 pb-1">
+                <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest bg-white/80 px-1 rounded">End of Page 1</span>
+            </div>
+
+            {/* Header Block (Full Width) */}
+            <header className="px-10 py-10 border-b-4 border-slate-900 mb-8 bg-slate-50 print:break-inside-avoid">
+                <h1 className="text-5xl font-extrabold uppercase tracking-tight mb-2 text-slate-900">
                     {data.basics.name}
                 </h1>
+                <p className="text-xl text-slate-600 font-medium tracking-wide mb-6">
+                    {data.basics.headline || "Full Stack Developer"}
+                </p>
 
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700 font-sans">
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
                     {data.basics.email && (
-                        <div className="flex items-center gap-1.5">
-                            <Mail size={14} className="text-slate-900" /> {data.basics.email}
-                        </div>
+                        <a href={`mailto:${data.basics.email}`} className="flex items-center gap-2 hover:text-cyan-600 transition-colors">
+                            <Mail size={16} className="text-slate-900" /> {data.basics.email}
+                        </a>
                     )}
                     {data.basics.phone && (
-                        <div className="flex items-center gap-1.5">
-                            <Phone size={14} className="text-slate-900" /> {data.basics.phone}
-                        </div>
+                        <a href={`tel:${data.basics.phone}`} className="flex items-center gap-2 hover:text-cyan-600 transition-colors">
+                            <Phone size={16} className="text-slate-900" /> {data.basics.phone}
+                        </a>
                     )}
                     {data.basics.location && (
-                        <div className="flex items-center gap-1.5">
-                            <MapPin size={14} className="text-slate-900" /> {data.basics.location}
+                        <div className="flex items-center gap-2">
+                            <MapPin size={16} className="text-slate-900" /> {data.basics.location}
                         </div>
                     )}
                     {data.basics.linkedin && (
-                        <div className="flex items-center gap-1.5">
-                            <Linkedin size={14} className="text-slate-900" /> {data.basics.linkedin.replace(/^https?:\/\//, '')}
-                        </div>
+                        <a
+                            href={data.basics.linkedin.startsWith('http') ? data.basics.linkedin : `https://${data.basics.linkedin}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 hover:text-cyan-600 transition-colors"
+                        >
+                            <Linkedin size={16} className="text-slate-900" /> {data.basics.linkedin.replace(/^https?:\/\//, '')}
+                        </a>
                     )}
                     {data.basics.github && (
-                        <div className="flex items-center gap-1.5">
-                            <Github size={14} className="text-slate-900" /> {data.basics.github.replace(/^https?:\/\//, '')}
-                        </div>
+                        <a
+                            href={data.basics.github.startsWith('http') ? data.basics.github : `https://${data.basics.github}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 hover:text-cyan-600 transition-colors"
+                        >
+                            <Github size={16} className="text-slate-900" /> {data.basics.github.replace(/^https?:\/\//, '')}
+                        </a>
                     )}
                     {data.basics.website && (
-                        <div className="flex items-center gap-1.5">
-                            <Globe size={14} className="text-slate-900" /> {data.basics.website.replace(/^https?:\/\//, '')}
-                        </div>
+                        <a
+                            href={data.basics.website.startsWith('http') ? data.basics.website : `https://${data.basics.website}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-2 hover:text-cyan-600 transition-colors"
+                        >
+                            <Globe size={16} className="text-slate-900" /> {data.basics.website.replace(/^https?:\/\//, '')}
+                        </a>
                     )}
                 </div>
             </header>
 
-            {/* Content Container - Sans Serif for readability */}
-            <div className="font-sans space-y-6">
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-12 gap-8 px-10 pb-10 min-h-[800px] print:block print:px-8">
 
-                {/* Summary */}
-                {data.basics.summary && (
-                    <section>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-2">
-                            Professional Summary
-                        </h2>
-                        <p className="text-sm leading-relaxed text-justify text-slate-800">
-                            {data.basics.summary}
-                        </p>
-                    </section>
-                )}
+                {/* LEFT COLUMN (Span 4) - Float for Print */}
+                <div className="col-span-4 space-y-8 pr-6 border-r border-slate-200 relative print:w-[32%] print:float-left print:pr-4 print:border-r-2 print:border-slate-200">
 
-                {/* Experience */}
-                {data.experience.length > 0 && (
-                    <section>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-3">
-                            Experience
-                        </h2>
-                        <div className="space-y-4">
-                            {data.experience.map((exp, i) => (
-                                <div key={i}>
-                                    <div className="flex justify-between items-baseline mb-0.5">
-                                        <h3 className="font-bold text-base text-slate-900">{exp.role}</h3>
-                                        <span className="text-sm font-medium text-slate-600 whitespace-nowrap ml-4">{exp.startDate} – {exp.endDate}</span>
+                    {/* Education */}
+                    {data.education.length > 0 && (
+                        <section className="print:break-inside-avoid">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">
+                                Education
+                            </h3>
+                            <div className="space-y-4">
+                                {data.education.map((edu, i) => (
+                                    <div key={i}>
+                                        <h4 className="font-bold text-slate-900">{edu.school}</h4>
+                                        <div className="text-sm text-slate-700">{edu.degree}</div>
+                                        <div className="text-xs font-medium text-slate-500 mt-1">{edu.year}</div>
                                     </div>
-                                    <div className="text-sm font-semibold text-slate-700 italic mb-1.5">{exp.company}</div>
-                                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-line pl-1">
-                                        {exp.description}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
-                {/* Verified Projects (The "Proof of Work" Core) */}
-                {projects.length > 0 && (
-                    <section>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-3 flex items-center justify-between">
-                            <span>Proof of Work</span>
-                            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300 font-normal normal-case flex items-center gap-1 text-slate-600">
-                                <CheckCircle2 size={10} className="text-cyan-600" /> Verified by DevTrack
-                            </span>
-                        </h2>
-                        <div className="space-y-4">
-                            {projects.map((proj) => (
-                                <div key={proj.id}>
-                                    <div className="flex justify-between items-baseline mb-1">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="font-bold text-base text-slate-900">{proj.name}</h3>
+                    {/* Verified Skills */}
+                    {(data.selectedSkillNames.length > 0 || data.skills.length > 0) && (
+                        <section className="print:break-inside-avoid">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">
+                                Verified Skills
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {data.selectedSkillNames.map(name => (
+                                    <span key={name} className="font-semibold text-slate-800 text-sm border-b border-slate-200 pb-0.5">
+                                        {name}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Manual Skills */}
+                            {data.skills.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-slate-100">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Additional</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {data.skills.map((skill, i) => (
+                                            <span key={i} className="text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    {/* Achievements */}
+                    {data.achievements && data.achievements.length > 0 && (
+                        <section className="print:break-inside-avoid">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">
+                                Achievements
+                            </h3>
+                            <ul className="space-y-3">
+                                {(data.achievements || []).map((achievement, i) => (
+                                    <li key={i} className="text-sm text-slate-700 leading-relaxed font-medium">
+                                        • {typeof achievement === 'string' ? achievement : achievement.text}
+                                        {typeof achievement === 'object' && achievement.url && (
+                                            <a
+                                                href={achievement.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-cyan-600 hover:text-cyan-500 inline-block align-middle ml-1 relative -top-[1px] print:inline-block"
+                                                title="View Credential"
+                                            >
+                                                <LinkIcon size={12} />
+                                            </a>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
+                </div>
+
+                {/* RIGHT COLUMN (Span 8) - Float for Print */}
+                <div className="col-span-8 space-y-8 print:w-[65%] print:float-right print:pl-4">
+
+                    {/* Summary */}
+                    {data.basics.summary && (
+                        <section className="print:break-inside-avoid">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-200 pb-2">
+                                Professional Profile
+                            </h3>
+                            <p className="text-sm leading-relaxed text-slate-700 text-justify">
+                                {data.basics.summary}
+                            </p>
+                        </section>
+                    )}
+
+                    {/* Experience */}
+                    {data.experience.length > 0 && (
+                        <section>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-slate-200 pb-2">
+                                Experience
+                            </h3>
+                            <div className="space-y-6">
+                                {data.experience.map((exp, i) => (
+                                    <div key={i} className="group print:break-inside-avoid">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h4 className="text-lg font-bold text-slate-900">{exp.role}</h4>
+                                            <span className="text-sm font-medium text-slate-500 ml-4">{exp.startDate} – {exp.endDate}</span>
+                                        </div>
+                                        <div className="text-sm font-semibold text-slate-600 mb-2">{exp.company}</div>
+                                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line pl-1 border-l-2 border-slate-100">
+                                            {exp.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Verified Projects */}
+                    {projects.length > 0 && (
+                        <section>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6 border-b border-slate-200 pb-2 flex items-center justify-between">
+                                <span>Proof of Work</span>
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium flex items-center gap-1">
+                                    <CheckCircle2 size={10} /> Verified by DevTrack
+                                </span>
+                            </h3>
+
+                            <div className="space-y-8">
+                                {projects.map((proj) => (
+                                    <div key={proj.id} className="relative pl-4 border-l-2 border-slate-200 print:break-inside-avoid">
+                                        <div className="flex justify-between items-baseline mb-2">
+                                            <h4 className="text-lg font-bold text-slate-900">{proj.name}</h4>
                                             <div className="flex gap-2">
-                                                {proj.repositoryUrl && (
-                                                    <a href={proj.repositoryUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-900 print:text-slate-500">
-                                                        <Github size={12} />
-                                                    </a>
+                                                {proj.technologies && (
+                                                    <span className="text-xs font-mono text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                                                        {proj.technologies.slice(0, 3).join(' • ')}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-mono bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                                                {proj.userCommits || proj.commits || 0} commits
-                                            </span>
-                                            <span className="text-xs font-mono text-slate-500 font-medium text-right">
-                                                {proj.technologies && proj.technologies.slice(0, 4).join(', ')}
+
+                                        <p className="text-justify text-sm text-slate-700 leading-relaxed mb-3">
+                                            {proj.description}
+                                        </p>
+
+                                        <div className="flex gap-4 text-xs font-medium text-slate-500">
+                                            {proj.repositoryUrl && (
+                                                <a href={proj.repositoryUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-cyan-600 transition-colors">
+                                                    <Github size={12} /> Source Available
+                                                </a>
+                                            )}
+                                            <span className="flex items-center gap-1">
+                                                <Code2 size={12} /> {proj.userCommits || proj.commits || 0} Commits
                                             </span>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-slate-800 leading-relaxed mb-1.5 pl-1">
-                                        {proj.description}
-                                    </p>
-                                    <div className="flex gap-4 text-xs text-slate-500 pl-1 print:hidden">
-                                        {proj.repositoryUrl && (
-                                            <span className="flex items-center gap-1">
-                                                Source: {proj.repositoryUrl.replace('https://github.com/', '')}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* Skills */}
-                {(data.selectedSkillNames.length > 0 || data.skills.length > 0) && (
-                    <section>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-3">
-                            Technical Skills
-                        </h2>
-                        <div className="text-sm leading-relaxed">
-                            {/* Verified Skills Grid */}
-                            {data.selectedSkillNames.length > 0 && (
-                                <div className="mb-3 grid grid-cols-2 gap-x-8 gap-y-2">
-                                    {data.selectedSkillNames.map(name => {
-                                        // Find skill data for proficiency
-                                        const skillData = verifiedSkills.find(s => s.name === name);
-                                        // Calculate level 1-5 based on usage count (e.g. 1 project = 1, 5 projects = 5)
-                                        const level = skillData ? Math.min(Math.max(skillData.count, 1), 5) : 3;
-
-                                        return (
-                                            <div key={name} className="flex items-center justify-between">
-                                                <span className="font-semibold text-slate-800">{name}</span>
-                                                <div className="flex gap-0.5">
-                                                    {[1, 2, 3, 4, 5].map(star => (
-                                                        <div
-                                                            key={star}
-                                                            className={`w-2 h-2 rounded-full ${star <= level ? 'bg-slate-800' : 'bg-slate-200'}`}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Additional Manual Skills */}
-                            {data.skills.length > 0 && (
-                                <div className="pt-2 border-t border-slate-100">
-                                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wide mr-2">Additional:</span>
-                                    <span className="text-slate-700">{data.skills.join(', ')}</span>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                )}
-
-                {/* Education */}
-                {data.education.length > 0 && (
-                    <section>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 border-b border-slate-300 pb-1 mb-3">
-                            Education
-                        </h2>
-                        <div className="space-y-2">
-                            {data.education.map((edu, i) => (
-                                <div key={i} className="flex justify-between items-baseline">
-                                    <div>
-                                        <h3 className="font-bold text-base text-slate-900">{edu.school}</h3>
-                                        <div className="text-sm text-slate-800 italic">{edu.degree}</div>
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-600">{edu.year}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
+                                ))}
+                            </div>
+                        </section>
+                    )}
+                </div>
             </div>
         </div>
     )
@@ -243,9 +284,12 @@ export default function ResumeBuilder() {
         experience: [],
         education: [],
         skills: [],
+        achievements: [], // New Achievements array
         selectedProjectIds: [],
         selectedSkillNames: [],
     })
+
+
 
     // Context Data (Available Projects/Skills)
     const [availableProjects, setAvailableProjects] = useState([])
@@ -284,10 +328,34 @@ export default function ResumeBuilder() {
             // 1. Setup Resume Data
             const backendData = resumeRes.data.data
 
+            // Initialize Achievements with migration (String -> Object)
+            if (!backendData.achievements) {
+                backendData.achievements = [];
+            } else {
+                // Determine if migration is needed (if any element is a string)
+                backendData.achievements = backendData.achievements.map(a =>
+                    typeof a === 'string' ? { text: a, url: '' } : a
+                );
+            }
+
             // Ensure basics are populated if empty (First time load or missing fields)
             if (!backendData.basics.name) backendData.basics.name = userRes.data.user.name || ''
             if (!backendData.basics.email) backendData.basics.email = userRes.data.user.email || ''
             if (!backendData.basics.location) backendData.basics.location = userRes.data.user.location || ''
+
+            // Auto-generate Headline if missing
+            if (!backendData.basics.headline) {
+                // Try to guess from top Verified Skill or default
+                const topSkill = userRes.data.user.verifiedSkills?.[0]?.name;
+                backendData.basics.headline = topSkill ? `${topSkill} Developer` : "Full Stack Developer";
+            }
+
+            // Auto-generate Headline if missing
+            if (!backendData.basics.headline) {
+                // Try to guess from top Verified Skill or default
+                const topSkill = userRes.data.user.verifiedSkills?.[0]?.name;
+                backendData.basics.headline = topSkill ? `${topSkill} Developer` : "Full Stack Developer";
+            }
 
             // Auto-fill Socials if missing in Resume but present in User Profile
             if (!backendData.basics.linkedin && userRes.data.user.socials?.linkedin) {
@@ -370,7 +438,16 @@ export default function ResumeBuilder() {
     const handleSave = async () => {
         try {
             setSaving(true)
+
+            // 1. Save to Database (Primary)
             await resumeApi.save(resumeData)
+
+            // 2. Save to Local Storage (Backup/Offline)
+            localStorage.setItem('devtrack_resume_backup', JSON.stringify({
+                ...resumeData,
+                savedAt: new Date().toISOString()
+            }));
+
             confetti({
                 particleCount: 80,
                 spread: 60,
@@ -379,6 +456,19 @@ export default function ResumeBuilder() {
             })
         } catch (error) {
             console.error('Save failed:', error)
+
+            // Fallback: Save to Local Storage on network error
+            try {
+                localStorage.setItem('devtrack_resume_backup', JSON.stringify({
+                    ...resumeData,
+                    savedAt: new Date().toISOString(),
+                    offline: true
+                }));
+                alert("Network error. Saved locally to browser storage.");
+            } catch (storageErr) {
+                console.error("Local storage failed:", storageErr);
+            }
+
         } finally {
             setSaving(false)
         }
@@ -534,6 +624,15 @@ export default function ResumeBuilder() {
                                 value={resumeData.basics.name}
                                 onChange={(e) => updateBasics('name', e.target.value)}
                             />
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Professional Title</label>
+                                <input
+                                    placeholder="e.g. Senior React Developer"
+                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm focus:border-cyan-500 outline-none transition-colors"
+                                    value={resumeData.basics.headline || ''}
+                                    onChange={(e) => updateBasics('headline', e.target.value)}
+                                />
+                            </div>
                             <div className="relative">
                                 <textarea
                                     placeholder="Professional Summary (2-3 sentences)"
@@ -584,6 +683,12 @@ export default function ResumeBuilder() {
                                     className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm focus:border-cyan-500 outline-none"
                                     value={resumeData.basics.github}
                                     onChange={(e) => updateBasics('github', e.target.value)}
+                                />
+                                <input
+                                    placeholder="Portfolio / Website"
+                                    className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm focus:border-cyan-500 outline-none"
+                                    value={resumeData.basics.website || ''}
+                                    onChange={(e) => updateBasics('website', e.target.value)}
                                 />
                             </div>
                         </div>
@@ -810,6 +915,76 @@ export default function ResumeBuilder() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Achievements Form */}
+                    <div className="space-y-4 pt-4 border-t border-slate-800 pb-12">
+                        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Trophy size={12} /> Achievements
+                        </h2>
+                        <div className="space-y-3">
+                            {(resumeData.achievements || []).map((item, index) => {
+                                const text = typeof item === 'string' ? item : item.text || '';
+                                const url = typeof item === 'string' ? '' : item.url || '';
+
+                                return (
+                                    <div key={index} className="flex flex-col gap-2 p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                                        <div className="flex gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                value={text}
+                                                onChange={(e) => {
+                                                    const newAchievements = [...resumeData.achievements]
+                                                    const current = typeof newAchievements[index] === 'string'
+                                                        ? { text: newAchievements[index], url: '' }
+                                                        : { ...newAchievements[index] };
+                                                    current.text = e.target.value;
+                                                    newAchievements[index] = current;
+                                                    setResumeData(prev => ({ ...prev, achievements: newAchievements }))
+                                                }}
+                                                placeholder="Achievement (e.g. Winner of Smart India Hackathon)"
+                                                className="flex-1 bg-slate-900 border border-slate-800 rounded px-3 py-2 text-sm focus:border-cyan-500 outline-none"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    setResumeData(prev => ({
+                                                        ...prev,
+                                                        achievements: prev.achievements.filter((_, i) => i !== index)
+                                                    }))
+                                                }}
+                                                className="p-2 text-slate-600 hover:text-red-400 rounded transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-1">
+                                            <LinkIcon size={14} className="text-slate-600" />
+                                            <input
+                                                type="text"
+                                                value={url}
+                                                onChange={(e) => {
+                                                    const newAchievements = [...resumeData.achievements]
+                                                    const current = typeof newAchievements[index] === 'string'
+                                                        ? { text: newAchievements[index], url: '' }
+                                                        : { ...newAchievements[index] };
+                                                    current.url = e.target.value;
+                                                    newAchievements[index] = current;
+                                                    setResumeData(prev => ({ ...prev, achievements: newAchievements }))
+                                                }}
+                                                placeholder="Credential URL (Optional)"
+                                                className="flex-1 bg-transparent border-b border-slate-800 focus:border-cyan-500/50 outline-none text-xs py-1 text-slate-400 focus:text-cyan-400 placeholder:text-slate-700 transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            <button
+                                onClick={() => setResumeData(prev => ({ ...prev, achievements: [...prev.achievements, { text: '', url: '' }] }))}
+                                className="text-sm font-medium text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                            >
+                                <Plus size={14} /> Add Achievement
+                            </button>
                         </div>
                     </div>
 

@@ -31,7 +31,9 @@ const getResume = async (req, res, next) => {
                 basics: { phone: '', linkedin: '', website: '', summary: '', location: '' },
                 experience: [],
                 education: [],
+                education: [],
                 skills: [], // custom/manual skills
+                achievements: [],
                 selectedProjectIds: [],
                 selectedSkillNames: [], // from verified list
                 template: 'modern'
@@ -77,7 +79,7 @@ const getResume = async (req, res, next) => {
 const saveResume = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-        const { basics, experience, education, skills, selectedProjectIds, selectedSkillNames, template } = req.body;
+        const { basics, experience, education, skills, achievements, selectedProjectIds, selectedSkillNames, template } = req.body;
 
         const resumeData = {
             uid: userId,
@@ -85,6 +87,7 @@ const saveResume = async (req, res, next) => {
             experience: experience || [],
             education: education || [],
             skills: skills || [],
+            achievements: achievements || [],
             selectedProjectIds: selectedProjectIds || [],
             selectedSkillNames: selectedSkillNames || [],
             template: template || 'modern',
