@@ -622,12 +622,12 @@ export default function Learning() {
                         >
                             <div ref={sidebarContentRef} className="flex flex-col gap-4 pb-6 pr-2">
                                 {/* Activity Tracker */}
-                                <div className="h-[200px] flex-shrink-0">
+                                {/* <div className="h-[200px] flex-shrink-0">
                                     <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
-                                </div>
+                                </div> */}
 
                                 {/* LeetCode Integration */}
-                                <div className="h-[350px] flex-shrink-0">
+                                <div className="h-[250px] flex-shrink-0">
                                     <LeetCodeStats />
                                 </div>
 
@@ -641,12 +641,12 @@ export default function Learning() {
                         {/* Mobile Cards - Horizontal scroll on small screens */}
                         <div className="lg:hidden flex flex-col gap-4 mb-8 flex-shrink-0">
                             {/* Activity + Skills Row */}
-                            <div className="grid grid-cols-2 gap-3 h-[200px]">
-                                <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
+                            <div className="grid grid-cols-1 gap-3 h-[200px]">
+                                {/* <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} /> */}
                                 <TopSkills entries={learningEntries} />
                             </div>
                             {/* LeetCode Full Width */}
-                            <div className="h-[320px]">
+                            <div className="h-[220px]">
                                 <LeetCodeStats />
                             </div>
                         </div>

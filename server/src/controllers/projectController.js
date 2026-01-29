@@ -124,7 +124,7 @@ const createProject = async (req, res, next) => {
 
             // 3. Check if user owns or is a contributor to the repo
             const github = new GitHubService(userData.githubAccessToken);
-            
+
             // First check if repo exists and get its info
             let repoInfo;
             try {
@@ -142,7 +142,7 @@ const createProject = async (req, res, next) => {
 
             // Check ownership (case-insensitive)
             const isOwner = parsed.owner.toLowerCase() === userGithubUsername.toLowerCase();
-            
+
             // If not owner, check if user is a contributor
             if (!isOwner) {
                 try {
@@ -151,12 +151,12 @@ const createProject = async (req, res, next) => {
                         repo: parsed.repo,
                         per_page: 100, // Check first 100 contributors
                     });
-                    
+
                     const contributors = contributorsResponse.data || [];
                     const isContributor = contributors.some(
                         contributor => contributor.login.toLowerCase() === userGithubUsername.toLowerCase()
                     );
-                    
+
                     if (!isContributor) {
                         throw new APIError(
                             `You can only add repositories that you own or contribute to. You are not listed as a contributor to ${parsed.owner}/${parsed.repo}`,
@@ -174,6 +174,27 @@ const createProject = async (req, res, next) => {
                     );
                 }
             }
+
+            // [NEW] Always try to fetch user commits from contributors list
+            // This ensures we show "User Commits" not "Total Commits"
+            try {
+                const contributorsResponse = await github.octokit.rest.repos.listContributors({
+                    owner: parsed.owner,
+                    repo: parsed.repo,
+                    per_page: 100,
+                });
+
+                const contributors = contributorsResponse.data || [];
+                const userContributor = contributors.find(
+                    contributor => contributor.login.toLowerCase() === userGithubUsername.toLowerCase()
+                );
+
+                if (userContributor) {
+                    req.body.userCommits = userContributor.contributions;
+                }
+            } catch (err) {
+                console.warn('Could not fetch user specific commits:', err.message);
+            }
         }
 
         // If githubData is already provided (from client-side analysis), use it directly
@@ -189,7 +210,9 @@ const createProject = async (req, res, next) => {
             repositoryUrl: repositoryUrl || '',
             technologies: technologies || [],
             progress: aiAnalysis?.progressPercentage || progress || 0,
-            commits: githubData?.totalCommits || commits || 0,
+            commits: req.body.userCommits || githubData?.totalCommits || commits || 0,
+            userCommits: req.body.userCommits || 0,
+            totalCommits: githubData?.totalCommits || 0,
             githubData: githubData || null,
             aiAnalysis: aiAnalysis || null,
             // Flag to indicate if background analysis is pending
@@ -224,14 +247,14 @@ const createProject = async (req, res, next) => {
 
                     if (parsed) {
                         console.log(`📊 [Background] Fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
-                        
+
                         // Re-fetch user to get token safely inside async context if needed, 
                         // but strictly we can rely on existing checks. 
                         // Note: We need a fresh service instance or reuse one. 
                         // Ideally we pass the token. fetching user again is safest for long running text
                         const userSnapshot = await collections.users().doc(userId).get();
                         const token = userSnapshot.exists ? userSnapshot.data().githubAccessToken : null;
-                        
+
                         const github = new GitHubService(token);
                         const fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
 
@@ -251,6 +274,10 @@ const createProject = async (req, res, next) => {
                         });
 
                         console.log(`✅ [Background] Project ${projectId} analysis complete`);
+
+                        // Recalculate Skills
+                        const { recalculateSkills } = require('../services/skillService');
+                        await recalculateSkills(userId);
                     }
                 } catch (bgError) {
                     console.error(`❌ [Background] Analysis failed for project ${projectId}:`, bgError.message);

@@ -13,6 +13,8 @@ import Onboarding from './pages/Onboarding'
 import MobileAuth from './pages/MobileAuth'
 import GitHubInsights from './pages/GitHubInsights'
 import Showcase from './pages/Showcase'
+import PublicProfile from './pages/PublicProfile'
+import ResumeBuilder from './pages/ResumeBuilder'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -100,6 +102,16 @@ function App() {
                                 </OnboardingRedirect>
                             </SignedIn>
                         </>
+                    } />
+
+                    {/* Public Profile Route */}
+                    <Route path="/u/:username" element={<PublicProfile />} />
+                    <Route path="/resume" element={
+                        <SignedIn>
+                            <OnboardingRedirect>
+                                <ResumeBuilder />
+                            </OnboardingRedirect>
+                        </SignedIn>
                     } />
 
                     {/* Onboarding Route (Protected) */}

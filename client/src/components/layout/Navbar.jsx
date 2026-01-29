@@ -3,7 +3,7 @@ import { UserButton } from '@clerk/clerk-react'
 import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
 import NotificationSettings from '../settings/NotificationSettings'
-import { BookOpen, Info, Trophy } from 'lucide-react'
+import { BookOpen, Info, Trophy, FileText } from 'lucide-react'
 
 // SVG Icon Components
 const DashboardIcon = ({ className = "w-5 h-5" }) => (
@@ -49,6 +49,7 @@ const navItems = [
     { name: 'Showcase', path: '/showcase', icon: Trophy },
     { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
     { name: 'GitHub Insights', path: '/github-insights', icon: GithubOutlineIcon },
+    { name: 'Resume Builder', path: '/resume', icon: FileText },
 ]
 
 // Sidebar icon button

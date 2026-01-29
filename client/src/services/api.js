@@ -201,6 +201,16 @@ export const leetCodeApi = {
     updateConfig: (username, verificationCode) => api.post('/leetcode/config', { username, verificationCode }),
 };
 
+export const publicApi = {
+    getProfile: (username) => api.get(`/public/profile/${username}`),
+};
+
+export const resumeApi = {
+    get: () => api.get('/resume'),
+    save: (data) => api.post('/resume', data),
+    generateSummary: (data) => api.post('/resume/generate-summary', data),
+};
+
 export default api;
 
 
