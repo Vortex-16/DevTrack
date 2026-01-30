@@ -742,6 +742,68 @@ Provide a thorough multi-pass review following the FAANG-level code review forma
   }
 
   // ═══════════════════════════════════════════════════════════════════════
+  // EXPERT RESUME SUMMARY GENERATOR
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate a professional resume summary based on user profile and verified projects
+   * @param {object} userData - User profile data (role, bio, experience)
+   * @param {Array} projects - List of user's key projects
+   * @param {Array} skills - List of verified skills
+   */
+  async generateResumeSummary(userData, projects, skills) {
+    const projectHighlights = projects.slice(0, 3).map(p =>
+      `- ${p.name}: ${p.description} (Tech: ${p.technologies?.join(', ')})`
+    ).join('\n');
+
+    const prompt = `You are a Professional Resume Writer for top-tier tech companies (Google, Meta, Netflix).
+    
+    Write a concise, high-impact professional summary (3-4 sentences max) for a software developer's resume.
+    
+    **CANDIDATE PROFILE:**
+    - Role: ${userData.role || 'Full Stack Developer'}
+    - Key Skills: ${skills.map(s => s.name).join(', ')}
+    - Experience Level: ${userData.experience?.length || 0} previous roles
+    
+    **KEY PROJECTS:**
+    ${projectHighlights}
+    
+    **INSTRUCTIONS:**
+    1. Use active voice and strong action verbs.
+    2. Highlight technical expertise and problem-solving abilities.
+    3. Mention specific high-impact technologies from their stack.
+    4. Do NOT use personal pronouns like "I", "me", "my". Start sentences with verbs or adjectives.
+    5. Output ONLY the summary text, no headings or other formatting.`;
+
+    try {
+      const messages = [
+        {
+          role: "system",
+          content: "You are an expert resume consultant who writes compelling, ATS-friendly professional summaries."
+        },
+        { role: "user", content: prompt }
+      ];
+
+      const summary = await this.makeRequest(messages, {
+        temperature: 0.6,
+        max_tokens: 200
+      });
+
+      return {
+        success: true,
+        summary: summary.trim()
+      };
+    } catch (error) {
+      console.error("Resume summary generation error:", error);
+      return {
+        success: false,
+        error: "Failed to generate summary.",
+        details: error.message
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
   // EXPERT PROJECT ANALYSIS
   // ═══════════════════════════════════════════════════════════════════════
 
@@ -1763,13 +1825,13 @@ Return ONLY raw Markdown content. Do not wrap in code blocks or add explanations
       };
     } catch (error) {
       console.error("README generation error:", error);
-      
+
       // Handle rate limits specifically
       if (error.status === 429 || error.message?.includes('429')) {
         return {
-           success: false,
-           error: "Rate limit exceeded. Please wait a moment before trying again.",
-           details: error.message
+          success: false,
+          error: "Rate limit exceeded. Please wait a moment before trying again.",
+          details: error.message
         };
       }
 

@@ -3,7 +3,7 @@ import { UserButton } from '@clerk/clerk-react'
 import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
 import NotificationSettings from '../settings/NotificationSettings'
-import { BookOpen, Info, Trophy } from 'lucide-react'
+import { BookOpen, Info, Trophy, FileText } from 'lucide-react'
 
 // SVG Icon Components
 const DashboardIcon = ({ className = "w-5 h-5" }) => (
@@ -49,6 +49,7 @@ const navItems = [
     { name: 'Showcase', path: '/showcase', icon: Trophy },
     { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
     { name: 'GitHub Insights', path: '/github-insights', icon: GithubOutlineIcon },
+    { name: 'Resume Builder', path: '/resume', icon: FileText },
 ]
 
 // Sidebar icon button
@@ -221,20 +222,17 @@ function MobileNavbar({ onOpenSettings }) {
 
         // Try immediately
         if (!attachToContainer()) {
-            // Poll if not found (briefly)
             checkForContainer = setInterval(() => {
                 if (attachToContainer()) {
                     clearInterval(checkForContainer)
                 }
             }, 500)
 
-            // Safety timeout
             timeout = setTimeout(() => {
                 clearInterval(checkForContainer)
             }, 5000)
         }
         // Continuous integrity check: ensure we're listening to the live element
-        // (React might re-mount the container, detaching our listener from the DOM)
         const currentContainerRef = { current: null }
 
         const checkAndAttach = () => {
@@ -320,7 +318,6 @@ function MobileNavbar({ onOpenSettings }) {
                         <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
                     </motion.div>
                 </Link>
-                {/* Nav items */}
                 {/* Nav items */}
                 <div className="flex items-center flex-1 justify-between sm:justify-center gap-1 sm:gap-0.8 pr-3 sm:pr-0">
                     {navItems.map((item) => (

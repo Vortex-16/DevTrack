@@ -31,7 +31,6 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
         }
     }, [isOpen, project?.id]);
 
-    // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
             setReadme('');
@@ -44,7 +43,6 @@ export default function ReadmeGeneratorModal({ isOpen, onClose, project }) {
         }
     }, [isOpen]);
 
-    // Global scroll lock when modal is open
     useEffect(() => {
         if (isOpen) {
             globalLenis?.stop();

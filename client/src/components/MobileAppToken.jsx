@@ -17,7 +17,6 @@ export default function MobileAppToken() {
     const handleGetToken = async () => {
         setLoading(true)
         try {
-            // Get the session token from Clerk
             const sessionToken = await getToken()
             if (sessionToken) {
                 setToken(sessionToken)
@@ -36,7 +35,6 @@ export default function MobileAppToken() {
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
         } catch (error) {
-            // Fallback for mobile browsers
             const textArea = document.createElement('textarea')
             textArea.value = token
             document.body.appendChild(textArea)

@@ -167,6 +167,17 @@ const updatePreferences = async (req, res, next) => {
             if (typeof preferences.breakDetection === 'boolean') {
                 updatedPreferences.breakDetection = preferences.breakDetection;
             }
+
+            // Public Profile Customization
+            if (preferences.publicProfile) {
+                updatedPreferences.publicProfile = {
+                    ...(updatedPreferences.publicProfile || {}),
+                    ...(preferences.publicProfile.bio !== undefined && { bio: preferences.publicProfile.bio }),
+                    ...(preferences.publicProfile.headline !== undefined && { headline: preferences.publicProfile.headline }),
+                    ...(preferences.publicProfile.showcasedProjectIds !== undefined && { showcasedProjectIds: preferences.publicProfile.showcasedProjectIds }),
+                    ...(preferences.publicProfile.showSkills !== undefined && { showSkills: preferences.publicProfile.showSkills }),
+                };
+            }
         }
 
         const updateData = {

@@ -1,6 +1,6 @@
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
-import { logsApi } from '../services/api'
+import { logsApi, projectsApi } from '../services/api'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { useCache } from '../context/CacheContext'
@@ -10,6 +10,9 @@ import Lenis from 'lenis'
 import { ReactLenis, useLenis } from 'lenis/react'
 import DatePicker from '../components/ui/DatePicker'
 import TimePicker from '../components/ui/TimePicker'
+import LeetCodeStats from '../components/learning/LeetCodeStats'
+import TopSkills from '../components/learning/TopSkills'
+import ActivityStats from '../components/learning/ActivityStats'
 
 
 import { createPortal } from 'react-dom'
@@ -282,6 +285,7 @@ export default function Learning() {
 
     const [learningEntries, setLearningEntries] = useState(cachedData.entries || [])
     const [stats, setStats] = useState(cachedData.stats || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 })
+    const [verifiedSkills, setVerifiedSkills] = useState([])
 
     const [loading, setLoading] = useState(!hasCachedData('learning_data'))
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -289,6 +293,7 @@ export default function Learning() {
     const [showModal, setShowModal] = useState(false)
     const [editingEntry, setEditingEntry] = useState(null)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [showExtensionModal, setShowExtensionModal] = useState(false)
 
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
@@ -322,26 +327,46 @@ export default function Learning() {
                 return
             }
 
-            const [logsRes, statsRes] = await Promise.all([
+            const [logsRes, statsRes, projectsRes] = await Promise.all([
                 logsApi.getAll(
                     { limit: 50 },
                     { headers: { Authorization: `Bearer ${token}` } }
                 ),
                 logsApi.getStats({
                     headers: { Authorization: `Bearer ${token}` }
-                })
+                }),
+                projectsApi.getAll(
+                    { limit: 100 },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                )
             ])
 
             const newEntries = logsRes.data.data.logs || []
             const newStats = statsRes.data.data || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 }
 
+            // Calculate Verified Skills
+            const projects = projectsRes.data.data.projects || []
+            const skillCounts = {}
+            projects.forEach(p => {
+                if (p.technologies && Array.isArray(p.technologies)) {
+                    p.technologies.forEach(tech => {
+                        skillCounts[tech] = (skillCounts[tech] || 0) + 1
+                    })
+                }
+            })
+            const calculatedSkills = Object.entries(skillCounts)
+                .map(([name, count]) => ({ name, count, verified: true }))
+                .sort((a, b) => b.count - a.count)
+
             setLearningEntries(newEntries)
             setStats(newStats)
+            setVerifiedSkills(calculatedSkills)
 
             // Cache data
             setCachedData('learning_data', {
                 entries: newEntries,
-                stats: newStats
+                stats: newStats,
+                verifiedSkills: calculatedSkills
             })
         } catch (err) {
             setError(err.message)
@@ -437,9 +462,12 @@ export default function Learning() {
 
     const learningContainerRef = useRef(null);
     const learningContentRef = useRef(null);
+    const sidebarContainerRef = useRef(null);
+    const sidebarContentRef = useRef(null);
     const lenisRef = useRef(null);
+    const sidebarLenisRef = useRef(null);
 
-    // Initialize Lenis for smooth scrolling
+    // Initialize Lenis for Main Content
     useEffect(() => {
         if (!learningContainerRef.current || !learningContentRef.current) return;
 
@@ -470,6 +498,37 @@ export default function Learning() {
         };
     }, [learningEntries]);
 
+    // Initialize Lenis for Sidebar
+    useEffect(() => {
+        if (!sidebarContainerRef.current || !sidebarContentRef.current) return;
+
+        const lenis = new Lenis({
+            wrapper: sidebarContainerRef.current,
+            content: sidebarContentRef.current,
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            touchMultiplier: 2,
+        });
+
+        sidebarLenisRef.current = lenis;
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
+        const rafId = requestAnimationFrame(raf);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            lenis.destroy();
+        };
+    }, []);
+
     return (
         <PixelTransition loading={loading}>
             <motion.div>
@@ -478,7 +537,7 @@ export default function Learning() {
                     className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
                 >
                     {/* Header */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 flex-shrink-0">
                         <div>
                             <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
                             <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
@@ -489,80 +548,160 @@ export default function Learning() {
                         </Button>
                     </div>
 
-                    {/* Stats Row */}
+                    {/* Stats Row - Full Width */}
                     <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-4 flex-shrink-0">
-                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                        <div className="flex-shrink-0 w-48 sm:w-auto">
                             <StatCard icon={<BookOpen size={20} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
                         </div>
-                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                        <div className="flex-shrink-0 w-48 sm:w-auto">
                             <StatCard icon={<Flame size={20} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
                         </div>
-                        <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
+                        <div className="flex-shrink-0 w-48 sm:w-auto">
                             <StatCard icon={<Calendar size={20} />} label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
                         </div>
                     </div>
 
-                    {/* Scrollable Content Area */}
-                    <div
-                        ref={learningContainerRef}
-                        id="learning-scroll-container"
-                        className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-6 relative"
-                    >
-                        <div ref={learningContentRef} className="pb-4">
-                            {/* Error State */}
-                            {error && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <AlertTriangle className="text-red-400" size={20} />
-                                        <p className="text-red-400 flex-1">Error: {error}</p>
-                                        <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
-                                    </div>
-                                </motion.div>
-                            )}
+                    <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
+                        {/* Main Content Area (Entries) */}
+                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            {/* Scrollable List */}
+                            <div
+                                ref={learningContainerRef}
+                                id="learning-scroll-container"
+                                className="flex-1 overflow-y-auto min-h-0 pr-2 lg:pr-4 -mr-2 lg:-mr-4 relative custom-scrollbar"
+                            >
+                                <div ref={learningContentRef} className="pb-4">
+                                    {/* Error State */}
+                                    {error && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="rounded-xl p-4 bg-red-500/10 border border-red-500/30 mb-6"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <AlertTriangle className="text-red-400" size={20} />
+                                                <p className="text-red-400 flex-1">Error: {error}</p>
+                                                <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
+                                            </div>
+                                        </motion.div>
+                                    )}
 
-                            {/* Empty State */}
-                            {!loading && learningEntries.length === 0 && !error && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]"
-                                >
-                                    <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
-                                        <BookOpen size={40} className="text-purple-500" />
-                                    </div>
-                                    <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
-                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto text-xs md:text-base px-4 md:px-0">Start tracking your learning journey, skills, and progress today!</p>
-                                    <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
-                                </motion.div>
-                            )}
+                                    {/* Empty State */}
+                                    {!loading && learningEntries.length === 0 && !error && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]"
+                                        >
+                                            <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
+                                                <BookOpen size={40} className="text-purple-500" />
+                                            </div>
+                                            <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
+                                            <p className="text-slate-400 mb-8 max-w-sm mx-auto text-xs md:text-base px-4 md:px-0">Start tracking your learning journey, skills, and progress today!</p>
+                                            <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
+                                        </motion.div>
+                                    )}
 
-                            {/* Entries List */}
-                            {learningEntries.length > 0 && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold text-white">Recent Entries</h2>
-                                        <span className="text-slate-500 text-sm">{learningEntries.length} entries</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
-                                        {learningEntries.map((entry, idx) => (
-                                            <EntryCard
-                                                key={entry.id}
-                                                entry={entry}
-                                                onEdit={openEditModal}
-                                                onDelete={(id) => setDeleteConfirm(id)}
-                                                delay={0.1 + idx * 0.05}
-                                            />
-                                        ))}
-                                    </div>
+                                    {/* Entries List */}
+                                    {learningEntries.length > 0 && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                                    <BookOpen className="w-4 h-4 text-purple-400" />
+                                                    Activity Log
+                                                </h2>
+                                                <span className="text-slate-500 text-xs font-medium bg-white/5 px-2 py-1 rounded-full border border-white/5">
+                                                    {learningEntries.length} entries
+                                                </span>
+                                            </div>
+                                            <div className="relative pl-6 sm:pl-8 space-y-6 before:absolute before:left-2 sm:before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-gradient-to-b before:from-purple-500/50 before:via-white/5 before:to-transparent">
+                                                {learningEntries.map((entry, idx) => (
+                                                    <div key={entry.id} className="relative group">
+                                                        {/* Timeline Dot */}
+                                                        <div className={`absolute -left-[29px] sm:-left-[33px] top-6 w-3 h-3 rounded-full border-2 border-[#0B0C15] transition-all duration-300 z-10 
+                                                                    ${idx === 0 ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-125' : 'bg-white/20 group-hover:bg-purple-400 group-hover:scale-110'}`}
+                                                        />
+
+                                                        <EntryCard
+                                                            entry={entry}
+                                                            onEdit={openEditModal}
+                                                            onDelete={(id) => setDeleteConfirm(id)}
+                                                            delay={0.1 + idx * 0.05}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
+                        </div>
+
+                        <div
+                            ref={sidebarContainerRef}
+                            className="hidden lg:flex w-[400px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar h-full relative"
+                        >
+                            <div ref={sidebarContentRef} className="flex flex-col gap-4 pb-6 pr-2">
+                                {/* Activity Tracker */}
+                                {/* <div className="h-[200px] flex-shrink-0">
+                                    <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
+                                </div> */}
+
+                                {/* LeetCode Integration */}
+                                <div className="h-[250px] flex-shrink-0">
+                                    <LeetCodeStats />
+                                </div>
+
+                                {/* Top Skills */}
+                                <div className="h-[250px] flex-shrink-0">
+                                    <TopSkills entries={learningEntries} verifiedSkills={verifiedSkills} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mobile Cards - Horizontal scroll on small screens */}
+                        <div className="lg:hidden flex flex-col gap-4 mb-8 flex-shrink-0">
+                            {/* Activity + Skills Row */}
+                            <div className="grid grid-cols-1 gap-3 h-[200px]">
+                                {/* <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} /> */}
+                                <TopSkills entries={learningEntries} verifiedSkills={verifiedSkills} />
+                            </div>
+                            {/* LeetCode Full Width */}
+                            <div className="h-[220px]">
+                                <LeetCodeStats />
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Extension Help Modal */}
+                <Modal
+                    isOpen={showExtensionModal}
+                    onClose={() => setShowExtensionModal(false)}
+                    title="Connect Browser Extension"
+                >
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                            <p className="text-sm text-purple-200">
+                                To track website activity, you need to load the helper extension in Chrome/Edge manually (Dev Mode).
+                            </p>
+                        </div>
+
+                        <ol className="list-decimal list-inside space-y-3 text-slate-300 text-sm">
+                            <li>Open <b>chrome://extensions</b> in your browser.</li>
+                            <li>Enable <b>Developer mode</b> toggle in the top right.</li>
+                            <li>Click <b>Load unpacked</b> (top left).</li>
+                            <li>Select this folder: <code className="bg-white/10 px-1 rounded text-white">d:\hdd\DevTrack\Shell\extension</code></li>
+                            <li>Click the specific <b>Refresh</b> (rotate icon) on the card if it was already there.</li>
+                        </ol>
+
+                        <div className="pt-4 border-t border-white/10 text-center">
+                            <Button onClick={() => setShowExtensionModal(false)} className="w-full">
+                                Got it, I've loaded it
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
 
                 {/* Delete Confirmation Modal */}
                 <Modal

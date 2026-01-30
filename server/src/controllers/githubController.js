@@ -54,10 +54,28 @@ const getActivity = async (req, res, next) => {
  * Get user's recent commits
  * GET /api/github/commits
  */
+const NodeCache = require('node-cache');
+const githubCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+
+/**
+ * Get user's recent commits
+ * GET /api/github/commits
+ */
 const getCommits = async (req, res, next) => {
     try {
         const { userId } = req.auth;
         const days = parseInt(req.query.days) || 7;
+        const cacheKey = `commits_${userId}_${days}`;
+
+        // Check cache first
+        const cachedCommits = githubCache.get(cacheKey);
+        if (cachedCommits) {
+            return res.status(200).json({
+                success: true,
+                data: cachedCommits,
+                fromCache: true
+            });
+        }
 
         const userDoc = await collections.users().doc(userId).get();
 
@@ -98,10 +116,11 @@ const getCommits = async (req, res, next) => {
                 console.log('🔑 Using FRESH OAuth token from Clerk for contributions');
 
                 // Update the cached token in Firestore for future use
-                await collections.users().doc(userId).update({
+                // Don't await this to speed up response
+                collections.users().doc(userId).update({
                     githubAccessToken: githubAccessToken,
                     updatedAt: new Date().toISOString()
-                });
+                }).catch(err => console.error('Failed to update token cache:', err.message));
             } else {
                 console.log('⚠️ No fresh OAuth token available, using cached or PAT');
             }
@@ -142,18 +161,23 @@ const getCommits = async (req, res, next) => {
         // if we don't have historical streak data. Let's use 0 for now or a simple logic.
         let streakGrowth = currentStreak > 0 ? 10 : 0;
 
+        const responseData = {
+            username: user.githubUsername,
+            days,
+            totalCommits: currentWeekCommits, // Show last 7 days count by default
+            totalContributions: result.totalContributions || currentWeekCommits,
+            streak: currentStreak,
+            commits: allCommits.filter(c => new Date(c.date) >= oneWeekAgo), // Recent commits
+            commitGrowth,
+            streakGrowth
+        };
+
+        // Cache the result
+        githubCache.set(cacheKey, responseData);
+
         res.status(200).json({
             success: true,
-            data: {
-                username: user.githubUsername,
-                days,
-                totalCommits: currentWeekCommits, // Show last 7 days count by default
-                totalContributions: result.totalContributions || currentWeekCommits,
-                streak: currentStreak,
-                commits: allCommits.filter(c => new Date(c.date) >= oneWeekAgo), // Recent commits
-                commitGrowth,
-                streakGrowth
-            },
+            data: responseData,
         });
     } catch (error) {
         next(error);
@@ -595,9 +619,9 @@ const getSimilarProjects = async (req, res, next) => {
                 // Use AI to analyze repos and extract keywords
                 const getGroqService = require('../services/groqService');
                 const groqService = getGroqService();
-                
+
                 const analysis = await groqService.analyzeReposForSimilarProjects(repos, readmeContents);
-                
+
                 if (analysis.success) {
                     console.log('🧠 AI README Analysis Results:');
                     console.log(`   Core Features: ${analysis.coreFeatures?.join(', ') || 'N/A'}`);
@@ -626,7 +650,7 @@ const getSimilarProjects = async (req, res, next) => {
                             acc[lang] = (acc[lang] || 0) + 1;
                             return acc;
                         }, {});
-                    
+
                     languageArray = Object.entries(repoLanguages)
                         .sort((a, b) => b[1] - a[1])
                         .slice(0, 3)

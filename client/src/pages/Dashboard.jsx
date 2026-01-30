@@ -11,9 +11,10 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, ExternalLink } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
 import { ReactLenis } from 'lenis/react'
+import Skeleton, { SkeletonCard, SkeletonActivity, SkeletonStats } from '../components/ui/Skeleton'
 
 
 // Helper to format dates for display
@@ -82,8 +83,23 @@ function AnimatedCounter({ value, duration = 1.5 }) {
     return <span>{count}</span>
 }
 
-// Portfolio Card - DARK themed with functional time buttons
-function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
+// PortfolioCard with Skeleton
+function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
+    if (loading) {
+        return (
+            <div className={`rounded-2xl p-4 h-full border border-white/10 space-y-4 shadow-lg`}
+                style={{ background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))' }}
+            >
+                <div className="flex justify-between">
+                    <Skeleton variant="title" className="w-20" />
+                    <Skeleton variant="text" className="w-10" />
+                </div>
+                <Skeleton variant="text" className="w-32" />
+                <Skeleton className="h-24 w-full rounded-xl" />
+            </div>
+        )
+    }
+
     const [selectedPeriod, setSelectedPeriod] = useState('1W')
 
     // Get days based on selected period
@@ -254,7 +270,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact }) {
 }
 
 // Asset Card - DARK themed
-function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, compact }) {
+function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, compact, loading }) {
     const colors = {
         cyan: { border: 'border-cyan-500/30', iconBg: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/20' },
         purple: { border: 'border-purple-500/30', iconBg: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
@@ -262,6 +278,30 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
         orange: { border: 'border-orange-500/30', iconBg: 'from-orange-500 to-orange-600', glow: 'shadow-orange-500/20' },
     }
     const c = colors[color] || colors.cyan
+
+    if (loading) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay }}
+                className="flex-1 min-w-[140px]"
+            >
+                <div className={`rounded-2xl p-4 h-full border border-white/10 space-y-3`}
+                    style={{ background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))' }}
+                >
+                    <div className="flex gap-3">
+                        <Skeleton className="h-10 w-10 rounded-xl" />
+                        <div className="space-y-2 flex-1">
+                            <Skeleton variant="title" className="w-1/2" />
+                            <Skeleton variant="text" className="w-3/4" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-4 w-full" />
+                </div>
+            </motion.div>
+        )
+    }
 
     return (
         <motion.div
@@ -301,7 +341,30 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
 }
 
 // Activity Table - DARK themed with combined GitHub + Learning logs
-function ActivityTable({ logs, logStats, githubCommits, compact }) {
+function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
+    if (loading) {
+        return (
+            <div
+                className={`rounded-2xl p-3 h-full border border-white/10 flex flex-col`}
+                style={{
+                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
+                }}
+            >
+                <div className="flex justify-between mb-4">
+                    <Skeleton variant="title" className="w-32" />
+                    <Skeleton variant="text" className="w-16" />
+                </div>
+                <div className="space-y-3">
+                    <SkeletonActivity />
+                    <SkeletonActivity />
+                    <SkeletonActivity />
+                    <SkeletonActivity />
+                </div>
+            </div>
+        )
+    }
+
     // Helper to parse date properly
     const parseDate = (date) => {
         if (!date) return new Date(0)
@@ -692,6 +755,9 @@ export default function Dashboard() {
 
     const [githubUsername, setGithubUsername] = useState('')
     const [loading, setLoading] = useState(!hasCachedData('dashboard_data'))
+    const [statsLoading, setStatsLoading] = useState(!hasCachedData('dashboard_data'))
+    const [logsLoading, setLogsLoading] = useState(!hasCachedData('dashboard_data'))
+    const [githubLoading, setGithubLoading] = useState(!hasCachedData('dashboard_data'))
     const [isRefreshing, setIsRefreshing] = useState(false)
     const retriedGithub = useRef(false)
     const scrollTracker = useRef({ lastY: 0, state: 'up' }) // Track scroll for navbar
@@ -712,6 +778,7 @@ export default function Dashboard() {
             retriedGithub.current = true
             const timer = setTimeout(async () => {
                 try {
+                    setGithubLoading(true)
                     const githubRes = await githubApi.getCommits(30)
                     const commits = githubRes.data?.data?.commits || []
                     const streak = githubRes.data?.data?.streak || 0
@@ -721,6 +788,8 @@ export default function Dashboard() {
                     }
                 } catch (err) {
                     console.log('GitHub retry failed:', err.message)
+                } finally {
+                    setGithubLoading(false)
                 }
             }, 1500)
             return () => clearTimeout(timer)
@@ -728,49 +797,80 @@ export default function Dashboard() {
     }, [loading, githubCommits.length])
 
     const fetchData = async () => {
+        const hasCache = hasCachedData('dashboard_data')
+
+        // If no cache, set individual loaders to true
+        // If cache exists, we're refreshing (isRefreshing = true), so keep loaders false (optimistic)
+        if (!hasCache) {
+            setLoading(true)
+            setStatsLoading(true)
+            setLogsLoading(true)
+            setGithubLoading(true)
+        } else {
+            setIsRefreshing(true)
+        }
+
         try {
-            if (!hasCachedData('dashboard_data')) {
-                setLoading(true)
-            } else {
-                setIsRefreshing(true)
-            }
+            // Independent parallel fetching
+            const promises = [
+                // 1. Stats and Top Cards
+                Promise.all([
+                    logsApi.getStats().catch(() => ({ error: true })),
+                    projectsApi.getStats().catch(() => ({ error: true }))
+                ]).then(([logStatsRes, projectStatsRes]) => {
+                    const newLogStats = logStatsRes.error ? null : (logStatsRes.data?.data || {})
+                    const newProjectStats = projectStatsRes.error ? null : (projectStatsRes.data?.data || {})
+                    if (newLogStats) setLogStats(newLogStats)
+                    if (newProjectStats) setProjectStats(newProjectStats)
+                    setStatsLoading(false)
+                    return { logStats: newLogStats, projectStats: newProjectStats }
+                }),
 
-            const [logStatsRes, projectStatsRes, logsRes, githubRes] = await Promise.all([
-                logsApi.getStats().catch(() => ({ error: true })),
-                projectsApi.getStats().catch(() => ({ error: true })),
-                logsApi.getAll({ limit: 50 }).catch(() => ({ error: true })),
+                // 2. Logs (Recent Activity)
+                logsApi.getAll({ limit: 50 }).catch(() => ({ error: true }))
+                    .then(logsRes => {
+                        const newRecentLogs = logsRes.error ? null : (logsRes.data?.data?.logs || [])
+                        if (newRecentLogs) setRecentLogs(newRecentLogs)
+                        setLogsLoading(false)
+                        return { recentLogs: newRecentLogs }
+                    }),
+
+                // 3. GitHub Data (Can be slower)
                 githubApi.getCommits(30).catch(() => ({ error: true }))
-            ])
+                    .then(githubRes => {
+                        const newGithubStats = githubRes.error ? null : (githubRes.data?.data || {})
+                        const newGithubCommits = newGithubStats?.commits || []
+                        const newGithubStreak = newGithubStats?.streak || 0
+                        if (newGithubStats) {
+                            setGithubStats(newGithubStats)
+                            setGithubCommits(newGithubCommits)
+                            setGithubStreak(newGithubStreak)
+                        }
+                        setGithubLoading(false)
+                        return { githubStats: newGithubStats, githubCommits: newGithubCommits, githubStreak: newGithubStreak }
+                    })
+            ]
 
-            const newLogStats = logStatsRes.error ? null : (logStatsRes.data?.data || {})
-            const newProjectStats = projectStatsRes.error ? null : (projectStatsRes.data?.data || {})
-            const newRecentLogs = logsRes.error ? null : (logsRes.data?.data?.logs || [])
-            const newGithubStats = githubRes.error ? null : (githubRes.data?.data || {})
-            const newGithubCommits = newGithubStats?.commits || []
-            const newGithubStreak = newGithubStats?.streak || 0
+            // Wait for all to update cache
+            const results = await Promise.all(promises)
+            const finalData = results.reduce((acc, curr) => ({ ...acc, ...curr }), {})
 
-            if (newLogStats) setLogStats(newLogStats)
-            if (newProjectStats) setProjectStats(newProjectStats)
-            if (newRecentLogs) setRecentLogs(newRecentLogs)
-            if (newGithubStats) {
-                setGithubStats(newGithubStats)
-                setGithubCommits(newGithubCommits)
-                setGithubStreak(newGithubStreak)
-            }
-
-            // Cache the actual data object
+            // Cache the actual data object (merge with existing if any fields missing)
             setCachedData('dashboard_data', {
-                logStats: newLogStats,
-                projectStats: newProjectStats,
-                recentLogs: newRecentLogs,
-                githubStats: newGithubStats,
-                githubCommits: newGithubCommits,
-                githubStreak: newGithubStreak
+                logStats: finalData.logStats || logStats,
+                projectStats: finalData.projectStats || projectStats,
+                recentLogs: finalData.recentLogs || recentLogs,
+                githubStats: finalData.githubStats || githubStats,
+                githubCommits: finalData.githubCommits || githubCommits,
+                githubStreak: finalData.githubStreak || githubStreak
             })
         } catch (error) {
             console.error("Dashboard: Error fetching data", error)
         } finally {
             setLoading(false)
+            setStatsLoading(false)
+            setLogsLoading(false)
+            setGithubLoading(false)
             setIsRefreshing(false)
         }
     }
@@ -787,7 +887,7 @@ export default function Dashboard() {
     }
 
     return (
-        <PixelTransition loading={loading}>
+        <PixelTransition loading={false}>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -808,16 +908,18 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-4">
                             {/* GitHub Link */}
+                            {/* Public Profile Toggle */}
                             {githubUsername ? (
-                                <a
-                                    href={`https://github.com/${githubUsername}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                                >
-                                    <GitHubIcon />
-                                    <span className="text-sm text-white font-medium hidden sm:block">{githubUsername}</span>
-                                </a>
+                                <div className="flex items-center gap-3">
+                                    <Link
+                                        to={`/u/${githubUsername}`}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-500/20 transition-all group"
+                                    >
+                                        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                                        <span className="text-sm text-cyan-400 font-medium hidden sm:block group-hover:text-cyan-300">View Public Profile</span>
+                                        <ExternalLink size={14} className="text-cyan-400 group-hover:text-cyan-300" />
+                                    </Link>
+                                </div>
                             ) : (
                                 <a
                                     href="https://github.com"
@@ -894,8 +996,9 @@ export default function Dashboard() {
                                         <PortfolioCard
                                             totalLogs={logStats?.totalLogs || 0}
                                             currentStreak={logStats?.currentStreak || 0}
-                                            logs={recentLogs}
+                                            logs={recentLogs || []}
                                             compact={!isScrollable}
+                                            loading={statsLoading || logsLoading}
                                         />
                                     </div>
 
@@ -914,6 +1017,7 @@ export default function Dashboard() {
                                                 color="cyan"
                                                 delay={0.15}
                                                 compact={!isScrollable}
+                                                loading={statsLoading}
                                             />
                                             <AssetCard
                                                 icon={<Github size={isScrollable ? 20 : 16} />}
@@ -924,6 +1028,7 @@ export default function Dashboard() {
                                                 color="purple"
                                                 delay={0.2}
                                                 compact={!isScrollable}
+                                                loading={githubLoading}
                                             />
                                             <AssetCard
                                                 icon={<GitCommitHorizontal size={isScrollable ? 20 : 16} />}
@@ -934,6 +1039,7 @@ export default function Dashboard() {
                                                 color="green"
                                                 delay={0.25}
                                                 compact={!isScrollable}
+                                                loading={statsLoading}
                                             />
                                             <AssetCard
                                                 icon={<Lightbulb size={isScrollable ? 20 : 16} />}
@@ -944,6 +1050,7 @@ export default function Dashboard() {
                                                 color="orange"
                                                 delay={0.3}
                                                 compact={!isScrollable}
+                                                loading={logsLoading}
                                             />
                                         </div>
                                     </div>
@@ -953,7 +1060,12 @@ export default function Dashboard() {
                                 <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}>
                                     {/* Activity Table - spans 4 cols */}
                                     <div className="lg:col-span-4">
-                                        <ActivityTable logs={recentLogs} logStats={logStats} githubCommits={githubCommits} />
+                                        <ActivityTable
+                                            logs={recentLogs || []}
+                                            logStats={logStats}
+                                            githubCommits={githubCommits || []}
+                                            loading={logsLoading || githubLoading}
+                                        />
                                     </div>
 
                                     {/* Calendar - spans 5 cols */}

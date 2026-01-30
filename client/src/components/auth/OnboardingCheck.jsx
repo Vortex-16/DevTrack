@@ -16,8 +16,6 @@ const OnboardingCheck = ({ children }) => {
     const [checked, setChecked] = useState(false);
 
     useEffect(() => {
-        // Skip check - primary redirect is now in App.jsx
-        // This is just a minimal fallback
         if (!isLoaded || !isSignedIn || location.pathname === '/onboarding') {
             setChecked(true);
             return;

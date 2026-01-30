@@ -46,6 +46,7 @@ import SavedProjectsModal from "../components/projects/SavedProjectsModal";
 import SavedIdeasModal from "../components/projects/SavedIdeasModal";
 import ReadmeGeneratorModal from "../components/projects/ReadmeGeneratorModal";
 import PixelTransition from "../components/ui/PixelTransition";
+import Skeleton, { SkeletonCard } from "../components/ui/Skeleton";
 
 // SVG Icon Components
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
@@ -87,8 +88,8 @@ function AnimatedCounter({ value }) {
   return <span>{count}</span>;
 }
 
-// Stat Card Component
-function StatCard({ icon, label, value, color, delay = 0 }) {
+// StatCard with Skeleton Support
+function StatCard({ icon, label, value, color, delay = 0, loading }) {
   const colors = {
     purple: {
       border: "border-purple-500/30",
@@ -112,6 +113,25 @@ function StatCard({ icon, label, value, color, delay = 0 }) {
     },
   };
   const c = colors[color] || colors.purple;
+
+  if (loading) {
+    return (
+      <div
+        className={`rounded-2xl p-3 md:p-5 border border-white/10 backdrop-blur-sm h-full`}
+        style={{
+          background: "linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))",
+        }}
+      >
+        <div className="flex items-start gap-4">
+          <Skeleton className="w-12 h-12 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton variant="text" className="w-3/4" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -1180,12 +1200,12 @@ export default function Projects() {
       }
 
       const [projectsRes, statsRes] = await Promise.all([
-        projectsApi.getAll({ limit: 50 }),
-        projectsApi.getStats(),
+        projectsApi.getAll({ limit: 50 }).catch(() => ({ data: { data: { projects: [] } } })),
+        projectsApi.getStats().catch(() => ({ data: { data: {} } })),
       ]);
 
-      const rawProjects = projectsRes.data.data.projects || [];
-      const newStats = statsRes.data.data || {
+      const rawProjects = projectsRes.data?.data?.projects || [];
+      const newStats = statsRes.data?.data || {
         totalProjects: 0,
         activeProjects: 0,
         completedProjects: 0,
@@ -1715,7 +1735,7 @@ export default function Projects() {
   };
 
   return (
-    <PixelTransition loading={loading}>
+    <PixelTransition loading={false}>
       <motion.div>
         {/* Main Container - Background removed */}
         <div className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden">
@@ -1839,6 +1859,7 @@ export default function Projects() {
                 value={stats.totalProjects || 0}
                 color="purple"
                 delay={0.1}
+                loading={loading}
               />
             </div>
             <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
@@ -1848,6 +1869,7 @@ export default function Projects() {
                 value={stats.activeProjects || 0}
                 color="cyan"
                 delay={0.15}
+                loading={loading}
               />
             </div>
             <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
@@ -1857,6 +1879,7 @@ export default function Projects() {
                 value={stats.completedProjects || 0}
                 color="green"
                 delay={0.2}
+                loading={loading}
               />
             </div>
             <div className="flex-shrink-0 w-48 sm:w-56 md:w-auto">
@@ -1866,6 +1889,7 @@ export default function Projects() {
                 value={stats.totalCommits || 0}
                 color="orange"
                 delay={0.25}
+                loading={loading}
               />
             </div>
           </div>
@@ -1922,6 +1946,15 @@ export default function Projects() {
                     Create Your First Project
                   </Button>
                 </motion.div>
+              )}
+
+              {/* Skeletons */}
+              {loading && projects.length === 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                  {[1, 2, 3, 4].map((i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
               )}
 
               {/* Projects Grid */}

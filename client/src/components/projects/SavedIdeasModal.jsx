@@ -25,7 +25,6 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
         }
     }, [isOpen]);
 
-    // Global scroll lock when modal is open
     useEffect(() => {
         if (isOpen) {
             globalLenis?.stop();
@@ -40,7 +39,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
         };
     }, [isOpen, globalLenis]);
 
-    // Local Lenis smooth scroll for modal content
+
     useEffect(() => {
         if (!isOpen || !scrollWrapperRef.current || !scrollContentRef.current) return;
 
@@ -113,7 +112,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
     };
 
     const handleAskGemini = async (idea) => {
-        const prompt = 
+        const prompt =
             `Create a detailed step-by-step roadmap for building the following project:\n\n` +
             `**Project Title:** ${idea.title}\n\n` +
             `**Description:** ${idea.description}\n\n` +
@@ -126,7 +125,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
             `4. Potential challenges and how to overcome them\n` +
             `5. Learning resources for any new skills needed\n` +
             `6. Best practices and tips for success`;
-        
+
         try {
             await navigator.clipboard.writeText(prompt);
             alert('Prompt copied to clipboard! Paste it in Gemini to get your roadmap.');
@@ -157,9 +156,9 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                     initial={{ scale: 0.9, opacity: 0, y: 30 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    transition={{ 
-                        type: 'spring', 
-                        damping: 30, 
+                    transition={{
+                        type: 'spring',
+                        damping: 30,
                         stiffness: 400,
                         mass: 0.8
                     }}
@@ -188,7 +187,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                     </div>
 
                     {/* Content - Scrollable with Lenis */}
-                    <div 
+                    <div
                         ref={scrollWrapperRef}
                         className="flex-1 overflow-y-auto custom-scrollbar"
                     >
@@ -227,7 +226,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                                             className="group p-5 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 hover:border-emerald-500/40 transition-all duration-300 relative"
                                         >
                                             {/* Remove Button */}
-                                            <button 
+                                            <button
                                                 onClick={(e) => removeIdea(e, idea.id)}
                                                 className="absolute top-4 right-4 p-1.5 rounded-lg bg-black/20 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors z-10"
                                                 title="Remove from saved"
@@ -244,12 +243,12 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                                                     {idea.category || 'Project'}
                                                 </span>
                                             </div>
-                                            
+
                                             {/* Description */}
                                             <p className="text-slate-400 text-sm mb-4 leading-relaxed line-clamp-3">
                                                 {idea.description}
                                             </p>
-                                            
+
                                             {/* Tech Stack */}
                                             <div className="flex flex-wrap gap-2 mb-4">
                                                 {(idea.techStack || []).slice(0, 6).map((tech, i) => (
@@ -266,7 +265,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                                                     </span>
                                                 )}
                                             </div>
-                                            
+
                                             {/* Meta Info */}
                                             <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 p-3 rounded-xl bg-white/5 overflow-hidden">
                                                 <span className="flex items-center gap-1.5 flex-shrink-0">
@@ -281,7 +280,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                                                     </span>
                                                 </span>
                                             </div>
-                                            
+
                                             {/* Action Buttons */}
                                             <div className="flex gap-3">
                                                 <Button
@@ -292,7 +291,7 @@ export default function SavedIdeasModal({ isOpen, onClose, onStartProject }) {
                                                     <Zap className="w-4 h-4 mr-2" />
                                                     Start This Project
                                                 </Button>
-                                                
+
                                                 <Button
                                                     onClick={() => handleAskGemini(idea)}
                                                     variant="ghost"

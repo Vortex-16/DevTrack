@@ -28,10 +28,11 @@
     "joi": "^17.13.3",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
+    "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.12",
     "octokit": "^4.0.2",
-    "pdfkit": "^0.17.2",
-    "nodemailer": "^7.0.12"
+    "pdfkit": "^0.17.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
