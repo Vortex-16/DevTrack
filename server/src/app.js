@@ -27,6 +27,7 @@ const readmeRoutes = require('./routes/readmeRoutes');
 const leetCodeRoutes = require('./routes/leetCodeRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
+const goalRoutes = require('./routes/goalRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -152,6 +153,7 @@ app.use('/api/readme', readmeRoutes);
 app.use('/api/leetcode', leetCodeRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/goals', goalRoutes);
 
 // ======================
 // 404 HANDLER

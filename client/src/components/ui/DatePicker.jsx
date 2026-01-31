@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 
-export default function DatePicker({ value, onChange, label }) {
+export default function DatePicker({ value, onChange, label, minDate, disableFuture = false }) {
     const [isOpen, setIsOpen] = useState(false)
     const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date())
     const containerRef = useRef(null)
@@ -43,7 +43,7 @@ export default function DatePicker({ value, onChange, label }) {
         const monthStr = String(newDate.getMonth() + 1).padStart(2, '0')
         const dayStr = String(newDate.getDate()).padStart(2, '0')
         const dateString = `${yearStr}-${monthStr}-${dayStr}`
-        
+
         onChange(dateString)
         setIsOpen(false)
     }
@@ -62,7 +62,7 @@ export default function DatePicker({ value, onChange, label }) {
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
         for (let day = 1; day <= daysInMonth; day++) {
-             // Construct current cell date string for comparison
+            // Construct current cell date string for comparison
             const cellDate = new Date(year, month, day)
             const cellYear = cellDate.getFullYear()
             const cellMonth = String(cellDate.getMonth() + 1).padStart(2, '0')
@@ -71,21 +71,26 @@ export default function DatePicker({ value, onChange, label }) {
 
             const isFuture = cellDate > today
 
+            // Validation Logic
+            let isDisabled = false
+            if (disableFuture && isFuture) isDisabled = true
+            if (minDate && cellDateStr < minDate) isDisabled = true
+
             const isSelected = value === cellDateStr
             const isToday = cellDateStr === todayStr
 
             days.push(
                 <button
                     key={day}
-                    onClick={() => !isFuture && handleDateClick(day)}
-                    disabled={isFuture}
+                    onClick={() => !isDisabled && handleDateClick(day)}
+                    disabled={isDisabled}
                     type="button"
                     className={`h-8 w-8 rounded-full text-xs font-medium transition-all relative flex items-center justify-center
                         ${isSelected
                             ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
                             : isToday
                                 ? 'bg-white/10 text-white border border-purple-500/50'
-                                : isFuture 
+                                : isDisabled
                                     ? 'text-slate-700 cursor-not-allowed opacity-30'
                                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
                         }
@@ -101,7 +106,7 @@ export default function DatePicker({ value, onChange, label }) {
     return (
         <div ref={containerRef} className="relative">
             {label && <label className="block text-sm text-slate-400 mb-2">{label}</label>}
-            
+
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}

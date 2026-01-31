@@ -1,9 +1,17 @@
 import { Link, useLocation } from 'react-router-dom'
 import { UserButton } from '@clerk/clerk-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
 import NotificationSettings from '../settings/NotificationSettings'
-import { BookOpen, Info, Trophy, FileText } from 'lucide-react'
+import {
+    BookOpen,
+    Trophy,
+    FileText,
+    Map,
+    Code2,
+    Rocket,
+    Grid,
+} from 'lucide-react'
 
 // SVG Icon Components
 const DashboardIcon = ({ className = "w-5 h-5" }) => (
@@ -39,22 +47,52 @@ const GithubOutlineIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 )
 
-
-
-
-const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
-    { name: 'Learning', path: '/learning', icon: BookOpen },
-    { name: 'Projects', path: '/projects', icon: WindowsTerminalIcon },
-    { name: 'Showcase', path: '/showcase', icon: Trophy },
-    { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
-    { name: 'GitHub Insights', path: '/github-insights', icon: GithubOutlineIcon },
-    { name: 'Resume Builder', path: '/resume', icon: FileText },
+// Define the groups
+const navGroups = [
+    {
+        id: 'home',
+        name: 'Home',
+        type: 'single',
+        path: '/dashboard',
+        icon: DashboardIcon
+    },
+    {
+        id: 'dev',
+        name: 'Dev',
+        type: 'group',
+        icon: Code2,
+        items: [
+            { name: 'Roadmap', path: '/roadmap', icon: Map },
+            { name: 'Projects', path: '/projects', icon: WindowsTerminalIcon },
+            { name: 'GitHub', path: '/github-insights', icon: GithubOutlineIcon },
+        ]
+    },
+    {
+        id: 'growth',
+        name: 'Growth',
+        type: 'group',
+        icon: Rocket,
+        items: [
+            { name: 'Learning', path: '/learning', icon: BookOpen },
+            { name: 'Showcase', path: '/showcase', icon: Trophy },
+        ]
+    },
+    {
+        id: 'tools',
+        name: 'Tools',
+        type: 'group',
+        icon: Grid,
+        items: [
+            { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
+            { name: 'Resume', path: '/resume', icon: FileText },
+        ]
+    }
 ]
 
-// Sidebar icon button
-function SidebarIcon({ item, isActive }) {
+// Single Sidebar Item
+function SidebarItem({ item, isActive }) {
     const IconComponent = item.icon
+
     return (
         <Link to={item.path} className="relative group flex items-center justify-center w-12 h-12">
             <motion.div
@@ -68,11 +106,13 @@ function SidebarIcon({ item, isActive }) {
             >
                 <IconComponent className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-slate-400'}`} />
             </motion.div>
+
             {/* Tooltip */}
             <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
                 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                 {item.name}
             </div>
+
             {/* Active indicator */}
             {isActive && (
                 <motion.div
@@ -81,6 +121,80 @@ function SidebarIcon({ item, isActive }) {
                 />
             )}
         </Link>
+    )
+}
+
+// Group Sidebar Item (flyout)
+function SidebarGroup({ group, isActiveGroup }) {
+    const [isHovered, setIsHovered] = useState(false)
+    const IconComponent = group.icon
+    const location = useLocation()
+
+    // Check if any child is active to highlight the group icon
+    const hasActiveChild = group.items.some(item => location.pathname.startsWith(item.path))
+
+    return (
+        <div
+            className="relative flex items-center justify-center w-12 h-12"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <motion.div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 z-20
+                    ${hasActiveChild || isHovered
+                        ? 'bg-white/10 shadow-lg'
+                        : 'hover:bg-white/5'
+                    }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+            >
+                <IconComponent className={`w-5 h-5 ${hasActiveChild ? 'text-purple-400' : 'text-slate-400'}`} />
+            </motion.div>
+
+            {/* Active indicator for group */}
+            {hasActiveChild && (
+                <motion.div
+                    className="absolute -left-3 top-3 w-1 h-6 bg-white rounded-r-full"
+                    layoutId="activeIndicator"
+                />
+            )}
+
+            {/* Flyout Menu */}
+            <AnimatePresence>
+                {isHovered && (
+                    <motion.div
+                        initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute left-10 top-0 pl-4 z-50"
+                    >
+                        <div className="bg-[#1a1b2e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-xl flex flex-col gap-1 min-w-[160px]">
+                            <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                                {group.name}
+                            </div>
+                            {group.items.map((item) => {
+                                const ItemIcon = item.icon
+                                const isItemActive = location.pathname.startsWith(item.path)
+                                return (
+                                    <Link key={item.path} to={item.path}>
+                                        <motion.div
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors
+                                                ${isItemActive ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-white/5 text-slate-300 hover:text-white'}
+                                            `}
+                                            whileHover={{ x: 4 }}
+                                        >
+                                            <ItemIcon className="w-4 h-4" />
+                                            <span className="text-sm font-medium">{item.name}</span>
+                                        </motion.div>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     )
 }
 
@@ -138,13 +252,20 @@ function Sidebar({ onOpenSettings }) {
             <div className="w-8 h-px bg-white/10 mb-6" />
 
             {/* Navigation */}
-            <nav className="flex flex-col items-center gap-2 flex-1">
-                {navItems.map((item) => (
-                    <SidebarIcon
-                        key={item.path}
-                        item={item}
-                        isActive={location.pathname.startsWith(item.path)}
-                    />
+            <nav className="flex flex-col items-center gap-4 flex-1">
+                {navGroups.map((group) => (
+                    group.type === 'single' ? (
+                        <SidebarItem
+                            key={group.id}
+                            item={group}
+                            isActive={location.pathname.startsWith(group.path)}
+                        />
+                    ) : (
+                        <SidebarGroup
+                            key={group.id}
+                            group={group}
+                        />
+                    )
                 ))}
             </nav>
 
@@ -175,6 +296,7 @@ function Sidebar({ onOpenSettings }) {
 function MobileNavbar({ onOpenSettings }) {
     const location = useLocation()
     const [isHidden, setIsHidden] = useState(false)
+    const [activeGroup, setActiveGroup] = useState(null) // ID of currently expanded group
 
     const lastScrollY = useRef(0)
 
@@ -294,79 +416,163 @@ function MobileNavbar({ onOpenSettings }) {
         }
     }, [location.pathname])
 
+    const handleGroupClick = (group) => {
+        if (group.type === 'single') return
+        if (activeGroup === group.id) {
+            setActiveGroup(null) // Toggle off
+        } else {
+            setActiveGroup(group.id)
+        }
+    }
+
     return (
-        <motion.nav
-            className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-2"
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: isHidden ? -100 : 0, opacity: isHidden ? 0 : 1 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-            <div
-                className="rounded-full px-2 py-2 flex items-center justify-between backdrop-blur-xl"
-                style={{
-                    background: 'rgba(30, 30, 40, 0.6)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
+        <>
+            <motion.nav
+                className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-2"
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: isHidden ? -100 : 0, opacity: isHidden ? 0 : 1 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
             >
-                {/* Logo - only on tablets/wide mobile */}
-                <Link to="/" className="hidden sm:block mr-2">
-                    <motion.div
-                        className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center overflow-hidden"
-                        whileHover={{ scale: 1.05 }}
-                    >
-                        <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
-                    </motion.div>
-                </Link>
-                {/* Nav items */}
-                <div className="flex items-center flex-1 justify-between sm:justify-center gap-1 sm:gap-0.8 pr-3 sm:pr-0">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className="relative flex flex-col items-center"
-                        >
-                            <motion.div
-                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center
-                                    ${location.pathname === item.path
-                                        ? 'bg-gradient-to-br from-purple-500 to-purple-700'
-                                        : 'hover:bg-white/10'
-                                    }`}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                <item.icon className={`w-4 h-4 ${location.pathname === item.path ? 'text-white' : 'text-slate-400'}`} />
-                            </motion.div>
-                        </Link>
-                    ))}
-                </div>
-
-                {/* Settings button */}
-                <motion.button
-                    onClick={onOpenSettings}
-                    className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10"
-                    whileTap={{ scale: 0.95 }}
+                <div
+                    className="rounded-full px-2 py-2 flex items-center justify-between backdrop-blur-xl"
+                    style={{
+                        background: 'rgba(30, 30, 40, 0.6)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
                 >
-                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </motion.button>
+                    {/* Logo - only on tablets/wide mobile */}
+                    <Link to="/" className="hidden sm:block mr-2">
+                        <motion.div
+                            className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center overflow-hidden"
+                            whileHover={{ scale: 1.05 }}
+                        >
+                            <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
+                        </motion.div>
+                    </Link>
+                    {/* Nav items */}
+                    <div className="flex items-center flex-1 justify-between sm:justify-center gap-2 sm:gap-4 pr-3 sm:pr-0">
+                        {navGroups.map((group) => {
+                            const isActive = group.type === 'single'
+                                ? location.pathname === group.path
+                                : group.items.some(item => location.pathname.startsWith(item.path)) || activeGroup === group.id
 
-                {/* User */}
-                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center ml-2">
-                    <UserButton
-                        afterSignOutUrl="/"
-                        appearance={{
-                            elements: {
-                                avatarBox: 'w-8 h-8',
-                                userButtonTrigger: 'focus:shadow-none',
-                                userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10'
-                            }
-                        }}
-                    />
+                            const Icon = group.icon
+
+                            return group.type === 'single' ? (
+                                <Link
+                                    key={group.id}
+                                    to={group.path}
+                                    className="relative flex flex-col items-center"
+                                >
+                                    <motion.div
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center
+                                            ${isActive
+                                                ? 'bg-gradient-to-br from-purple-500 to-purple-700'
+                                                : 'hover:bg-white/10'
+                                            }`}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                                    </motion.div>
+                                </Link>
+                            ) : (
+                                <motion.button
+                                    key={group.id}
+                                    className="relative flex flex-col items-center"
+                                    onClick={() => handleGroupClick(group)}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    <div
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                                            ${isActive
+                                                ? 'bg-white/10 text-white'
+                                                : 'hover:bg-white/5 text-slate-400'
+                                            }`}
+                                    >
+                                        <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-slate-400'}`} />
+                                    </div>
+                                    {/* Small dot if active group but no sub-item selected yet (or just general active state) */}
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="mobileActiveDot"
+                                            className="absolute -bottom-1 w-1 h-1 bg-purple-400 rounded-full"
+                                        />
+                                    )}
+                                </motion.button>
+                            )
+                        })}
+                    </div>
+
+                    {/* Settings button */}
+                    <motion.button
+                        onClick={onOpenSettings}
+                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10"
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </motion.button>
+
+                    {/* User */}
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center ml-2">
+                        <UserButton
+                            afterSignOutUrl="/"
+                            appearance={{
+                                elements: {
+                                    avatarBox: 'w-8 h-8',
+                                    userButtonTrigger: 'focus:shadow-none',
+                                    userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10'
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
-            </div>
-        </motion.nav>
+
+                {/* Sub-menu implementation for Mobile */}
+                <AnimatePresence>
+                    {activeGroup && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0, y: -20 }}
+                            animate={{ height: 'auto', opacity: 1, y: 0 }}
+                            exit={{ height: 0, opacity: 0, y: -20 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden mt-2"
+                        >
+                            <div
+                                className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 mx-4 shadow-xl grid grid-cols-2 gap-2"
+                            >
+                                {navGroups.find(g => g.id === activeGroup)?.items.map((item) => {
+                                    const ItemIcon = item.icon
+                                    const isItemActive = location.pathname.startsWith(item.path)
+                                    return (
+                                        <Link
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => {
+                                                setIsHidden(true) // Optionally hide nav on selection
+                                            }}
+                                        >
+                                            <div className={`flex items-center gap-2 p-2 rounded-xl text-sm font-medium transition-colors
+                                                ${isItemActive
+                                                    ? 'bg-purple-500/20 text-purple-300'
+                                                    : 'bg-white/5 text-slate-300 active:bg-white/10'
+                                                }`}
+                                            >
+                                                <ItemIcon className="w-4 h-4" />
+                                                {item.name}
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.nav>
+        </>
     )
 }
 

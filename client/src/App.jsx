@@ -15,6 +15,7 @@ import GitHubInsights from './pages/GitHubInsights'
 import Showcase from './pages/Showcase'
 import PublicProfile from './pages/PublicProfile'
 import ResumeBuilder from './pages/ResumeBuilder'
+import Roadmap from './pages/Roadmap'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -131,6 +132,7 @@ function App() {
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/learning" element={<Learning />} />
+                        <Route path="/roadmap" element={<Roadmap />} />
                         <Route path="/projects" element={<Projects />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/github-insights" element={<GitHubInsights />} />

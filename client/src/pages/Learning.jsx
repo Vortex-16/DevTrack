@@ -294,6 +294,7 @@ export default function Learning() {
     const [editingEntry, setEditingEntry] = useState(null)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [showExtensionModal, setShowExtensionModal] = useState(false)
+    const [activeMobileTab, setActiveMobileTab] = useState('log'); // 'log' | 'insights'
 
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
@@ -561,9 +562,25 @@ export default function Learning() {
                         </div>
                     </div>
 
+                    {/* Mobile Tab Switcher */}
+                    <div className="lg:hidden flex mb-4 bg-white/5 p-1 rounded-xl">
+                        <button
+                            onClick={() => setActiveMobileTab('log')}
+                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeMobileTab === 'log' ? 'bg-purple-500/20 text-purple-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Activity Log
+                        </button>
+                        <button
+                            onClick={() => setActiveMobileTab('insights')}
+                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeMobileTab === 'insights' ? 'bg-cyan-500/20 text-cyan-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Insights
+                        </button>
+                    </div>
+
                     <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
-                        {/* Main Content Area (Entries) */}
-                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        {/* Main Content Area (Entries) - Visible if Desktop OR (Mobile AND Tab is 'log') */}
+                        <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${activeMobileTab === 'log' ? 'flex' : 'hidden lg:flex'}`}>
                             {/* Scrollable List */}
                             <div
                                 ref={learningContainerRef}
@@ -637,16 +654,12 @@ export default function Learning() {
                             </div>
                         </div>
 
+                        {/* Sidebar - Visible if Desktop OR (Mobile AND Tab is 'insights') */}
                         <div
                             ref={sidebarContainerRef}
-                            className="hidden lg:flex w-[400px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar h-full relative"
+                            className={`lg:flex w-full lg:w-[400px] flex-shrink-0 flex-col overflow-y-auto custom-scrollbar h-full relative ${activeMobileTab === 'insights' ? 'flex' : 'hidden'}`}
                         >
-                            <div ref={sidebarContentRef} className="flex flex-col gap-4 pb-6 pr-2">
-                                {/* Activity Tracker */}
-                                {/* <div className="h-[200px] flex-shrink-0">
-                                    <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} />
-                                </div> */}
-
+                            <div ref={sidebarContentRef} className="flex flex-col gap-4 pb-6 pr-2 lg:pr-2">
                                 {/* LeetCode Integration */}
                                 <div className="h-[250px] flex-shrink-0">
                                     <LeetCodeStats />
@@ -662,13 +675,15 @@ export default function Learning() {
                         {/* Mobile Cards - Horizontal scroll on small screens */}
                         <div className="lg:hidden flex flex-col gap-4 mb-8 flex-shrink-0">
                             {/* Activity + Skills Row */}
-                            <div className="grid grid-cols-1 gap-3 h-[200px]">
-                                {/* <ActivityStats onShowExtensionHelp={() => setShowExtensionModal(true)} /> */}
-                                <TopSkills entries={learningEntries} verifiedSkills={verifiedSkills} />
-                            </div>
-                            {/* LeetCode Full Width */}
-                            <div className="h-[220px]">
-                                <LeetCodeStats />
+                            <div className="flex flex-col gap-4">
+                                {/* Top Skills - Flexible height */}
+                                <div className="min-h-[220px] h-auto flex-shrink-0">
+                                    <TopSkills entries={learningEntries} verifiedSkills={verifiedSkills} />
+                                </div>
+                                {/* LeetCode Full Width - Flexible height */}
+                                <div className="min-h-[220px] h-auto flex-shrink-0">
+                                    <LeetCodeStats />
+                                </div>
                             </div>
                         </div>
                     </div>
