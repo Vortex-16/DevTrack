@@ -744,7 +744,8 @@ export default function Dashboard() {
     const { getCachedData, setCachedData, hasCachedData } = useCache()
 
     // Initialize from cache if available
-    const cachedData = getCachedData('dashboard_data') || {}
+    const CACHE_KEY = 'dashboard_data_v2' // Validated cache key
+    const cachedData = getCachedData(CACHE_KEY) || {}
 
     const [logStats, setLogStats] = useState(cachedData.logStats || null)
     const [projectStats, setProjectStats] = useState(cachedData.projectStats || null)
@@ -754,10 +755,10 @@ export default function Dashboard() {
     const [githubStats, setGithubStats] = useState(cachedData.githubStats || null)
 
     const [githubUsername, setGithubUsername] = useState('')
-    const [loading, setLoading] = useState(!hasCachedData('dashboard_data'))
-    const [statsLoading, setStatsLoading] = useState(!hasCachedData('dashboard_data'))
-    const [logsLoading, setLogsLoading] = useState(!hasCachedData('dashboard_data'))
-    const [githubLoading, setGithubLoading] = useState(!hasCachedData('dashboard_data'))
+    const [loading, setLoading] = useState(!hasCachedData(CACHE_KEY))
+    const [statsLoading, setStatsLoading] = useState(!hasCachedData(CACHE_KEY))
+    const [logsLoading, setLogsLoading] = useState(!hasCachedData(CACHE_KEY))
+    const [githubLoading, setGithubLoading] = useState(!hasCachedData(CACHE_KEY))
     const [isRefreshing, setIsRefreshing] = useState(false)
     const retriedGithub = useRef(false)
     const scrollTracker = useRef({ lastY: 0, state: 'up' }) // Track scroll for navbar
@@ -797,7 +798,7 @@ export default function Dashboard() {
     }, [loading, githubCommits.length])
 
     const fetchData = async () => {
-        const hasCache = hasCachedData('dashboard_data')
+        const hasCache = hasCachedData(CACHE_KEY)
 
         // If no cache, set individual loaders to true
         // If cache exists, we're refreshing (isRefreshing = true), so keep loaders false (optimistic)
@@ -856,7 +857,7 @@ export default function Dashboard() {
             const finalData = results.reduce((acc, curr) => ({ ...acc, ...curr }), {})
 
             // Cache the actual data object (merge with existing if any fields missing)
-            setCachedData('dashboard_data', {
+            setCachedData(CACHE_KEY, {
                 logStats: finalData.logStats || logStats,
                 projectStats: finalData.projectStats || projectStats,
                 recentLogs: finalData.recentLogs || recentLogs,

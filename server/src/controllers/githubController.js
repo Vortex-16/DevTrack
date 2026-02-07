@@ -134,21 +134,34 @@ const getCommits = async (req, res, next) => {
         // Use fresh OAuth token if available for accurate contributions (including private)
         const githubService = new GitHubService(githubAccessToken);
 
-        // Fetch 14 days of data to calculate WoW growth
-        const result = await githubService.getRecentCommits(user.githubUsername, 14);
+        // Fetch 360 days (approx 1 year) of data to catch longer streaks and provide better context
+        const result = await githubService.getRecentCommits(user.githubUsername, 360);
 
         // Handle both old array format and new object format
         const allCommits = Array.isArray(result) ? result : (result.commits || []);
+
         const currentStreak = result.streak || 0;
 
-        console.log(`📈 Fetched ${allCommits.length} commits, streak: ${currentStreak}, totalContributions: ${result.totalContributions || 'N/A'}`);
+        console.log(`📈 Fetched ${allCommits.length} commits/days, streak: ${currentStreak}, totalContributions: ${result.totalContributions || 'N/A'}`);
+        // Force log for debugging stale streak issue
+        console.log(`🔥 Fresh Streak Calculation: ${currentStreak}`);
 
         // Calculate WoW growth
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const now = new Date();
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(now.getDate() - 7);
+        oneWeekAgo.setHours(0, 0, 0, 0);
+
+        const twoWeeksAgo = new Date(now);
+        twoWeeksAgo.setDate(now.getDate() - 14);
+        twoWeeksAgo.setHours(0, 0, 0, 0);
 
         const currentWeekCommits = allCommits.filter(c => new Date(c.date) >= oneWeekAgo).length;
-        const previousWeekCommits = allCommits.filter(c => new Date(c.date) < oneWeekAgo).length;
+        // Previous week is strictly between 14 days ago (inclusive) and 7 days ago (exclusive)
+        const previousWeekCommits = allCommits.filter(c => {
+            const date = new Date(c.date);
+            return date >= twoWeeksAgo && date < oneWeekAgo;
+        }).length;
 
         let commitGrowth = 0;
         if (previousWeekCommits === 0) {

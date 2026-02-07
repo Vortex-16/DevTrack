@@ -469,52 +469,84 @@ class GitHubService {
       });
 
       console.log(
-        `📊 Contribution data: ${allDays.length} days, ${
-          allDays.filter((d) => d.contributionCount > 0).length
+        `📊 Contribution data: ${allDays.length} days, ${allDays.filter((d) => d.contributionCount > 0).length
         } with contributions`
       );
       console.log(
         `📅 Today (${today}): ${contributionMap.get(today) || 0} contributions`
       );
       console.log(
-        `📅 Yesterday (${yesterday}): ${
-          contributionMap.get(yesterday) || 0
+        `📅 Yesterday (${yesterday}): ${contributionMap.get(yesterday) || 0
         } contributions`
       );
 
-      // Determine starting point - today if has contributions, otherwise yesterday
+      // Determine starting point - check recent activity more robustly
       const todayContributions = contributionMap.get(today) || 0;
       const yesterdayContributions = contributionMap.get(yesterday) || 0;
 
-      // If neither today nor yesterday has contributions, streak is 0
-      if (todayContributions === 0 && yesterdayContributions === 0) {
-        console.log("⚠️ No contributions today or yesterday - streak is 0");
+      // Also check local time "today" and "yesterday" just in case of timezone shift
+      const local = new Date();
+      const localToday = local.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+      local.setDate(local.getDate() - 1);
+      const localYesterday = local.toLocaleDateString('en-CA');
+
+      const localTodayContributions = contributionMap.get(localToday) || 0;
+      const localYesterdayContributions = contributionMap.get(localYesterday) || 0;
+
+      // If we have contributions today (UTC or Local) or yesterday (UTC or Local), streak is alive/active
+      const hasActivity = todayContributions > 0 || yesterdayContributions > 0 || localTodayContributions > 0 || localYesterdayContributions > 0;
+
+      if (!hasActivity) {
+        console.log("⚠️ No recent contributions found - streak is 0");
         streak = 0;
       } else {
-        // Start from today if it has contributions, otherwise start from yesterday
-        let checkDate = new Date();
-        if (todayContributions === 0) {
+        // Start counting!
+        // We need to find the "start date" for the streak. 
+        // If today has contributions, start today. Else start yesterday.
+        let checkDate = new Date(); // Start with current time
+
+        // Adjust checkDate to point to the most recent active day
+        if (todayContributions > 0) {
+          // checkDate is already today
+        } else if (localTodayContributions > 0) {
+          // Use local today
+          // No adjustment needed to checkDate object since it represents "now", but we'll use checkStr carefully
+        } else {
+          // No contributions today, start checking from yesterday
           checkDate.setDate(checkDate.getDate() - 1);
-          console.log("🔄 No contributions today, starting from yesterday");
         }
+
+        console.log("🔄 Starting streak check backwards...");
 
         // Count backwards day by day
         while (true) {
-          const checkStr = checkDate.toISOString().split("T")[0];
-          const contributions = contributionMap.get(checkStr) || 0;
+          const checkStr = checkDate.toISOString().split("T")[0]; // UTC date string
+          // Also check if this matches local date string which might be different
+          const checkStrLocal = checkDate.toLocaleDateString('en-CA');
 
-          if (contributions > 0) {
+          const contributionsUTC = contributionMap.get(checkStr) || 0;
+          const contributionsLocal = contributionMap.get(checkStrLocal) || 0;
+
+          if (contributionsUTC > 0 || contributionsLocal > 0) {
             streak++;
             checkDate.setDate(checkDate.getDate() - 1);
           } else {
-            // Break the streak when we hit a day with no contributions
-            console.log(`🛑 Streak broken at ${checkStr} (0 contributions)`);
+            // Check if we are "in between" days due to timezone?
+            // If we just started and found 0, but we verified `hasActivity` is true, 
+            // it means we might be looking at the wrong specific "today" date string.
+            // However, strictly speaking, a gap of a full day means broken streak.
+
+            // One edge case: User contributed "yesterday" local time, but it's "today" UTC?
+            // The map keys are from GitHub which are YYYY-MM-DD.
+            // Let's rely on the fact that if we found a gap, we stop.
+            // But give it ONE chance if it's the very first filtered day? No, `hasActivity` check handles start.
+
+            console.log(`🛑 Streak broken at ${checkStr} / ${checkStrLocal} (0 contributions)`);
             break;
           }
 
-          // Safety check: don't go back more than the data we have
-          if (checkDate < new Date(Date.now() - days * 86400000)) {
-            console.log("⚠️ Reached data boundary");
+          // Safety check: don't go back more than available data
+          if (checkDate < new Date(Date.now() - (days + 2) * 86400000)) {
             break;
           }
         }
@@ -526,9 +558,8 @@ class GitHubService {
         totalIssues: collection.totalIssueContributions,
         streak,
         daysWithActivity: allDays.filter((d) => d.contributionCount > 0).length,
-        dateRange: `${allDays[allDays.length - 1]?.date} to ${
-          allDays[0]?.date
-        }`,
+        dateRange: `${allDays[allDays.length - 1]?.date} to ${allDays[0]?.date
+          }`,
       });
 
       return {
@@ -852,6 +883,12 @@ class GitHubService {
             summary.pushEvents++;
             // Track repo name for Active Repositories
             const repoFullName = event.repo.name; // e.g., "owner/repo"
+
+            // Skip profile repository (username/username)
+            if (repoFullName.toLowerCase() === `${username}/${username}`.toLowerCase()) {
+              continue;
+            }
+
             if (!summary.reposWorkedOn.has(repoFullName)) {
               summary.reposWorkedOn.set(repoFullName, {
                 name: repoFullName,
@@ -978,6 +1015,84 @@ class GitHubService {
   }
 
   /**
+   * Get top contributed repositories using GraphQL
+   * Returns projects sorted by the user's commit contribution count
+   */
+  async getTopContributedRepos(username, limit = 5) {
+    try {
+      const query = `
+        query($username: String!) {
+          user(login: $username) {
+            contributionsCollection {
+              commitContributionsByRepository(maxRepositories: 100) {
+                repository {
+                  name
+                  nameWithOwner
+                  description
+                  url
+                  isPrivate
+                  stargazerCount
+                  primaryLanguage {
+                    name
+                    color
+                  }
+                  issues(states: OPEN) {
+                    totalCount
+                  }
+                  owner {
+                    login
+                  }
+                }
+                contributions {
+                  totalCount
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await this.octokit.graphql(query, { username });
+
+      const contributions =
+        response.user?.contributionsCollection
+          ?.commitContributionsByRepository || [];
+
+      // Map and sort by contribution count
+      const sortedRepos = contributions
+        .map((item) => ({
+          name: item.repository.name,
+          fullName: item.repository.nameWithOwner,
+          description: item.repository.description,
+          url: item.repository.url,
+          isPrivate: item.repository.isPrivate,
+          stars: item.repository.stargazerCount,
+          language: item.repository.primaryLanguage?.name,
+          languageColor: item.repository.primaryLanguage?.color,
+          open_issues_count: item.repository.issues.totalCount,
+          contributionCount: item.contributions.totalCount,
+          owner: item.repository.owner.login,
+        }))
+        .sort((a, b) => b.contributionCount - a.contributionCount)
+        .slice(0, limit);
+
+      console.log(
+        `📊 Found ${sortedRepos.length} top contributed repos for ${username}`
+      );
+
+      // Filter out the profile repository (e.g. username/username)
+      const filteredRepos = sortedRepos.filter(
+        (repo) => repo.name.toLowerCase() !== username.toLowerCase()
+      );
+
+      return filteredRepos;
+    } catch (error) {
+      console.error("Error fetching top contributed repos:", error.message);
+      return []; // Return empty array to allow fallback
+    }
+  }
+
+  /**
    * Get COMPLETE repo info for AI analysis (enhanced)
    */
   async getCompleteRepoInfo(owner, repo) {
@@ -1033,10 +1148,8 @@ class GitHubService {
       const actualTotalCommits = trueCommitCount || commits.length;
 
       console.log(
-        `✅ Fetched: ${actualTotalCommits} total commits (${
-          commits.length
-        } details), ${pullRequests.length} PRs, ${issues.length} issues, ${
-          Object.keys(keyFiles).length
+        `✅ Fetched: ${actualTotalCommits} total commits (${commits.length
+        } details), ${pullRequests.length} PRs, ${issues.length} issues, ${Object.keys(keyFiles).length
         } key files`
       );
 
@@ -1276,8 +1389,7 @@ class GitHubService {
 
       console.log(`✅ Successfully committed ${path}`);
       console.log(
-        `   Commit: ${result.commit.sha.substring(0, 7)} - ${
-          result.commit.message
+        `   Commit: ${result.commit.sha.substring(0, 7)} - ${result.commit.message
         }`
       );
 

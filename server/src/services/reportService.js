@@ -164,12 +164,25 @@ class ReportService {
             console.warn('Could not fetch streak:', e.message);
         }
 
-        // Get repos for projects section
+        // Get repos for projects section (Prioritize highly contributed projects)
         let repos = [];
         try {
-            repos = await githubService.getRepos(user.githubUsername, 10);
+            // Try to get top contributed repos first
+            repos = await githubService.getTopContributedRepos(user.githubUsername, 5);
+
+            // Fallback to recent repos if no contribution data found or empty
+            if (!repos || repos.length === 0) {
+                console.log('No contribution data found, falling back to recent repos');
+                repos = await githubService.getRepos(user.githubUsername, 5);
+            }
         } catch (e) {
-            console.warn('Could not fetch repos:', e.message);
+            console.warn('Could not fetch top repos:', e.message);
+            // Fallback to recent repos on error
+            try {
+                repos = await githubService.getRepos(user.githubUsername, 5);
+            } catch (err) {
+                console.warn('Fallback fetch failed:', err.message);
+            }
         }
 
         // Create PDF
