@@ -236,7 +236,7 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
                 </div>
 
                 {/* Body */}
-                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6" data-lenis-prevent="true">
                     {/* Headline */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-300">Headline</label>
@@ -283,7 +283,7 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
                             <span className="text-xs text-gray-400">{selectedProjects.length}/6 selected</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-2" data-lenis-prevent="true">
                             {projects.map((project) => {
                                 const isSelected = selectedProjects.includes(project.id);
                                 return (
@@ -489,7 +489,7 @@ export default function PublicProfile() {
                         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
                     </div>
 
-                    <div className="px-6 relative -mt-10 flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-6 overscroll-contain">
+                    <div className="px-6 relative -mt-10 flex-1 flex flex-col overflow-y-auto custom-scrollbar pb-6 overscroll-contain" data-lenis-prevent="true">
                         {/* Avatar & Name */}
                         <div className="flex flex-col md:flex-row gap-4 items-end mb-4 shrink-0">
                             <motion.div className="relative group shrink-0">
@@ -593,7 +593,7 @@ export default function PublicProfile() {
 
                 {/* RIGHT: Projects Showcase */}
                 <div className="flex-1 bg-[#050505] flex flex-col min-h-0 overflow-hidden relative">
-                    <div className="p-6 md:p-8 flex-1 overflow-y-auto custom-scrollbar overscroll-contain relative z-30 pointer-events-auto touch-pan-y">
+                    <div className="p-6 md:p-8 flex-1 overflow-y-auto custom-scrollbar overscroll-contain relative z-30 pointer-events-auto touch-pan-y" data-lenis-prevent="true">
                         <div className="max-w-5xl mx-auto space-y-8 pb-12">
                             <div className="flex items-center justify-between mb-2">
                                 <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">

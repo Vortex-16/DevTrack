@@ -47,6 +47,8 @@ import SavedIdeasModal from "../components/projects/SavedIdeasModal";
 import ReadmeGeneratorModal from "../components/projects/ReadmeGeneratorModal";
 import PixelTransition from "../components/ui/PixelTransition";
 import Skeleton, { SkeletonCard } from "../components/ui/Skeleton";
+import { useGitHubScopes } from "../hooks/useGitHubScopes";
+import GitHubPermissionModal from "../components/auth/GitHubPermissionModal";
 
 // SVG Icon Components
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
@@ -731,7 +733,9 @@ function ProjectForm({
   isEdit,
   analyzing,
   error,
+  onRequiresAuth,
 }) {
+  const { hasRepoAccess } = useGitHubScopes();
   const [hasRepo, setHasRepo] = useState(
     isEdit ? (formData.repositoryUrl ? "yes" : "no") : null
   );
@@ -796,6 +800,11 @@ function ProjectForm({
   const handleCreateRepo = async () => {
     if (!newRepoData.name) {
       setRepoError("Repository name is required");
+      return;
+    }
+
+    if (newRepoData.isPrivate && !hasRepoAccess) {
+      if (onRequiresAuth) onRequiresAuth();
       return;
     }
 
@@ -1247,6 +1256,8 @@ function SuccessTick() {
 
 export default function Projects() {
   const { getCachedData, setCachedData, hasCachedData } = useCache();
+  const { hasRepoAccess } = useGitHubScopes();
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
 
   // Helper function to sanitize project data
   const sanitizeProjects = (projects) => {
@@ -1520,7 +1531,7 @@ export default function Projects() {
       if (newProject?.isAnalyzing) {
         // Start polling for analysis completion
         let pollCount = 0;
-        const maxPolls = 10; // Maximum 10 polls (30 seconds total)
+        const maxPolls = 40; // Maximum 40 polls (120 seconds total)
         const pollInterval = 3000; // Poll every 3 seconds
 
         const pollForCompletion = async () => {
@@ -1565,6 +1576,10 @@ export default function Projects() {
   };
 
   const handleGenerateReadme = (project) => {
+    if (!hasRepoAccess) {
+      setShowGitHubModal(true);
+      return;
+    }
     setReadmeProject(project);
     setShowReadmeModal(true);
   };
@@ -1871,14 +1886,14 @@ export default function Projects() {
       const response = await githubApi.getRepos(100);
       // API returns {data: {username, totalRepos, repos} }
       const repos = response.data?.data?.repos || [];
-      // Filter to only public repos and exclude already-added projects
+      // Filter out already-added projects
       const existingRepoUrls = new Set(
         projects.map(p => p.repositoryUrl?.toLowerCase()).filter(Boolean)
       );
-      const publicRepos = repos.filter(
-        repo => !repo.isPrivate && !existingRepoUrls.has(repo.url?.toLowerCase())
+      const availableRepos = repos.filter(
+        repo => !existingRepoUrls.has(repo.url?.toLowerCase())
       );
-      setGithubRepos(publicRepos);
+      setGithubRepos(availableRepos);
       setSelectedRepos(new Set());
     } catch (err) {
       console.error('Error fetching GitHub repos:', err);
@@ -2263,6 +2278,7 @@ export default function Projects() {
             isEdit={false}
             analyzing={false}
             error={formError}
+            onRequiresAuth={() => setShowGitHubModal(true)}
           />
         </Modal>
 
@@ -2286,6 +2302,7 @@ export default function Projects() {
             isEdit={true}
             analyzing={analyzingId === editingProject?.id}
             error={formError}
+            onRequiresAuth={() => setShowGitHubModal(true)}
           />
         </Modal>
         {/* Background Processing Indicator */}
@@ -2342,6 +2359,11 @@ export default function Projects() {
           onStartProject={startIdeaAsProject}
         />
 
+        <GitHubPermissionModal
+          isOpen={showGitHubModal}
+          onClose={() => setShowGitHubModal(false)}
+        />
+
         {/* Readme Generator Modal */}
         <ReadmeGeneratorModal
           isOpen={showReadmeModal}
@@ -2367,9 +2389,21 @@ export default function Projects() {
           }
         >
           <div className="space-y-4">
-            <p className="text-slate-400 text-sm">
-              Select public repositories to import as projects. Already added repos are hidden.
-            </p>
+            <div className="flex justify-between items-start gap-4">
+              <p className="text-slate-400 text-sm">
+                Select repositories to import. Already added repos are hidden.
+              </p>
+              {!hasRepoAccess && (
+                <Button
+                  onClick={() => setShowGitHubModal(true)}
+                  variant="ghost"
+                  className="whitespace-nowrap h-8 px-3 text-xs border border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                >
+                  <Lock className="w-3 h-3 mr-1" />
+                  Connect Private Repos
+                </Button>
+              )}
+            </div>
 
             {loadingRepos ? (
               <div className="flex items-center justify-center py-12">
@@ -2406,7 +2440,7 @@ export default function Projects() {
                 </div>
 
                 {/* Repos List */}
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2" data-lenis-prevent="true">
                   {githubRepos.map((repo) => (
                     <motion.div
                       key={repo.name}

@@ -20,6 +20,15 @@ Traditional portfolios show where you _are_. DevTrack shows how you _got there_.
 
 ---
 
+## ✨ Recent Updates (March 2026)
+
+- **Enhanced Security via Deferred OAuth Scopes:** DevTrack now only asks for basic GitHub read access on sign-up. Elevated permissions are prompted via a secure modal only when you choose to track private repositories or perform updates on any repository in your account.
+- **Premium UI Upgrades:** Restyled UI with Glassmorphism layers, and responsive smooth scroll integrations across the platform for a high-end application aesthetic.
+- **Smart Background AI Analysis:** Project repository AI analysis (identifying complexity/vulnerabilities) runs smoothly in the background, updating your dashboards dynamically.
+- **AI Project Discovery:** Generate and save custom project ideas tailored to your skill set and difficulty preferences directly from your DevTrack hub.
+
+---
+
 ## 🛠 Tech Stack
 
 | Component        | Technology                                        |
@@ -76,7 +85,7 @@ npm run dev
 - [x] **Phase 1**: Core Tracking (Learning/Projects) & GitHub OAuth
 - [x] **Phase 2**: AI Analysis (Repository & Codebase Level)
 - [x] **Phase 3**: Notifications & Persistence (FCM/Firestore)
-- [ ] **Phase 4**: Public Portfolio Sharing & PDF Growth Reports
+- [x] **Phase 4**: Public Portfolio Sharing & PDF Growth Reports
 - [ ] **Phase 5**: Team Collaboration & Peer Review Modules
 
 ---
