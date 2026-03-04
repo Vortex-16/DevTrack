@@ -48,7 +48,7 @@ const ResumePaper = ({ data, projects, verifiedSkills = [], user }) => {
     }
 
     // Calculate avatar source
-    const avatarSrc = data.basics.avatar || user?.avatar || user?.picture || user?.githubAvatar;
+    const avatarSrc = data.basics.avatar || user?.avatar || user?.picture || user?.githubAvatar || user?.avatarUrl;
 
     // --- Section Content Generators ---
     const sections = {
@@ -359,6 +359,8 @@ const ResumePaper = ({ data, projects, verifiedSkills = [], user }) => {
                         margin: 0 !important;
                         padding: 0 !important;
                         transform: scale(1) !important;
+                        page-break-before: always !important;
+                        break-before: page !important;
                     }
                 }
             `}</style>

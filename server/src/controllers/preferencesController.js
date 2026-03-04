@@ -176,6 +176,10 @@ const updatePreferences = async (req, res, next) => {
                     ...(preferences.publicProfile.headline !== undefined && { headline: preferences.publicProfile.headline }),
                     ...(preferences.publicProfile.showcasedProjectIds !== undefined && { showcasedProjectIds: preferences.publicProfile.showcasedProjectIds }),
                     ...(preferences.publicProfile.showSkills !== undefined && { showSkills: preferences.publicProfile.showSkills }),
+                    ...(preferences.publicProfile.theme !== undefined && { theme: preferences.publicProfile.theme }),
+                    ...(preferences.publicProfile.accentColor !== undefined && { accentColor: preferences.publicProfile.accentColor }),
+                    ...(preferences.publicProfile.socials !== undefined && { socials: preferences.publicProfile.socials }),
+                    ...(preferences.publicProfile.bannerUrl !== undefined && { bannerUrl: preferences.publicProfile.bannerUrl }),
                 };
             }
         }
