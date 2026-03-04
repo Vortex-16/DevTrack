@@ -731,6 +731,130 @@ function CSTriviaCard({ compact }) {
 }
 
 // GitHub Icon component
+// Light streak effect for premium background
+function LightStreaks() {
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
+            <motion.div
+                className="absolute top-1/4 -left-20 w-[600px] h-[1px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent rotate-[30deg]"
+                animate={{ x: [-600, 1200], opacity: [0, 1, 0] }}
+                transition={{ duration: 7, repeat: Infinity, repeatDelay: 2 }}
+            />
+            <motion.div
+                className="absolute top-1/2 -right-20 w-[400px] h-[1px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent -rotate-[20deg]"
+                animate={{ x: [400, -1000], opacity: [0, 1, 0] }}
+                transition={{ duration: 5, repeat: Infinity, repeatDelay: 4, delay: 1 }}
+            />
+            <motion.div
+                className="absolute bottom-1/4 left-1/3 w-[500px] h-[1px] bg-gradient-to-r from-transparent via-blue-500/30 to-transparent rotate-[45deg]"
+                animate={{ x: [-500, 1000], opacity: [0, 0.8, 0] }}
+                transition={{ duration: 6, repeat: Infinity, repeatDelay: 3, delay: 0.5 }}
+            />
+        </div>
+    );
+}
+
+// Quick Start Card for Empty State
+function QuickStartCard({ title, desc, icon, link, color, delay }) {
+    const colors = {
+        purple: "from-purple-500/20 to-purple-600/5 border-purple-500/30 hover:border-purple-500/60 shadow-purple-500/10",
+        cyan: "from-cyan-500/20 to-cyan-600/5 border-cyan-500/30 hover:border-cyan-500/60 shadow-cyan-500/10",
+        emerald: "from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 hover:border-emerald-600/60 shadow-emerald-500/10",
+    }
+    const c = colors[color] || colors.purple
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, duration: 0.5 }}
+            whileHover={{ y: -5, scale: 1.02 }}
+            className="h-full"
+        >
+            <Link to={link}>
+                <div className={`h-full p-6 rounded-2xl border bg-gradient-to-br ${c} backdrop-blur-md transition-all duration-300 group relative overflow-hidden`}>
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        {icon && <div className="scale-[3] transform">{icon}</div>}
+                    </div>
+
+                    <div className="relative z-10">
+                        <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4 border border-white/10 group-hover:border-white/20 transition-colors`}>
+                            {icon}
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                        <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
+                    </div>
+
+                    <div className="mt-8 flex items-center gap-2 text-sm font-medium text-white group-hover:gap-3 transition-all">
+                        <span>Get Started</span>
+                        <Rocket size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </div>
+                </div>
+            </Link>
+        </motion.div>
+    )
+}
+
+function EmptyDashboardState() {
+    return (
+        <div className="flex-1 flex flex-col relative w-full h-full min-h-[calc(100vh-160px)] md:min-h-[500px] justify-center overflow-hidden py-10">
+            <LightStreaks />
+
+            {/* Background Glows */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="relative z-10 max-w-6xl mx-auto w-full px-4">
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="text-center mb-16"
+                >
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-purple-400 mb-6 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                        Awaiting your first project
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
+                        Your <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">Command Center</span> is ready.
+                    </h1>
+                    <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                        DevTrack is the ultimate workspace for developers to track progress,
+                        share insights, and build a premium tech profile.
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <QuickStartCard
+                        title="Launch Projects"
+                        desc="Connect your GitHub account to auto-track commits, PRs, and repository activity."
+                        icon={<Github size={24} className="text-purple-400" />}
+                        link="/projects?import=github"
+                        color="purple"
+                        delay={0.2}
+                    />
+                    <QuickStartCard
+                        title="Log Learning"
+                        desc="Document your daily wins and skills acquired. Build a streak and watch your progress grow."
+                        icon={<BookOpen size={24} className="text-emerald-400" />}
+                        link="/learning"
+                        color="emerald"
+                        delay={0.3}
+                    />
+                    <QuickStartCard
+                        title="Build Legacy"
+                        desc="Create a world-class developer profile and resume that showcases your actual work."
+                        icon={<Rocket size={24} className="text-cyan-400" />}
+                        link="/resume"
+                        color="cyan"
+                        delay={0.4}
+                    />
+                </div>
+            </div>
+        </div>
+    )
+}
+
 function GitHubIcon() {
     return (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -938,46 +1062,19 @@ export default function Dashboard() {
                     {/* Empty State */}
                     <AnimatePresence>
                         {hasNoData && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="flex-1 flex flex-col items-center justify-center min-h-[calc(100vh-160px)] md:min-h-[400px]"
+                            <ReactLenis
+                                root={false}
+                                id="empty-dashboard-scroll"
+                                className="flex-1 overflow-y-auto scrollbar-hide"
                             >
-                                <Card className="text-center py-20 border-2 border-dashed border-purple-500/30 w-full max-w-5xl">
-                                    <motion.div
-                                        className="flex justify-center mb-6"
-                                        animate={{ y: [0, -10, 0] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                    >
-                                        <Anchor size={64} className="text-purple-500" strokeWidth={1.5} />
-                                    </motion.div>
-                                    <h2 className="text-3xl font-bold mb-4">Welcome to DevTrack!</h2>
-                                    <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-                                        Import your project from the <span className="text-purple-400 font-semibold">Projects page</span> from the top bar/sidebar or add a learning log to view a proper dashboard.
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        <Link to="/projects?import=github">
-                                            <Button size="lg" className="flex items-center gap-2">
-                                                <Github size={20} />
-                                                Import from GitHub
-                                            </Button>
-                                        </Link>
-                                        <Link to="/projects">
-                                            <Button variant="secondary" size="lg" className="flex items-center gap-2">
-                                                <Rocket size={20} />
-                                                Add a Project
-                                            </Button>
-                                        </Link>
-                                        <Link to="/learning">
-                                            <Button variant="secondary" size="lg" className="flex items-center gap-2">
-                                                <BookOpen size={20} />
-                                                Log Learning
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </Card>
-                            </motion.div>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <EmptyDashboardState />
+                                </motion.div>
+                            </ReactLenis>
                         )}
                     </AnimatePresence>
 
