@@ -24,7 +24,9 @@ import {
     Trophy,
     Link as LinkIcon,
     Sparkles,
-    Loader2
+    Loader2,
+    Palette,
+    Type
 } from 'lucide-react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import { resumeApi, projectsApi, authApi } from '../services/api'
@@ -278,9 +280,12 @@ export default function ResumeBuilder() {
     const [saving, setSaving] = useState(false)
     const [generatingSummary, setGeneratingSummary] = useState(false)
     const [activeTab, setActiveTab] = useState('basics') // basics, experience, education, projects, skills
+    const [mobileTab, setMobileTab] = useState('editor') // 'editor' | 'preview'
 
     // Core Data State
     const [resumeData, setResumeData] = useState({
+        documentType: 'resume',
+        theme: { color: '#435260', font: 'font-sans' },
         basics: { name: '', email: '', phone: '', location: '', linkedin: '', github: '', website: '', summary: '' },
         experience: [],
         education: [],
@@ -341,6 +346,8 @@ export default function ResumeBuilder() {
                     typeof a === 'string' ? { text: a, url: '' } : a
                 );
             }
+            if (!backendData.documentType) backendData.documentType = 'resume';
+            if (!backendData.theme) backendData.theme = { color: '#435260', font: 'font-sans' };
 
             // Ensure basics are populated if empty (First time load or missing fields)
             if (!backendData.basics.name) backendData.basics.name = userRes.data.user.name || ''
@@ -586,17 +593,25 @@ export default function ResumeBuilder() {
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center"><ProfessionalLoader /></div>
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 flex font-inter overflow-hidden">
+        <div className="min-h-screen bg-slate-950 text-slate-200 flex font-inter overflow-hidden pb-[60px] md:pb-0">
 
             {/* LEFT SIDEBAR (Controls) */}
-            <div className="w-full md:w-[500px] flex flex-col border-r border-slate-800 bg-slate-950 h-screen z-10 print:hidden shadow-2xl">
+            <div className={`w-full md:w-[500px] flex-col border-r border-slate-800 bg-slate-950 h-screen z-10 print:hidden shadow-2xl ${mobileTab === 'editor' ? 'flex' : 'hidden md:flex'}`}>
                 {/* Header */}
                 <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <div className="flex items-center gap-2">
                         <FileText className="text-cyan-400" size={20} />
-                        <h1 className="font-bold">Resume Builder</h1>
+                        <h1 className="font-bold">Builder</h1>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        <select
+                            value={resumeData.documentType}
+                            onChange={(e) => setResumeData({ ...resumeData, documentType: e.target.value })}
+                            className="bg-slate-800/80 text-xs rounded-lg border border-slate-700 py-2 px-2 outline-none focus:border-cyan-500 font-medium cursor-pointer"
+                        >
+                            <option value="resume">Resume</option>
+                            <option value="cv">CV</option>
+                        </select>
                         <button
                             onClick={handleSave}
                             disabled={saving}
@@ -615,6 +630,85 @@ export default function ResumeBuilder() {
 
                 {/* Content Editor */}
                 <div data-lenis-prevent className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6 overscroll-contain relative z-30 pointer-events-auto touch-pan-y">
+
+                    {/* Appearance / Theme */}
+                    <div className="space-y-4 pb-6 border-b border-slate-800">
+                        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Palette size={12} /> Appearance
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Accent Color</label>
+                                <div className="flex gap-2">
+                                    {['#435260', '#0ea5e9', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#18181b'].map(color => (
+                                        <button
+                                            key={color}
+                                            onClick={() => setResumeData({ ...resumeData, theme: { ...resumeData.theme, color } })}
+                                            className={`w-6 h-6 rounded-full border-2 transition-transform shadow-lg ${resumeData.theme?.color === color ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
+                                            style={{ backgroundColor: color }}
+                                            title={color}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Typography</label>
+                                <select
+                                    value={resumeData.theme?.font || 'font-sans'}
+                                    onChange={(e) => setResumeData({ ...resumeData, theme: { ...resumeData.theme, font: e.target.value } })}
+                                    className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-xs focus:border-cyan-500 outline-none"
+                                >
+                                    <option value="font-sans">Modern (Sans)</option>
+                                    <option value="font-serif">Classic (Serif)</option>
+                                    <option value="font-mono">Developer (Mono)</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Template Style</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'modern', label: 'Modern' },
+                                        { id: 'professional', label: 'Professional' },
+                                        { id: 'creative', label: 'Creative' }
+                                    ].map(tpl => (
+                                        <button
+                                            key={tpl.id}
+                                            onClick={() => setResumeData({ ...resumeData, template: tpl.id })}
+                                            className={`py-2 px-1 text-xs rounded border text-center transition-all ${resumeData.template === tpl.id ? 'bg-cyan-900/40 border-cyan-500 text-cyan-400 font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-600'}`}
+                                        >
+                                            {tpl.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Section Layout Manager */}
+                    <div className="space-y-4 pb-6 border-b border-slate-800">
+                        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <GripVertical size={12} /> Section Layout Manager
+                        </h2>
+                        <p className="text-xs text-slate-500 mb-2">Drag and drop to reorder how sections appear on your resume.</p>
+
+                        <Reorder.Group
+                            axis="y"
+                            values={resumeData.layoutOrder || ['summary', 'experience', 'projects', 'education', 'skills', 'achievements']}
+                            onReorder={(newOrder) => setResumeData({ ...resumeData, layoutOrder: newOrder })}
+                            className="space-y-2"
+                        >
+                            {(resumeData.layoutOrder || ['summary', 'experience', 'projects', 'education', 'skills', 'achievements']).map(sectionId => (
+                                <Reorder.Item key={sectionId} value={sectionId} className="cursor-grab active:cursor-grabbing">
+                                    <div className="p-2 rounded border bg-slate-900 border-slate-800 flex justify-between items-center group hover:border-slate-600 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <GripVertical size={14} className="text-slate-600 group-hover:text-cyan-400" />
+                                            <span className="text-sm font-medium text-slate-300 capitalize">{sectionId.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                        </div>
+                                    </div>
+                                </Reorder.Item>
+                            ))}
+                        </Reorder.Group>
+                    </div>
 
                     {/* Basics */}
                     <div className="space-y-4">
@@ -996,14 +1090,32 @@ export default function ResumeBuilder() {
             </div>
 
             {/* RIGHT PREVIEW (Real-time) */}
-            <div data-lenis-prevent className="flex-1 bg-slate-900 h-screen overflow-y-auto flex items-start justify-center pt-8 pb-8 print:p-0 print:h-auto print:w-auto print:bg-white print:overflow-visible overscroll-contain relative z-30 pointer-events-auto touch-pan-y">
-                <div className="print:hidden mb-4 absolute top-4 right-8 flex gap-2">
-                    <div className="bg-slate-800/80 backdrop-blur rounded-lg px-4 py-2 text-xs text-slate-400 border border-slate-700">
-                        A4 Preview Mode
+            <div data-lenis-prevent className={`flex-1 bg-slate-900 h-screen overflow-y-auto items-start justify-center pt-8 pb-8 print:p-0 print:h-auto print:w-auto print:bg-white print:flex print:overflow-visible overscroll-contain relative z-30 pointer-events-auto touch-pan-y ${mobileTab === 'preview' ? 'flex' : 'hidden md:flex'}`}>
+                <div className="print:hidden mb-4 absolute top-4 right-8 flex gap-2 z-50">
+                    <div className="bg-slate-800/80 backdrop-blur rounded-lg px-4 py-2 text-xs text-slate-400 border border-slate-700 hidden md:block">
+                        {resumeData.documentType === 'resume' ? 'A4 1-Page Preview' : 'A4 Multi-Page Preview'}
                     </div>
                 </div>
 
                 <ResumePaper data={resumeData} projects={previewProjects} verifiedSkills={availableVerifiedSkills} user={user} />
+            </div>
+
+            {/* Mobile Bottom Navigation */}
+            <div className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900 border-t border-slate-800 flex print:hidden z-50">
+                <button
+                    onClick={() => setMobileTab('editor')}
+                    className={`flex-1 py-4 text-sm font-bold flex justify-center items-center gap-2 ${mobileTab === 'editor' ? 'text-cyan-400 border-t-2 border-cyan-400 bg-slate-800/50' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    <FileText size={18} /> Editor
+                </button>
+                <div className="w-px bg-slate-800"></div>
+                <button
+                    onClick={() => setMobileTab('preview')}
+                    className={`flex-1 py-4 text-sm font-bold flex justify-center items-center gap-2 ${mobileTab === 'preview' ? 'text-cyan-400 border-t-2 border-cyan-400 bg-slate-800/50' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    {/* Using an icon standard for preview, we imported Plus and Save, let's use FileText vs something like Search? Actually we don't have search imported. We can use LinkIcon as fallback since it's imported, or re-use FileText */}
+                    Preview
+                </button>
             </div>
         </div>
     )

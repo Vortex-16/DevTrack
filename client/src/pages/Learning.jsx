@@ -673,19 +673,7 @@ export default function Learning() {
                         </div>
 
                         {/* Mobile Cards - Horizontal scroll on small screens */}
-                        <div className="lg:hidden flex flex-col gap-4 mb-8 flex-shrink-0">
-                            {/* Activity + Skills Row */}
-                            <div className="flex flex-col gap-4">
-                                {/* Top Skills - Flexible height */}
-                                <div className="min-h-[220px] h-auto flex-shrink-0">
-                                    <TopSkills entries={learningEntries} verifiedSkills={verifiedSkills} />
-                                </div>
-                                {/* LeetCode Full Width - Flexible height */}
-                                <div className="min-h-[220px] h-auto flex-shrink-0">
-                                    <LeetCodeStats />
-                                </div>
-                            </div>
-                        </div>
+                        {/* Mobile Cards (TopSkills / LeetCode) - REMOVED because they are now handled by the 'Insights' tab sidebar above */}
                     </div>
                 </div>
 

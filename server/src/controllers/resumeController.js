@@ -28,6 +28,10 @@ const getResume = async (req, res, next) => {
             // Return empty skeleton if none exists
             resumeData = {
                 uid: userId,
+                documentType: 'resume',
+                template: 'modern',
+                theme: { color: '#435260', font: 'font-sans' },
+                layoutOrder: ['summary', 'experience', 'projects', 'education', 'skills', 'achievements'],
                 basics: { phone: '', linkedin: '', website: '', summary: '', location: '' },
                 experience: [],
                 education: [],
@@ -79,10 +83,14 @@ const getResume = async (req, res, next) => {
 const saveResume = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-        const { basics, experience, education, skills, achievements, selectedProjectIds, selectedSkillNames, template } = req.body;
+        const { basics, experience, education, skills, achievements, selectedProjectIds, selectedSkillNames, template, documentType, theme, layoutOrder } = req.body;
 
         const resumeData = {
             uid: userId,
+            documentType: documentType || 'resume',
+            template: template || 'modern',
+            theme: theme || { color: '#435260', font: 'font-sans' },
+            layoutOrder: layoutOrder || ['summary', 'experience', 'projects', 'education', 'skills', 'achievements'],
             basics: basics || {},
             experience: experience || [],
             education: education || [],

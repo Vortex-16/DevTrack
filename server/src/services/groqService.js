@@ -848,6 +848,17 @@ Calculate progress by evaluating:
 4. **DevOps Readiness** (15%): CI/CD, Docker, environment configs
 5. **Technical Debt** (15%): Code smells, outdated deps, hacky workarounds
 
+Identify **Complexity Hotspots**:
+- Look for large files, deeply nested logic, or unclear responsibility.
+- Assign a complexity score (1-10) where 10 is critical/too complex.
+- Suggest specific refactoring for the top 3 hotspots.
+
+Identify **Security Vulnerabilities**:
+- Scan for OWASP Top 10 issues (Injection, Broken Auth, Data Exposure, etc.).
+- Highlight insecure patterns (hardcoded secrets, weak regex, dangerous functions).
+- Provide a severity level and a specific fix recommendation.
+
+
 ═══════════════════════════════════════════════════════════════════════════════
 REPOSITORY INTEL
 ═══════════════════════════════════════════════════════════════════════════════
@@ -951,6 +962,26 @@ Respond with this EXACT JSON structure:
   ],
   "fileAnalysis": [
     {"area": "<folder/area>", "status": "active|stale|needs-attention", "note": "<brief note>"}
+  ],
+  "complexityHotspots": [
+    {
+      "file": "<filename or module>",
+      "complexityScore": <1-10>,
+      "reason": "<brief explanation of why it is complex>"
+    },
+    {
+      "file": "<filename or module>",
+      "complexityScore": <1-10>,
+      "reason": "<brief explanation>"
+    }
+  ],
+  "securityVulnerabilities": [
+    {
+      "severity": "critical|high|medium|low",
+      "issue": "<brief description of the vulnerability>",
+      "recommendation": "<suggested fix>",
+      "file": "<filename>"
+    }
   ],
   "codeQuality": {
     "hasTests": <true|false>,

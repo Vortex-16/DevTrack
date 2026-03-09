@@ -111,8 +111,47 @@ const getProfileByUsername = async (req, res, next) => {
                 demoUrl: p.demoUrl || null,
                 commits: p.commits,
                 progress: p.progress
-            }))
+            })),
+            // New Customization Fields
+            theme: publicPrefs.theme || 'default',
+            accentColor: publicPrefs.accentColor || '#A855F7', // Default purple-500
+            socials: publicPrefs.socials || {
+                twitter: null,
+                linkedin: null,
+                github: userData.githubUsername,
+                website: null
+            },
+            bannerUrl: publicPrefs.bannerUrl || null,
+            resume: null
         };
+
+        // Fetch Resume Data if exists
+        const resumeDoc = await collections.resumes().doc(userId).get();
+        if (resumeDoc.exists) {
+            const resumeData = resumeDoc.data();
+
+            // Hydrate projects in resume
+            let hydratedResumeProjects = [];
+            if (resumeData.selectedProjectIds && resumeData.selectedProjectIds.length > 0) {
+                hydratedResumeProjects = allProjects
+                    .filter(p => resumeData.selectedProjectIds.includes(p.id))
+                    .map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        description: p.description,
+                        technologies: p.technologies,
+                        repositoryUrl: p.repositoryUrl,
+                        commits: p.commits,
+                        createdAt: p.createdAt,
+                        longDescription: p.longDescription
+                    }));
+            }
+
+            publicProfile.resume = {
+                ...resumeData,
+                projects: hydratedResumeProjects
+            };
+        }
 
         res.status(200).json({
             success: true,

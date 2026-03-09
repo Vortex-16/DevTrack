@@ -77,6 +77,9 @@ const schemas = {
         technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
         progress: Joi.number().min(0).max(100).optional(),
         commits: Joi.number().min(0).optional(),
+        // Add missing fields that were being stripped
+        githubData: Joi.object().allow(null).optional(),
+        aiAnalysis: Joi.object().allow(null).optional(),
     }).min(1),
 };
 

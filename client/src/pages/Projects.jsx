@@ -47,6 +47,8 @@ import SavedIdeasModal from "../components/projects/SavedIdeasModal";
 import ReadmeGeneratorModal from "../components/projects/ReadmeGeneratorModal";
 import PixelTransition from "../components/ui/PixelTransition";
 import Skeleton, { SkeletonCard } from "../components/ui/Skeleton";
+import { useGitHubScopes } from "../hooks/useGitHubScopes";
+import GitHubPermissionModal from "../components/auth/GitHubPermissionModal";
 
 // SVG Icon Components
 const GeminiIcon = ({ className = "w-5 h-5" }) => (
@@ -178,6 +180,7 @@ function ProjectCard({
   isExpanded,
   onToggle,
   onGenerateReadme,
+  onCopySuggestion,
 }) {
   const statusColors = {
     Active: {
@@ -206,6 +209,16 @@ function ProjectCard({
     project.status === "Completed"
       ? 100
       : project.aiAnalysis?.progressPercentage ?? project.progress ?? 0;
+
+  // Analysis Data
+  const hotspots = project.aiAnalysis?.complexityHotspots || [];
+  const vulnerabilities = project.aiAnalysis?.securityVulnerabilities || [];
+  const suggestions = project.aiAnalysis?.nextRecommendedTasks || [];
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState("next"); // "next" | "warning"
+
+  const maxComplexity = 10;
 
   return (
     <motion.div
@@ -253,7 +266,7 @@ function ProjectCard({
             {project.status}
           </span>
           {/* Show analyzing indicator when server is processing GitHub/AI data */}
-          {project.isAnalyzing && (
+          {(project.isAnalyzing || analyzing) && (
             <span className="px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 ml-2 flex-shrink-0 flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" />
               Analyzing
@@ -267,6 +280,17 @@ function ProjectCard({
             <span className="text-slate-500 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
               Progress
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReanalyze(project);
+                }}
+                disabled={analyzing}
+                className="ml-1 p-1 rounded-md hover:bg-white/10 text-slate-500 hover:text-purple-400 transition-colors disabled:opacity-50"
+                title="Re-analyze Progress"
+              >
+                <RefreshCcw size={10} className={analyzing ? "animate-spin" : ""} />
+              </button>
             </span>
             <span className="text-purple-400 font-bold">{progress}%</span>
           </div>
@@ -293,53 +317,187 @@ function ProjectCard({
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="pt-4 space-y-4">
-                {/* AI Next Steps (What to add/fix) */}
+              <div className="pt-4 space-y-6">
+
+                {/* AI Analysis Section */}
                 {project.aiAnalysis && (
-                  <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
-                    <div className="flex items-center gap-2 mb-2">
-                      <GeminiIcon className="w-3.5 h-3.5 text-purple-400" />
-                      <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
-                        AI Suggestions
-                      </span>
+                  <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                    {/* Tab Headers */}
+                    <div className="flex border-b border-white/5">
+                      <button
+                        onClick={() => setActiveTab("next")}
+                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "next"
+                          ? "bg-purple-500/10 text-purple-400 border-b-2 border-purple-500"
+                          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                          }`}
+                      >
+                        <Lightbulb className="w-3.5 h-3.5" />
+                        What Next
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("warning")}
+                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "warning"
+                          ? "bg-red-500/10 text-red-400 border-b-2 border-red-500"
+                          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                          }`}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Warnings
+                        {(hotspots.length > 0 || vulnerabilities.length > 0) && (
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        )}
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      {project.aiAnalysis.nextRecommendedTasks?.length > 0
-                        ? `Consider: ${project.aiAnalysis.nextRecommendedTasks.slice(0, 2).map(t => typeof t === 'object' ? t.task : t).join(', ')}`
-                        : project.aiAnalysis.progressSummary || "Project looks well-maintained. Keep up the good work!"}
-                    </p>
+
+                    {/* Tab Content */}
+                    <div className="p-4 min-h-[160px]">
+                      {activeTab === "next" ? (
+                        /* --- WHAT NEXT TAB --- */
+                        <motion.div
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          key="next"
+                          className="space-y-3"
+                        >
+                          {suggestions.length > 0 ? (
+                            suggestions.slice(0, 3).map((task, idx) => {
+                              const taskText = typeof task === 'object' ? task.task : task;
+                              const priority = typeof task === 'object' ? task.priority : 'medium';
+
+                              return (
+                                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group/item">
+                                  <div className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${priority === 'high' ? 'bg-red-400' : 'bg-purple-400'}`} />
+                                  <div className="flex-1">
+                                    <p className="text-sm text-slate-300 leading-snug group-hover/item:text-white transition-colors">
+                                      {taskText}
+                                    </p>
+                                    {typeof task === 'object' && task.impact && (
+                                      <p className="text-[10px] text-slate-500 mt-1">{task.impact}</p>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => onCopySuggestion && onCopySuggestion(taskText)}
+                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all transform scale-90 hover:scale-100"
+                                    title="Copy suggestion"
+                                  >
+                                    <ArrowLeft className="w-3 h-3 rotate-180" />
+                                  </button>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="text-center py-8">
+                              <CheckCircle className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
+                              <p className="text-slate-400 text-xs">No immediate actions found. Good job!</p>
+                            </div>
+                          )}
+                        </motion.div>
+                      ) : (
+                        /* --- WARNING TAB --- */
+                        <motion.div
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          key="warning"
+                          className="space-y-4"
+                        >
+                          {vulnerabilities.length === 0 && hotspots.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Lock className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
+                              <p className="text-slate-400 text-xs">No critical issues detected. Secure & Clean!</p>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Security Vulnerabilities */}
+                              {vulnerabilities.length > 0 && (
+                                <div className="space-y-2">
+                                  <h4 className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                    <Lock className="w-3 h-3" /> Security Risks
+                                  </h4>
+                                  {vulnerabilities.slice(0, 2).map((vuln, idx) => (
+                                    <div key={idx} className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                                      <div className="flex justify-between items-start mb-1">
+                                        <span className="text-xs font-bold text-red-300">{vuln.issue}</span>
+                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase font-bold">{vuln.severity || 'High'}</span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 mb-1.5">File: {vuln.file || 'Unknown'}</p>
+                                      <div className="text-[10px] text-slate-300 bg-black/20 p-1.5 rounded">
+                                        Fix: {vuln.recommendation}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Complexity Hotspots */}
+                              {hotspots.length > 0 && (
+                                <div className="space-y-2">
+                                  <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1 flex items-center gap-1.5 mt-2">
+                                    <Activity className="w-3 h-3" /> Complexity Hotspots
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {hotspots.slice(0, 3).map((hotspot, idx) => (
+                                      <div key={idx} className="space-y-1">
+                                        <div className="flex justify-between items-center text-xs">
+                                          <span className="font-medium text-slate-300 truncate max-w-[200px]" title={hotspot.file}>
+                                            {hotspot.file}
+                                          </span>
+                                          <span className={`font-bold ${hotspot.complexityScore >= 8 ? 'text-red-400' : 'text-orange-400'}`}>
+                                            {hotspot.complexityScore}/10
+                                          </span>
+                                        </div>
+                                        <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full ${hotspot.complexityScore >= 8 ? 'bg-red-500' : 'bg-orange-500'}`}
+                                            style={{ width: `${(hotspot.complexityScore / 10) * 100}%` }}
+                                          />
+                                        </div>
+                                        {/* Display the reason for complexity */}
+                                        {hotspot.reason && (
+                                          <p className="text-[10px] text-slate-500 italic leading-tight pl-1 border-l-2 border-white/10">
+                                            "{hotspot.reason}"
+                                          </p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+
+                    </div>
+
+                    {/* Right: Complexity & health */}
+
+                    {/* Tech Stack Pills */}
+                    <div className="flex flex-wrap gap-2 p-3 border-t border-white/5 bg-white/[0.02]">
+                      {(project.technologies || []).map((tech, i) => {
+                        const techName = typeof tech === "string" ? tech : tech?.name || String(tech);
+                        return (
+                          <span
+                            key={i}
+                            className="px-2.5 py-1 rounded-md bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5 hover:border-white/20 hover:text-white transition-colors cursor-default"
+                          >
+                            {techName}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                {/* Technologies */}
-                <div className="flex flex-wrap gap-1.5">
-                  {(project.technologies || []).map((tech, i) => {
-                    // Handle both string and object formats
-                    const techName =
-                      typeof tech === "string"
-                        ? tech
-                        : tech?.name || String(tech);
-                    return (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 rounded-lg bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5"
-                      >
-                        {techName}
-                      </span>
-                    );
-                  })}
-                </div>
-
                 {/* Detailed Stats Row */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <div className="flex gap-4 text-[11px]">
+                  <div className="flex gap-6 text-[11px]">
                     <div className="flex flex-col">
                       <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
                         Stars
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
                         <Star
-                          size={10}
+                          size={12}
                           className="text-yellow-500 fill-yellow-500"
                         />{" "}
                         {project.githubData?.stars || 0}
@@ -350,7 +508,7 @@ function ProjectCard({
                         Commits
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
-                        <FileText size={10} className="text-blue-400" />{" "}
+                        <FileText size={12} className="text-blue-400" />{" "}
                         {project.commits || 0}
                       </span>
                     </div>
@@ -359,7 +517,7 @@ function ProjectCard({
                         Issues
                       </span>
                       <span className="text-white font-medium flex items-center gap-1">
-                        <Bug size={10} className="text-red-400" />{" "}
+                        <Bug size={12} className="text-red-400" />{" "}
                         {project.githubData?.openIssues || 0}
                       </span>
                     </div>
@@ -369,13 +527,14 @@ function ProjectCard({
                     <button
                       onClick={() => onReanalyze(project)}
                       disabled={analyzing}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                      className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-all disabled:opacity-50"
                       title="Re-analyze Repository"
                     >
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Re-analyze</span>
                       {analyzing ? (
                         <Loader2 size={14} className="animate-spin" />
                       ) : (
-                        <RefreshCcw size={14} />
+                        <RefreshCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
                       )}
                     </button>
                   )}
@@ -386,12 +545,16 @@ function ProjectCard({
         </AnimatePresence>
 
         {/* Footer (Actions) */}
-        <div className="mt-auto pt-4 flex items-center justify-between">
+        <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5 mt-4">
           <button
             onClick={onToggle}
-            className="text-[10px] font-bold text-slate-500 hover:text-purple-400 uppercase tracking-widest transition-colors"
+            className="text-[10px] font-bold text-slate-500 hover:text-purple-400 uppercase tracking-widest transition-colors flex items-center gap-1"
           >
-            {isExpanded ? "Hide Details" : "View Details"}
+            {isExpanded ? (
+              <>Less info <ChevronDown className="w-3 h-3 rotate-180" /></>
+            ) : (
+              <>More info <ChevronDown className="w-3 h-3" /></>
+            )}
           </button>
 
           <div className="flex gap-2">
@@ -407,8 +570,9 @@ function ProjectCard({
             {project.status !== "Completed" && (
               <button
                 onClick={() => onComplete(project)}
-                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase transition-colors border border-emerald-500/20"
+                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase transition-colors border border-emerald-500/20 flex items-center gap-1.5"
               >
+                <CheckCircle className="w-3.5 h-3.5" />
                 Done
               </button>
             )}
@@ -569,7 +733,9 @@ function ProjectForm({
   isEdit,
   analyzing,
   error,
+  onRequiresAuth,
 }) {
+  const { hasRepoAccess } = useGitHubScopes();
   const [hasRepo, setHasRepo] = useState(
     isEdit ? (formData.repositoryUrl ? "yes" : "no") : null
   );
@@ -634,6 +800,11 @@ function ProjectForm({
   const handleCreateRepo = async () => {
     if (!newRepoData.name) {
       setRepoError("Repository name is required");
+      return;
+    }
+
+    if (newRepoData.isPrivate && !hasRepoAccess) {
+      if (onRequiresAuth) onRequiresAuth();
       return;
     }
 
@@ -1085,6 +1256,8 @@ function SuccessTick() {
 
 export default function Projects() {
   const { getCachedData, setCachedData, hasCachedData } = useCache();
+  const { hasRepoAccess } = useGitHubScopes();
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
 
   // Helper function to sanitize project data
   const sanitizeProjects = (projects) => {
@@ -1137,7 +1310,7 @@ export default function Projects() {
   const [formError, setFormError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [completeConfirm, setCompleteConfirm] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -1192,6 +1365,7 @@ export default function Projects() {
   }, []);
 
   const fetchData = async () => {
+    console.log("DEBUG: fetchData called at", new Date().toISOString());
     try {
       if (!hasCachedData("projects_data")) {
         setLoading(true);
@@ -1279,6 +1453,7 @@ export default function Projects() {
             commitFrequencyScore: analysis.commitFrequencyScore,
             nextRecommendedTasks: analysis.nextRecommendedTasks,
             reasoning: analysis.reasoning || analysis.progressSummary,
+            complexityHotspots: analysis.complexityHotspots || [],
           };
         }
       } catch (aiErr) {
@@ -1290,6 +1465,11 @@ export default function Projects() {
       console.error("GitHub fetch failed:", ghErr);
       return null;
     }
+  };
+
+  const handleCopySuggestion = (text) => {
+    navigator.clipboard.writeText(text);
+    // You could show a toast here if you had a toast system
   };
 
   const handleSubmit = async (e) => {
@@ -1351,7 +1531,7 @@ export default function Projects() {
       if (newProject?.isAnalyzing) {
         // Start polling for analysis completion
         let pollCount = 0;
-        const maxPolls = 10; // Maximum 10 polls (30 seconds total)
+        const maxPolls = 40; // Maximum 40 polls (120 seconds total)
         const pollInterval = 3000; // Poll every 3 seconds
 
         const pollForCompletion = async () => {
@@ -1396,6 +1576,10 @@ export default function Projects() {
   };
 
   const handleGenerateReadme = (project) => {
+    if (!hasRepoAccess) {
+      setShowGitHubModal(true);
+      return;
+    }
     setReadmeProject(project);
     setShowReadmeModal(true);
   };
@@ -1481,15 +1665,21 @@ export default function Projects() {
     }
   };
 
+  // TEMPORARY FIX: Define analyzing to prevent ReferenceError if any rogue usages exist
+  const analyzing = false;
+
   const handleReanalyze = async (project) => {
     if (!project.repositoryUrl) return;
 
     try {
-      setAnalyzing(true);
+      setAnalyzingId(project.id);
       const analysisData = await analyzeWithGitHub(project.repositoryUrl);
 
+      console.log("DEBUG: Analysis Result:", analysisData);
+
       if (analysisData) {
-        await projectsApi.update(project.id, {
+        // Correctly construct payload using direct properties from analysisData
+        const updatePayload = {
           commits: analysisData.commits,
           technologies:
             analysisData.technologies.length > 0
@@ -1498,13 +1688,39 @@ export default function Projects() {
           githubData: analysisData.githubData,
           progress: analysisData.progress,
           aiAnalysis: analysisData.aiAnalysis,
-        });
-        fetchData();
+        };
+
+        // Optimistically update
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === project.id
+              ? { ...p, ...updatePayload, isAnalyzing: false }
+              : p
+          )
+        );
+
+        const response = await projectsApi.update(project.id, updatePayload);
+
+        // Ensure authoritative state from server
+        if (response.data?.success && response.data?.data) {
+          const updatedProject = response.data.data;
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === project.id ? updatedProject : p
+            )
+          );
+        }
       }
     } catch (err) {
       console.error("Error re-analyzing project:", err);
+      // Show the actual error from the server
+      const serverError = err.response?.data?.error || err.response?.data?.message || err.message;
+      alert(`Update failed: ${serverError}`);
+
+      // Only fetch on error to restore state
+      fetchData();
     } finally {
-      setAnalyzing(false);
+      setAnalyzingId(null);
     }
   };
 
@@ -1668,16 +1884,16 @@ export default function Projects() {
     setLoadingRepos(true);
     try {
       const response = await githubApi.getRepos(100);
-      // API returns { data: { username, totalRepos, repos } }
+      // API returns {data: {username, totalRepos, repos} }
       const repos = response.data?.data?.repos || [];
-      // Filter to only public repos and exclude already-added projects
+      // Filter out already-added projects
       const existingRepoUrls = new Set(
         projects.map(p => p.repositoryUrl?.toLowerCase()).filter(Boolean)
       );
-      const publicRepos = repos.filter(
-        repo => !repo.isPrivate && !existingRepoUrls.has(repo.url?.toLowerCase())
+      const availableRepos = repos.filter(
+        repo => !existingRepoUrls.has(repo.url?.toLowerCase())
       );
-      setGithubRepos(publicRepos);
+      setGithubRepos(availableRepos);
       setSelectedRepos(new Set());
     } catch (err) {
       console.error('Error fetching GitHub repos:', err);
@@ -1977,7 +2193,8 @@ export default function Projects() {
                       onReanalyze={handleReanalyze}
                       onComplete={handleComplete}
                       onGenerateReadme={handleGenerateReadme}
-                      analyzing={analyzing}
+                      onCopySuggestion={handleCopySuggestion}
+                      analyzing={analyzingId === project.id}
                       delay={index * 0.1}
                     />
                   ))}
@@ -2059,8 +2276,9 @@ export default function Projects() {
             onSubmit={handleSubmit}
             onCancel={() => setShowModal(false)}
             isEdit={false}
-            analyzing={analyzing}
+            analyzing={false}
             error={formError}
+            onRequiresAuth={() => setShowGitHubModal(true)}
           />
         </Modal>
 
@@ -2082,8 +2300,9 @@ export default function Projects() {
               setEditingProject(null);
             }}
             isEdit={true}
-            analyzing={analyzing}
+            analyzing={analyzingId === editingProject?.id}
             error={formError}
+            onRequiresAuth={() => setShowGitHubModal(true)}
           />
         </Modal>
         {/* Background Processing Indicator */}
@@ -2140,6 +2359,11 @@ export default function Projects() {
           onStartProject={startIdeaAsProject}
         />
 
+        <GitHubPermissionModal
+          isOpen={showGitHubModal}
+          onClose={() => setShowGitHubModal(false)}
+        />
+
         {/* Readme Generator Modal */}
         <ReadmeGeneratorModal
           isOpen={showReadmeModal}
@@ -2165,9 +2389,21 @@ export default function Projects() {
           }
         >
           <div className="space-y-4">
-            <p className="text-slate-400 text-sm">
-              Select public repositories to import as projects. Already added repos are hidden.
-            </p>
+            <div className="flex justify-between items-start gap-4">
+              <p className="text-slate-400 text-sm">
+                Select repositories to import. Already added repos are hidden.
+              </p>
+              {!hasRepoAccess && (
+                <Button
+                  onClick={() => setShowGitHubModal(true)}
+                  variant="ghost"
+                  className="whitespace-nowrap h-8 px-3 text-xs border border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                >
+                  <Lock className="w-3 h-3 mr-1" />
+                  Connect Private Repos
+                </Button>
+              )}
+            </div>
 
             {loadingRepos ? (
               <div className="flex items-center justify-center py-12">
@@ -2204,7 +2440,7 @@ export default function Projects() {
                 </div>
 
                 {/* Repos List */}
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2" data-lenis-prevent="true">
                   {githubRepos.map((repo) => (
                     <motion.div
                       key={repo.name}
