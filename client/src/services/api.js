@@ -218,6 +218,12 @@ export const goalsApi = {
     delete: (id) => api.delete(`/goals/${id}`),
 };
 
+export const socialApi = {
+    vouch: (data) => api.post('/social/vouch', data),
+    getEndorsements: (userId) => api.get(`/social/endorsements/${userId}`),
+    updateCollaboration: (data) => api.post('/social/collaboration', data),
+};
+
 export default api;
 
 
