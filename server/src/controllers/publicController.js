@@ -3,7 +3,7 @@
  * Handles public-facing profile and data access
  */
 
-const { collections } = require('../config/firebase');
+const { collections, admin } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
 
 /**
