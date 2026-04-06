@@ -80,7 +80,7 @@ class NotificationService {
                         vibrate: [200, 100, 200],
                     },
                     fcmOptions: {
-                        link: process.env.CORS_ORIGIN || 'http://localhost:5173',
+                        link: process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'https://devtrackweb.xyz',
                     },
                 },
             };

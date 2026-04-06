@@ -1,61 +1,74 @@
 /**
  * Email Service
- * Handles all email sending using Nodemailer with Gmail SMTP
+ * Handles all email sending using Brevo REST API (HTTP - works on Render)
+ * Uses Node.js built-in fetch (Node 18+) — no extra dependencies
  */
-
-const nodemailer = require('nodemailer');
 
 class EmailService {
     constructor() {
-        // Use Gmail service which handles SMTP configuration automatically
-        this.transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 60000,
-            socketTimeout: 60000,
-            logger: true, // Enable logging for debugging
-            debug: process.env.NODE_ENV !== 'production',
-        });
-
-        this.defaultFrom = process.env.EMAIL_FROM || 'DevTrack <alpha4coders@gmail.com>';
-
-        // Log transport configuration
-        console.log('📧 Email service initialized with Gmail');
+        this.apiKey = process.env.BREVO_API_KEY;
+        this.apiUrl = 'https://api.brevo.com/v3/smtp/email';
+        this.defaultFrom = {
+            email: process.env.EMAIL_FROM || 'alpha4coders@gmail.com',
+            name: process.env.EMAIL_FROM_NAME || 'DevTrack',
+        };
+        console.log('📧 Email service initialized with Brevo');
     }
 
     /**
-     * Send an email
-     * @param {Object} options - Email options
+     * Send an email via Brevo REST API
+     * @param {Object} options
      * @param {string} options.to - Recipient email
      * @param {string} options.subject - Email subject
      * @param {string} options.html - HTML content
-     * @param {string} [options.from] - Sender (optional, uses default)
-     * @param {Array} [options.attachments] - Array of attachment objects
+     * @param {string} [options.from] - Sender email (optional)
+     * @param {Array}  [options.attachments] - Array of attachment objects
      * @returns {Promise<Object>} - Send result
      */
     async sendEmail({ to, subject, html, from, attachments = [] }) {
         try {
-            const mailOptions = {
-                from: from || this.defaultFrom,
-                to,
+            if (!this.apiKey) {
+                throw new Error('BREVO_API_KEY is not configured');
+            }
+
+            const payload = {
+                sender: from
+                    ? { email: from }
+                    : this.defaultFrom,
+                to: [{ email: to }],
                 subject,
-                html,
-                attachments: attachments.map(att => ({
-                    filename: att.filename,
-                    content: att.content,
-                    encoding: att.encoding || 'base64',
-                })),
+                htmlContent: html,
             };
 
-            const result = await this.transporter.sendMail(mailOptions);
-            console.log(`Email sent successfully to ${to}, messageId: ${result.messageId}`);
+            if (attachments.length > 0) {
+                payload.attachment = attachments.map(att => ({
+                    name: att.filename,
+                    content: att.content, // base64 string
+                }));
+            }
+
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'api-key': this.apiKey,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                const errMsg = result.message || `HTTP ${response.status}`;
+                console.error(`❌ Brevo error sending to ${to}:`, errMsg);
+                return { success: false, error: errMsg };
+            }
+
+            console.log(`✅ Email sent to ${to}, messageId: ${result.messageId}`);
             return { success: true, messageId: result.messageId };
         } catch (error) {
-            console.error(`Failed to send email to ${to}:`, error.message);
+            console.error(`❌ Failed to send email to ${to}:`, error.message);
             return { success: false, error: error.message };
         }
     }
@@ -65,7 +78,7 @@ class EmailService {
      * @param {string} to - Recipient email
      * @param {string} userName - User's name for greeting
      * @param {Buffer} pdfBuffer - PDF report buffer
-     * @returns {Promise<Object>} - Send result
+     * @returns {Promise<Object>}
      */
     async sendWeeklyReport(to, userName, pdfBuffer) {
         const subject = `Your Weekly GitHub Report - ${new Date().toLocaleDateString()}`;
@@ -76,9 +89,7 @@ class EmailService {
                 <p style="color: #e2e8f0;">Your weekly GitHub activity report is attached as a PDF.</p>
                 <p style="color: #e2e8f0;">Keep up the great work and maintain your coding streak!</p>
                 <hr style="border: 1px solid #1e293b; margin: 24px 0;">
-                <p style="color: #64748b; font-size: 12px;">
-                    Generated by DevTrack - Your Developer Consistency Tracker
-                </p>
+                <p style="color: #64748b; font-size: 12px;">Generated by DevTrack - Your Developer Consistency Tracker</p>
             </div>
         `;
 
@@ -100,7 +111,7 @@ class EmailService {
      * @param {string} projectName - Name of the project
      * @param {string} commenterName - Name of the person who commented
      * @param {string} commentContent - The comment content (already escaped)
-     * @returns {Promise<Object>} - Send result
+     * @returns {Promise<Object>}
      */
     async sendCommentNotification(to, projectName, commenterName, commentContent) {
         const subject = `💬 New comment on "${projectName}"`;
@@ -111,9 +122,7 @@ class EmailService {
                 <blockquote style="border-left: 4px solid #7c3aed; padding-left: 16px; margin: 16px 0; color: #374151;">
                     ${commentContent}
                 </blockquote>
-                <p style="color: #6b7280; font-size: 14px;">
-                    View your showcase on DevTrack to reply.
-                </p>
+                <p style="color: #6b7280; font-size: 14px;">View your showcase on DevTrack to reply.</p>
             </div>
         `;
 
@@ -121,18 +130,16 @@ class EmailService {
     }
 
     /**
-     * Verify SMTP connection
-     * @returns {Promise<boolean>} - Whether connection is working
+     * Verify Brevo configuration
+     * @returns {Promise<boolean>}
      */
     async verifyConnection() {
-        try {
-            await this.transporter.verify();
-            console.log('SMTP connection verified successfully');
-            return true;
-        } catch (error) {
-            console.error('SMTP connection verification failed:', error.message);
+        if (!this.apiKey) {
+            console.error('❌ BREVO_API_KEY is not set!');
             return false;
         }
+        console.log('✅ Brevo API key is configured');
+        return true;
     }
 }
 

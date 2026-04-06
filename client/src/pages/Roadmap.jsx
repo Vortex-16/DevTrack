@@ -4,18 +4,18 @@ import { useAuth } from '@clerk/clerk-react'
 import { goalsApi } from '../services/api'
 import PixelTransition from '../components/ui/PixelTransition'
 import Button from '../components/ui/Button'
-import { Plus, Target, Calendar, CheckCircle, Clock, Trash2, Edit2, AlertTriangle, ChevronRight, Check } from 'lucide-react'
+import { Plus, Target, Calendar, CheckCircle, Clock, Trash2, Edit2, AlertTriangle, ChevronRight, Check, Map, User } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import DatePicker from '../components/ui/DatePicker'
+import DomainCard from '../components/roadmap/DomainCard'
+import RoadmapViewer from '../components/roadmap/RoadmapViewer'
+import { allRoadmaps, getRoadmapById } from '../data/roadmaps/index'
 
 // Format date helper
 const formatDate = (dateString, includeYear = false) => {
     if (!dateString) return 'No Date'
     const date = new Date(dateString)
-    // Check if valid date
     if (isNaN(date.getTime())) return 'Invalid Date'
-
-    // Check if it's a Firestore timestamp (seconds)
     if (typeof dateString === 'object' && dateString._seconds) {
         return new Date(dateString._seconds * 1000).toLocaleDateString('en-US', {
             month: 'short',
@@ -23,7 +23,6 @@ const formatDate = (dateString, includeYear = false) => {
             year: includeYear ? 'numeric' : undefined
         })
     }
-
     return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -34,7 +33,6 @@ const formatDate = (dateString, includeYear = false) => {
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
     if (!isOpen) return null
-
     return createPortal(
         <AnimatePresence>
             <motion.div
@@ -78,11 +76,9 @@ function Modal({ isOpen, onClose, title, children }) {
 
 function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
     const progress = goal.progress || 0
-    // Safely verify milestones exists and is an array
     const milestones = Array.isArray(goal.milestones) ? goal.milestones : []
     const nextMilestone = milestones.find(m => !m.isCompleted)
 
-    // Calculate days remaining
     const getDaysRemaining = () => {
         if (!goal.targetDate) return null
         const target = new Date(goal.targetDate._seconds ? goal.targetDate._seconds * 1000 : goal.targetDate)
@@ -120,7 +116,6 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                     </div>
                     <h3 className="text-lg font-bold text-white leading-tight">{goal.title}</h3>
                 </div>
-
                 <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button onClick={() => onEdit(goal)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
                         <Edit2 size={14} />
@@ -130,10 +125,7 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                     </button>
                 </div>
             </div>
-
             <p className="text-slate-400 text-sm mb-4 line-clamp-2">{goal.description}</p>
-
-            {/* Progress Bar */}
             <div className="mb-4">
                 <div className="flex justify-between text-xs mb-1.5">
                     <span className="text-slate-300 font-medium">Progress</span>
@@ -144,14 +136,10 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 1, ease: "easeOut" }}
-                        className={`h-full rounded-full ${progress === 100 ? 'bg-emerald-500' :
-                            progress > 50 ? 'bg-purple-500' : 'bg-blue-500'
-                            }`}
+                        className={`h-full rounded-full ${progress === 100 ? 'bg-emerald-500' : progress > 50 ? 'bg-purple-500' : 'bg-blue-500'}`}
                     />
                 </div>
             </div>
-
-            {/* Next Milestone or Completed Status */}
             <div className="flex items-center justify-between pt-3 border-t border-white/5">
                 <div className="flex items-center gap-2 text-xs text-slate-400 truncate max-w-[65%]">
                     {progress === 100 ? (
@@ -169,7 +157,6 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                         </span>
                     )}
                 </div>
-
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium whitespace-nowrap">
                     <Clock size={12} />
                     {daysRemaining !== null ? (
@@ -181,6 +168,47 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
     )
 }
 
+// ─── Domain Roadmaps Section ──────────────────────────────────────────────────
+function DomainRoadmapsSection() {
+    const [selectedRoadmapId, setSelectedRoadmapId] = useState(null)
+    const selectedRoadmap = selectedRoadmapId ? getRoadmapById(selectedRoadmapId) : null
+
+    return (
+        <AnimatePresence mode="wait">
+            {selectedRoadmap ? (
+                <RoadmapViewer
+                    key="viewer"
+                    roadmap={selectedRoadmap}
+                    onBack={() => setSelectedRoadmapId(null)}
+                />
+            ) : (
+                <motion.div
+                    key="grid"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-bold text-white mb-1">Tech Domain Roadmaps</h2>
+                        <p className="text-slate-400 text-sm">Explore curated, step-by-step learning paths for popular tech domains — inspired by <span className="text-purple-400 font-medium">roadmap.sh</span>.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-20">
+                        {allRoadmaps.map((roadmap, index) => (
+                            <DomainCard
+                                key={roadmap.id}
+                                roadmap={roadmap}
+                                index={index}
+                                onClick={() => setSelectedRoadmapId(roadmap.id)}
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    )
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Roadmap() {
     const { isLoaded, isSignedIn } = useAuth()
     const [loading, setLoading] = useState(true)
@@ -190,8 +218,8 @@ export default function Roadmap() {
     const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [error, setError] = useState(null)
     const [refreshTrigger, setRefreshTrigger] = useState(0)
+    const [activeTab, setActiveTab] = useState('goals') // 'goals' | 'domains'
 
-    // Form State
     const defaultForm = {
         title: '',
         description: '',
@@ -211,7 +239,6 @@ export default function Roadmap() {
 
     const fetchGoals = async () => {
         try {
-            // Keep loading true on initial load
             if (goals.length === 0) setLoading(true)
             const res = await goalsApi.getAll()
             setGoals(res.data?.data?.goals || [])
@@ -296,42 +323,95 @@ export default function Roadmap() {
         }
     }
 
+    const TABS = [
+        { id: 'goals', label: 'My Goals', icon: User },
+        { id: 'domains', label: 'Domain Roadmaps', icon: Map },
+    ]
+
     return (
         <PixelTransition loading={loading}>
             <div className="px-4 md:px-0">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">My Roadmap</h1>
-                        <p className="text-slate-400">Set goals, track milestones, and visualize your developer journey.</p>
+                        <h1 className="text-3xl font-bold text-white mb-1">Roadmap</h1>
+                        <p className="text-slate-400 text-sm">Track your personal goals or explore curated developer paths.</p>
                     </div>
-                    <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
-                        <Plus className="w-5 h-5" /> New Goal
-                    </Button>
+                    {activeTab === 'goals' && (
+                        <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
+                            <Plus className="w-5 h-5" /> New Goal
+                        </Button>
+                    )}
                 </div>
 
-                {/* Goals Grid */}
-                {!loading && goals.length === 0 ? (
-                    <div className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]">
-                        <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
-                            <Target size={40} className="text-purple-500" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">No Goals Set Yet</h3>
-                        <p className="text-slate-400 mb-8 max-w-sm mx-auto">Define what you want to achieve next. A clear roadmap is the key to success!</p>
-                        <Button onClick={() => handleOpenModal()}>Set Your First Goal</Button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                        {goals.map(goal => (
-                            <GoalCard
-                                key={goal.id}
-                                goal={goal}
-                                onEdit={handleOpenModal}
-                                onDelete={(id) => setDeleteConfirm(id)}
-                            />
-                        ))}
-                    </div>
-                )}
+                {/* Tab Switcher */}
+                <div className="flex gap-1 p-1 mb-8 rounded-xl bg-white/[0.04] border border-white/10 w-fit">
+                    {TABS.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
+                                ${activeTab === tab.id
+                                    ? 'text-white'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                        >
+                            {activeTab === tab.id && (
+                                <motion.div
+                                    layoutId="tab-indicator"
+                                    className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                                />
+                            )}
+                            <tab.icon size={15} className="relative z-10" />
+                            <span className="relative z-10">{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Tab Content */}
+                <AnimatePresence mode="wait">
+                    {activeTab === 'goals' ? (
+                        <motion.div
+                            key="goals-tab"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {!loading && goals.length === 0 ? (
+                                <div className="text-center py-20 rounded-2xl border-2 border-dashed border-white/5 bg-white/[0.02]">
+                                    <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
+                                        <Target size={40} className="text-purple-500" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-white mb-2">No Goals Set Yet</h3>
+                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">Define what you want to achieve next. A clear roadmap is the key to success!</p>
+                                    <Button onClick={() => handleOpenModal()}>Set Your First Goal</Button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                                    {goals.map(goal => (
+                                        <GoalCard
+                                            key={goal.id}
+                                            goal={goal}
+                                            onEdit={handleOpenModal}
+                                            onDelete={(id) => setDeleteConfirm(id)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="domains-tab"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <DomainRoadmapsSection />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Modals */}
                 <Modal
@@ -399,7 +479,6 @@ export default function Roadmap() {
                         {/* Milestones Section */}
                         <div className="border-t border-white/10 pt-4">
                             <label className="block text-sm text-slate-400 mb-3">Key Milestones</label>
-
                             <div className="space-y-2 mb-3">
                                 {formData.milestones.length === 0 && (
                                     <p className="text-xs text-slate-500 italic">No milestones added yet.</p>
@@ -427,13 +506,11 @@ export default function Roadmap() {
                                     </div>
                                 ))}
                             </div>
-
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newMilestone}
                                     onChange={e => setNewMilestone(e.target.value)}
-                                    // Submit milestone on Enter (prevent form submit)
                                     onKeyDown={e => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
