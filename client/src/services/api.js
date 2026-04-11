@@ -72,6 +72,9 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Handle unauthorized - could redirect to login
             console.error('Unauthorized - please sign in');
+            if (window.location.pathname !== '/' && window.location.pathname !== '/mobile-auth') {
+                window.location.href = '/?expired=true';
+            }
         }
         return Promise.reject(error);
     }

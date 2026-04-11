@@ -1,0 +1,9 @@
+node_modules
+.expo
+.git
+android
+ios
+dist
+*.apk
+*.zip
+*.tar.gz

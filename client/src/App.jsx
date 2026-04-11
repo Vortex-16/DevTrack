@@ -125,11 +125,16 @@ function App() {
 
                     {/* Protected Routes */}
                     <Route element={
-                        <SignedIn>
-                            <OnboardingRedirect>
-                                <AppLayout />
-                            </OnboardingRedirect>
-                        </SignedIn>
+                        <>
+                            <SignedIn>
+                                <OnboardingRedirect>
+                                    <AppLayout />
+                                </OnboardingRedirect>
+                            </SignedIn>
+                            <SignedOut>
+                                <Navigate to="/?expired=true" replace />
+                            </SignedOut>
+                        </>
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/learning" element={<Learning />} />

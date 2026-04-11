@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "a5679b36-c786-44e3-a7ef-a5e9297f3eb8"
+      }
+    },
+    "android": {
+      "package": "com.vortex16.devtrack"
+    }
+  }
+}

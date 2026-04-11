@@ -39,21 +39,22 @@ const InitialLayout = () => {
             // Register the dynamic token provider directly
             setTokenProvider(getToken);
 
-            // Sync immediately with the fresh token
-            const setupAndNavigate = async () => {
+            // Navigate immediately to the dashboard for a snappier feel
+            router.replace('/(auth)/dashboard');
+
+            // Sync in the background – don't block the UI
+            const syncInBackground = async () => {
                 const token = await getToken();
                 if (token) {
                     try {
                         await authApi.sync();
-                        console.log('✅ User synced with backend');
+                        console.log('✅ Background sync complete');
                     } catch (error) {
-                        console.error('❌ Sync failed:', error);
+                        console.error('❌ Background sync failed:', error);
                     }
                 }
-                router.replace('/(auth)/dashboard');
             };
-
-            setupAndNavigate();
+            syncInBackground();
         } else if (!isSignedIn && inAuthGroup) {
             router.replace('/');
         }
