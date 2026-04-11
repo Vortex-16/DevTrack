@@ -175,6 +175,18 @@ const createProject = async (req, res, next) => {
                 }
             }
 
+            // [NEW] Check if project with this repo already exists to prevent duplicates
+            // We check both exact match and potentially normalized versions if needed, 
+            // but for now exact match on the provided URL is a good start.
+            const existingSnapshot = await collections.projects()
+                .where('uid', '==', userId)
+                .where('repositoryUrl', '==', repositoryUrl)
+                .get();
+
+            if (!existingSnapshot.empty) {
+                throw new APIError('A project with this repository URL is already in your DevTrack', 400);
+            }
+
             // [NEW] Always try to fetch user commits from contributors list
             // This ensures we show "User Commits" not "Total Commits"
             try {
