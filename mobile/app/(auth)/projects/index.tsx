@@ -32,7 +32,11 @@ const STATUS_OPTIONS = [
   { label: 'Completed', value: 'completed', color: colors.text.muted, icon: CheckCircle2 },
 ];
 
-const getStatus = (val: string) => STATUS_OPTIONS.find((s) => s.value === val) ?? STATUS_OPTIONS[0];
+const getStatus = (val: string) => {
+  if (!val) return STATUS_OPTIONS[0];
+  const lowerVal = val.toLowerCase();
+  return STATUS_OPTIONS.find((s) => s.value === lowerVal) ?? STATUS_OPTIONS[0];
+};
 
 // ─── Project Card ────────────────────────────────────────────────
 interface ProjectCardProps {
@@ -119,10 +123,10 @@ function ProjectModal({ visible, project, onClose, onSave, saving }: ProjectModa
       setName(project.name ?? '');
       setDesc(project.description ?? '');
       setLang(project.language ?? '');
-      setGithub(project.githubUrl ?? '');
+      setGithub(project.githubUrl ?? (project as any).repositoryUrl ?? '');
       setLive(project.liveUrl ?? '');
-      setStack((project.techStack ?? []).join(', '));
-      setStatus(project.status ?? 'active');
+      setStack((project.techStack ?? (project as any).technologies ?? []).join(', '));
+      setStatus(getStatus(project.status).value as Project['status']);
     } else {
       setName(''); setDesc(''); setLang(''); setGithub('');
       setLive(''); setStack(''); setStatus('active');
@@ -136,8 +140,10 @@ function ProjectModal({ visible, project, onClose, onSave, saving }: ProjectModa
       description: desc.trim(),
       language: lang.trim(),
       githubUrl: github.trim(),
+      repositoryUrl: github.trim(), // Both for compatibility
       liveUrl: live.trim(),
       techStack: stack ? stack.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      technologies: stack ? stack.split(',').map((t) => t.trim()).filter(Boolean) : [], // Both for compatibility
       status,
     });
   };
@@ -301,7 +307,7 @@ export default function ProjectsScreen() {
     .filter((p) => {
       const matchSearch = (p.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
         (p.description ?? '').toLowerCase().includes(search.toLowerCase());
-      const matchStatus = filterStatus === 'all' || p.status === filterStatus;
+      const matchStatus = filterStatus === 'all' || (p.status ?? '').toLowerCase() === filterStatus.toLowerCase();
       return matchSearch && matchStatus;
     });
 

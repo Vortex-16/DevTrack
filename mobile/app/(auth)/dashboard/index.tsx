@@ -135,7 +135,13 @@ export default function DashboardScreen() {
   if (loading && !stats) return <FullScreenLoader message="Syncing your workspace..." />;
 
   const maxActivity = Math.max(...activityData.map((d) => d.count), 1);
-  const recentProjects = Array.isArray(projects) ? projects.slice(0, 3) : [];
+  const recentProjects = Array.isArray(projects) 
+    ? [...projects].sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return dateB - dateA;
+      }).slice(0, 3) 
+    : [];
 
   const getGreeting = () => {
     const h = new Date().getHours();

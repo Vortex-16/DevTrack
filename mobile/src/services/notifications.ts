@@ -13,9 +13,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export const registerForPushNotificationsAsync = async () => {
-  let token;
-
+export const registerForPushNotificationsAsync = async (): Promise<{ token: string | null; error?: string }> => {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -25,39 +23,37 @@ export const registerForPushNotificationsAsync = async () => {
     });
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      throw new Error('Permission not granted for notifications');
-    }
-
-    // Get the token
-    const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-    if (!projectId) {
-      throw new Error('Project ID not found in config');
-    }
-
-    try {
-      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      console.log('✅ Expo Push Token:', token);
-    } catch (e) {
-      console.error('Failed to get push token:', e);
-      throw e;
-    }
-  } else {
-    console.warn('Must use physical device for Push Notifications');
-    // For development/simulators, we throw to trigger the fallback in UI
-    throw new Error('Must use physical device');
+  if (!Device.isDevice) {
+    return { token: null, error: 'Must use a physical device' };
   }
 
-  return token;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  
+  if (finalStatus !== 'granted') {
+    return { token: null, error: 'Permission not granted' };
+  }
+
+  // Get the token
+  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? 
+                    Constants?.easConfig?.projectId ?? 
+                    'a5679b36-c786-44e3-a7ef-a5e9297f3eb8'; // Updated to match app.json
+  
+  if (!projectId) {
+    return { token: null, error: 'Missing Project ID' };
+  }
+
+  try {
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    return { token };
+  } catch (e: any) {
+    return { token: null, error: e.message || 'Failed to get push token' };
+  }
 };
 
 // Function to send a local notification (useful for testing)

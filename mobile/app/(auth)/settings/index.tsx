@@ -99,7 +99,7 @@ export default function SettingsScreen() {
     try {
       if (val) {
         // This will trigger the system permission popup
-        const token = await registerForPushNotificationsAsync();
+        const { token, error } = await registerForPushNotificationsAsync();
         if (token) {
           await notificationsApi.registerToken(token);
           setNotifEnabled(true);
@@ -110,6 +110,9 @@ export default function SettingsScreen() {
           setTimeout(() => {
             sendLocalNotification('Notifications Active 🚀', 'You will now receive weekly reports and reminders.');
           }, 1000);
+        } else {
+          setNotifEnabled(false);
+          showToast(error || 'Failed to enable notifications', 'error');
         }
       } else {
         await notificationsApi.unregisterToken();
