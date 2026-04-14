@@ -1,7 +1,10 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Live server URL
 const baseURL = 'https://devtrack-api.onrender.com/api';
+
+const CACHE_PREFIX = '@api_cache:';
 
 const api = axios.create({
     baseURL,
@@ -10,6 +13,25 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Cache helpers
+const getCacheKey = (url, params) => `${CACHE_PREFIX}${url}${params ? JSON.stringify(params) : ''}`;
+
+const saveToCache = async (url, params, data) => {
+    try {
+        await AsyncStorage.setItem(getCacheKey(url, params), JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+    } catch (e) { /* silent */ }
+};
+
+const getFromCache = async (url, params) => {
+    try {
+        const cached = await AsyncStorage.getItem(getCacheKey(url, params));
+        return cached ? JSON.parse(cached).data : null;
+    } catch (e) { return null; }
+};
 
 // Auth token management for React Native
 let tokenProvider = null;
@@ -43,10 +65,35 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling & caching
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
+    async (response) => {
+        // Cache GET requests
+        if (response.config.method === 'get') {
+            saveToCache(response.config.url, response.config.params, response.data);
+        }
+        return response;
+    },
+    async (error) => {
+        const { config, response } = error;
+        
+        // If network error (offline), try to serve from cache
+        if (!response && config && config.method === 'get') {
+            const cachedData = await getFromCache(config.url, config.params);
+            if (cachedData) {
+                console.log(`🌐 [Cache] Serving ${config.url} from local storage`);
+                return { 
+                    ...error, 
+                    data: cachedData, 
+                    status: 200, 
+                    statusText: 'OK (From Cache)',
+                    headers: {},
+                    config,
+                    isFromCache: true 
+                };
+            }
+        }
+
         if (error.response?.status === 401) {
             console.warn('Unauthorized - token may be invalid or expired');
         }
@@ -173,4 +220,33 @@ export const showcaseApi = {
         api.delete(`/showcase/${showcaseId}/comments/${commentId}`),
 };
 
+export const leetCodeApi = {
+    getStats: () => api.get('/leetcode/stats'),
+    updateConfig: (username, verificationCode) => api.post('/leetcode/config', { username, verificationCode }),
+};
+
+export const publicApi = {
+    getProfile: (username) => api.get(`/public/profile/${username}`),
+};
+
+export const resumeApi = {
+    get: () => api.get('/resume'),
+    save: (data) => api.post('/resume', data),
+    generateSummary: (data) => api.post('/resume/generate-summary', data),
+};
+
+export const goalsApi = {
+    getAll: () => api.get('/goals'),
+    create: (data) => api.post('/goals', data),
+    update: (id, data) => api.put(`/goals/${id}`, data),
+    delete: (id) => api.delete(`/goals/${id}`),
+};
+
+export const socialApi = {
+    vouch: (data) => api.post('/social/vouch', data),
+    getEndorsements: (userId) => api.get(`/social/endorsements/${userId}`),
+    updateCollaboration: (data) => api.post('/social/collaboration', data),
+};
+
 export default api;
+

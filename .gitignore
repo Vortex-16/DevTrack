@@ -38,3 +38,6 @@ coverage/
 # Misc
 *.pem
 .cache/
+
+# Local scripts
+run_servers.bat

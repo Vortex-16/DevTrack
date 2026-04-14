@@ -26,12 +26,14 @@ import {
     Save,
     Plus,
     Minus,
-    Loader2
+    Loader2,
+    ShieldCheck,
+    Heart
 } from 'lucide-react'
 import ProfessionalLoader from '../components/ui/ProfessionalLoader'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-import { publicApi, preferencesApi, projectsApi } from '../services/api'
+import { publicApi, preferencesApi, projectsApi, socialApi } from '../services/api'
 import ResumePaper from '../components/ResumePaper'
 import confetti from 'canvas-confetti'
 import { useUser } from '@clerk/clerk-react'
@@ -95,6 +97,8 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
     )
     const [saving, setSaving] = useState(false)
 
+    const [collaboration, setCollaboration] = useState(profile.social?.collaboration || { status: 'inactive', seekingStack: [], goal: '' })
+
     useEffect(() => {
         if (isOpen) {
             setBio(profile.bio || '')
@@ -105,6 +109,7 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
             setSocials(profile.socials || { twitter: '', linkedin: '', github: profile.username, website: '' })
             setShowSkills(profile.verifiedSkills?.length > 0)
             setSelectedProjects(profile.projects.map(p => p.id))
+            setCollaboration(profile.social?.collaboration || { status: 'inactive', seekingStack: [], goal: '' })
         }
     }, [isOpen, profile])
 
@@ -136,7 +141,11 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
                         }
                     }
                 }
-            })
+            });
+
+            // Update Social Zone Data
+            await socialApi.updateCollaboration(collaboration);
+
             onUpdate()
             onClose()
         } catch (error) {
@@ -177,7 +186,7 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
 
                 {/* Tabs */}
                 <div className="flex px-6 pt-2 gap-4 border-b border-white/5">
-                    {['info', 'design', 'socials'].map((tab) => (
+                    {['info', 'design', 'socials', 'networking'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -396,6 +405,54 @@ const EditProfileModal = ({ profile, projects, isOpen, onClose, onUpdate }) => {
                             </div>
                         </div>
                     )}
+
+                    {activeTab === 'networking' && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between bg-white/5 p-4 rounded-lg border border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <Globe className="text-emerald-400" size={20} />
+                                    <div>
+                                        <h3 className="font-medium text-white">Open to Collaboration</h3>
+                                        <p className="text-xs text-gray-400">Let other builders know you're looking for partners.</p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={collaboration.status === 'active'}
+                                        onChange={(e) => setCollaboration({ ...collaboration, status: e.target.checked ? 'active' : 'inactive' })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                </label>
+                            </div>
+
+                            {collaboration.status === 'active' && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-300">What are you looking to build?</label>
+                                        <input
+                                            type="text"
+                                            value={collaboration.goal}
+                                            onChange={(e) => setCollaboration({ ...collaboration, goal: e.target.value })}
+                                            placeholder="e.g. Building an AI-powered SaaS"
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-emerald-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-300">Ideal Partner Stack (comma separated)</label>
+                                        <input
+                                            type="text"
+                                            value={Array.isArray(collaboration.seekingStack) ? collaboration.seekingStack.join(', ') : (collaboration.seekingStack || '')}
+                                            onChange={(e) => setCollaboration({ ...collaboration, seekingStack: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                            placeholder="e.g. React, Node.js, Python"
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-emerald-500 transition-colors"
+                                        />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -545,6 +602,39 @@ export default function PublicProfile() {
         setTimeout(() => setCopied(false), 2000);
     }
 
+    const handleVouch = async (projectId) => {
+        if (!user) {
+            alert("Please sign in to vouch for this project!");
+            return;
+        }
+        if (isOwner) {
+            alert("You cannot vouch for your own projects.");
+            return;
+        }
+
+        try {
+            const res = await socialApi.vouch({
+                toUid: profile.id,
+                projectId,
+                category: 'Proof of Work'
+            });
+
+            if (res.data.action === 'added') {
+                confetti({
+                    particleCount: 50,
+                    spread: 40,
+                    origin: { y: 0.8 },
+                    colors: [profile.accentColor || '#A855F7', '#ffffff']
+                });
+            }
+
+            fetchProfile(); // Refresh to get updated endorsements
+        } catch (e) {
+            console.error("Vouch failed", e);
+            alert(e.response?.data?.error || "Failed to vouch");
+        }
+    }
+
     if (loading) return <div className="min-h-screen bg-[#050505] flex items-center justify-center"><ProfessionalLoader /></div>
     if (error || !profile) return (
         <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-4 text-slate-400 text-center">
@@ -645,6 +735,28 @@ export default function PublicProfile() {
                 </div>
             </BentoCard>
 
+            {/* 7. COLLABORATION CARD */}
+            {profile.social?.collaboration?.status === 'active' && (
+                <BentoCard className="md:col-span-12 lg:col-span-7 bg-emerald-500/5 border-emerald-500/20" title="Collaboration" icon={Globe} delay={0.6}>
+                    <div className="flex flex-col md:flex-row gap-6 items-center">
+                        <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                            <Plus className="text-emerald-400 rotate-45" size={32} />
+                        </div>
+                        <div className="text-center md:text-left">
+                            <h4 className="text-lg font-bold text-white mb-1">Open to Build</h4>
+                            <p className="text-emerald-400 text-sm font-medium mb-4 leading-relaxed line-clamp-2">{profile.social.collaboration.goal || "Looking for partners for the next big thing."}</p>
+                            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                                {profile.social.collaboration.seekingStack?.map((skill, i) => (
+                                    <span key={i} className="text-[10px] uppercase tracking-wider font-bold px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </BentoCard>
+            )}
+
             {/* 6. PROJECTS - FULL WIDTH GRID */}
             <div className="md:col-span-12 mt-8">
                 <div className="flex items-center gap-4 mb-8 px-2">
@@ -673,6 +785,54 @@ export default function PublicProfile() {
                             </div>
                             <h3 className="text-lg font-bold text-white mb-2 group-hover:text-[var(--accent)] transition-colors">{project.name}</h3>
                             <p className="text-sm text-gray-400 line-clamp-3 mb-6 leading-relaxed flex-1">{project.description}</p>
+
+                            {/* Social / Vouch Section */}
+                            <div className="flex items-center justify-between mb-6 pt-4 border-t border-white/5">
+                                <div className="flex -space-x-2">
+                                    {(profile.endorsements || [])
+                                        .filter(e => e.projectId === project.id)
+                                        .slice(0, 3)
+                                        .map((endorsement, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="w-7 h-7 rounded-full border-2 border-[#0B0C15] overflow-hidden bg-gray-800"
+                                                title={`${endorsement.endorser?.name} vouched for this`}
+                                            >
+                                                <img
+                                                    src={endorsement.endorser?.avatarUrl || `https://ui-avatars.com/api/?name=${endorsement.endorser?.name}`}
+                                                    alt="Endorser"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        ))
+                                    }
+                                    {(profile.endorsements || []).filter(e => e.projectId === project.id).length > 3 && (
+                                        <div className="w-7 h-7 rounded-full border-2 border-[#0B0C15] bg-gray-800 flex items-center justify-center text-[10px] text-gray-400 font-bold">
+                                            +{(profile.endorsements || []).filter(e => e.projectId === project.id).length - 3}
+                                        </div>
+                                    )}
+                                    {(profile.endorsements || []).filter(e => e.projectId === project.id).length === 0 && (
+                                        <span className="text-[10px] text-gray-600 italic pl-2">No vouches yet</span>
+                                    )}
+                                </div>
+
+                                {!isOwner && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleVouch(project.id);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${(profile.endorsements || []).some(e => e.projectId === project.id && e.fromUid === (user?.id))
+                                            ? 'bg-[var(--accent)] text-white'
+                                            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10'
+                                            }`}
+                                    >
+                                        <ShieldCheck size={14} />
+                                        {(profile.endorsements || []).some(e => e.projectId === project.id && e.fromUid === (user?.id)) ? 'Vouched' : 'Vouch'}
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="flex flex-wrap gap-1.5 mt-auto">
                                 {project.technologies?.slice(0, 3).map((tech, i) => (
                                     <span key={i} className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/5">{tech}</span>

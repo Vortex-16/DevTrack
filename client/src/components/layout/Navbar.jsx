@@ -11,6 +11,9 @@ import {
     Code2,
     Rocket,
     Grid,
+    Users,
+    Globe,
+    ShieldCheck
 } from 'lucide-react'
 
 // SVG Icon Components
@@ -68,13 +71,22 @@ const navGroups = [
         ]
     },
     {
+        id: 'social',
+        name: 'Social',
+        type: 'group',
+        icon: Users,
+        items: [
+            { name: 'Community', path: '/showcase', icon: Globe },
+            { name: 'Matchmaking', path: '/showcase?tab=collaborators', icon: ShieldCheck },
+        ]
+    },
+    {
         id: 'growth',
         name: 'Growth',
         type: 'group',
         icon: Rocket,
         items: [
             { name: 'Learning', path: '/learning', icon: BookOpen },
-            { name: 'Showcase', path: '/showcase', icon: Trophy },
         ]
     },
     {

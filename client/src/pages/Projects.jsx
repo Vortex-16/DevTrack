@@ -1342,9 +1342,19 @@ export default function Projects() {
   useEffect(() => {
     if (searchParams.get('import') === 'github') {
       setShowImportModal(true);
-      setSearchParams({});
+      // Use replace: true to prevent back button issues and ensure URL is cleaned
+      setSearchParams({}, { replace: true });
+      // We don't call fetchGitHubRepos here because of hoisting, 
+      // instead we use a separate useEffect below that watches showImportModal
     }
   }, [searchParams, setSearchParams]);
+
+  // Auto-fetch repos when modal opens
+  useEffect(() => {
+    if (showImportModal && githubRepos.length === 0 && !loadingRepos) {
+      fetchGitHubRepos();
+    }
+  }, [showImportModal, githubRepos.length, loadingRepos]);
 
   const defaultFormData = {
     name: "",
@@ -1886,13 +1896,29 @@ export default function Projects() {
       const response = await githubApi.getRepos(100);
       // API returns {data: {username, totalRepos, repos} }
       const repos = response.data?.data?.repos || [];
-      // Filter out already-added projects
+      
+      // Robust URL normalization for reliable filtering
+      const normalizeUrl = (url) => {
+        if (!url) return '';
+        try {
+          return url.toLowerCase().trim()
+            .replace(/^https?:\/\/(www\.)?/, '') // remove protocol and www
+            .replace(/\.git$/, '')               // remove .git suffix
+            .replace(/\/$/, '');                 // remove trailing slash
+        } catch (e) {
+          return url.toLowerCase().trim();
+        }
+      };
+
+      // Filter out already-added projects by normalized URL
       const existingRepoUrls = new Set(
-        projects.map(p => p.repositoryUrl?.toLowerCase()).filter(Boolean)
+        projects.map(p => normalizeUrl(p.repositoryUrl)).filter(Boolean)
       );
+      
       const availableRepos = repos.filter(
-        repo => !existingRepoUrls.has(repo.url?.toLowerCase())
+        repo => !existingRepoUrls.has(normalizeUrl(repo.url))
       );
+      
       setGithubRepos(availableRepos);
       setSelectedRepos(new Set());
     } catch (err) {

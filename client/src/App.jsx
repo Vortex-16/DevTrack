@@ -16,6 +16,7 @@ import Showcase from './pages/Showcase'
 import PublicProfile from './pages/PublicProfile'
 import ResumeBuilder from './pages/ResumeBuilder'
 import Roadmap from './pages/Roadmap'
+import NotFound from './pages/NotFound'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -124,11 +125,16 @@ function App() {
 
                     {/* Protected Routes */}
                     <Route element={
-                        <SignedIn>
-                            <OnboardingRedirect>
-                                <AppLayout />
-                            </OnboardingRedirect>
-                        </SignedIn>
+                        <>
+                            <SignedIn>
+                                <OnboardingRedirect>
+                                    <AppLayout />
+                                </OnboardingRedirect>
+                            </SignedIn>
+                            <SignedOut>
+                                <Navigate to="/?expired=true" replace />
+                            </SignedOut>
+                        </>
                     }>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/learning" element={<Learning />} />
@@ -146,8 +152,8 @@ function App() {
                     {/* Mobile Auth Page - for Flutter app authentication */}
                     <Route path="/mobile-auth" element={<MobileAuth />} />
 
-                    {/* Catch all - redirect to home */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Catch all - 404 Not Found */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </CacheProvider>
         </ReactLenis>

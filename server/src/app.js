@@ -28,15 +28,20 @@ const leetCodeRoutes = require('./routes/leetCodeRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
 const goalRoutes = require('./routes/goalRoutes');
+const socialRoutes = require('./routes/socialRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
+const modernApiUI = require('./middleware/modernApiUI');
 
 const app = express();
 
 // Trust proxy for Render and other reverse proxies
 // Required for express-rate-limit to work correctly
 app.set('trust proxy', 1);
+
+// Mount Modern UI Middleware early so it captures JSON responses for all subsequent handlers
+app.use(modernApiUI);
 
 // ======================
 // SECURITY MIDDLEWARE
@@ -154,6 +159,7 @@ app.use('/api/leetcode', leetCodeRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/goals', goalRoutes);
+app.use('/api/social', socialRoutes);
 
 // ======================
 // 404 HANDLER

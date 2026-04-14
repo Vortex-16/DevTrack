@@ -72,6 +72,9 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Handle unauthorized - could redirect to login
             console.error('Unauthorized - please sign in');
+            if (window.location.pathname !== '/' && window.location.pathname !== '/mobile-auth') {
+                window.location.href = '/?expired=true';
+            }
         }
         return Promise.reject(error);
     }
@@ -216,6 +219,12 @@ export const goalsApi = {
     create: (data) => api.post('/goals', data),
     update: (id, data) => api.put(`/goals/${id}`, data),
     delete: (id) => api.delete(`/goals/${id}`),
+};
+
+export const socialApi = {
+    vouch: (data) => api.post('/social/vouch', data),
+    getEndorsements: (userId) => api.get(`/social/endorsements/${userId}`),
+    updateCollaboration: (data) => api.post('/social/collaboration', data),
 };
 
 export default api;

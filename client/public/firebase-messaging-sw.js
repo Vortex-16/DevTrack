@@ -6,9 +6,9 @@
  * This service worker receives messages from Firebase Cloud Messaging.
  */
 
-// Import Firebase scripts
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+// Import Firebase scripts - version MUST match client firebase package version (^12.6.0)
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 // Firebase configuration for DevTrack
 firebase.initializeApp({

@@ -3,7 +3,7 @@
  * Handles public-facing profile and data access
  */
 
-const { collections } = require('../config/firebase');
+const { collections, admin } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
 
 /**
@@ -86,6 +86,7 @@ const getProfileByUsername = async (req, res, next) => {
 
         // 4. Sanitize Return Data
         const publicProfile = {
+            id: userId,
             username: userData.githubUsername,
             name: userData.name,
             avatarUrl: userData.avatarUrl,
@@ -122,6 +123,7 @@ const getProfileByUsername = async (req, res, next) => {
                 website: null
             },
             bannerUrl: publicPrefs.bannerUrl || null,
+            social: userData.social || {},
             resume: null
         };
 
@@ -152,6 +154,38 @@ const getProfileByUsername = async (req, res, next) => {
                 projects: hydratedResumeProjects
             };
         }
+
+        // Fetch Endorsements (Vouches)
+        const endorsementsSnapshot = await collections.endorsements().where('toUid', '==', userId).get();
+        const endorsements = endorsementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Get unique fromUids to fetch their basic info (names/avatars)
+        const fromUids = [...new Set(endorsements.map(e => e.fromUid))];
+        const endorsersInfo = {};
+
+        if (fromUids.length > 0) {
+            const chunkedUids = [];
+            for (let i = 0; i < fromUids.length; i += 10) {
+                chunkedUids.push(fromUids.slice(i, i + 10));
+            }
+
+            for (const chunk of chunkedUids) {
+                const endorsersSnapshot = await collections.users().where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+                endorsersSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    endorsersInfo[doc.id] = {
+                        name: d.name,
+                        avatarUrl: d.avatarUrl,
+                        githubUsername: d.githubUsername
+                    };
+                });
+            }
+        }
+
+        publicProfile.endorsements = endorsements.map(e => ({
+            ...e,
+            endorser: endorsersInfo[e.fromUid] || { name: 'Anonymous' }
+        }));
 
         res.status(200).json({
             success: true,

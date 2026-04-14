@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { SignInButton } from "@clerk/clerk-react";
-import { Github, Linkedin, Lock, Code, BarChart3, Rocket, Zap, Bot, RefreshCw, Flame, TrendingUp, HelpCircle, ChevronDown } from "lucide-react";
-
-
+import { Github, Linkedin, Lock, Code, BarChart3, Rocket, Zap, Bot, RefreshCw, Flame, TrendingUp, HelpCircle, ChevronDown, CheckCircle, XCircle, X } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -876,6 +875,17 @@ function FAQ() {
 export default function Landing() {
   const heroRef = useRef(null);
   const [mounted, setMounted] = useState(false);
+  const location = useLocation();
+  const [showExpiredToast, setShowExpiredToast] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("expired") === "true") {
+      setShowExpiredToast(true);
+      // Remove query param from url without reloading
+      window.history.replaceState({}, '', '/');
+    }
+  }, [location]);
 
   useEffect(() => {
     setMounted(true);
@@ -923,7 +933,29 @@ export default function Landing() {
   const title = "DEVTRACK";
 
   return (
-    <div className="relative min-h-screen bg-black overflow-x-hidden">
+    <div className="min-h-screen bg-[#020617] text-slate-200 overflow-x-hidden selection:bg-cyan-500/30 font-sans">
+      {showExpiredToast && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-4 right-4 z-[100] max-w-sm w-full bg-red-950/80 border border-red-500/50 rounded-xl shadow-2xl p-4 backdrop-blur-xl flex gap-3 items-start"
+          >
+            <div className="bg-red-500/20 p-2 rounded-full shrink-0">
+               <XCircle className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-white font-bold text-sm">Session Expired</h4>
+              <p className="text-red-200/80 text-xs mt-1">Please sign in again to continue using DevTrack.</p>
+            </div>
+            <button onClick={() => setShowExpiredToast(false)} className="text-slate-400 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        </AnimatePresence>
+      )}
+
       {mounted && <Particles />}
       {mounted && <LightStreaks />}
 

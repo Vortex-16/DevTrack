@@ -11,7 +11,9 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
     useWarmUpBrowser();
 
-    const { startOAuthFlow } = useOAuth({ strategy: 'oauth_github' });
+    const { startOAuthFlow } = useOAuth({ 
+        strategy: 'oauth_github',
+    });
 
     const onSignIn = async () => {
         try {
@@ -19,8 +21,14 @@ export default function LoginScreen() {
             if (createdSessionId && setActive) {
                 setActive({ session: createdSessionId });
             }
-        } catch (err) {
-            console.error('OAuth error', err);
+        } catch (err: any) {
+            if (err?.errors?.[0]?.code === 'session_exists') {
+                console.log('User already signed in, redirection will be handled by layout');
+            } else if (err?.message?.includes('already signed in')) {
+                console.log('User already signed in');
+            } else {
+                console.error('OAuth error', err);
+            }
         }
     };
 

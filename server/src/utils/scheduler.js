@@ -35,11 +35,11 @@ const initializeScheduler = () => {
         }
     });
 
-    // 3. Nightly Streak Warning (8:00 PM)
+    // 3. Nightly Streak Warning (8:00 PM IST = 14:30 UTC)
     // A specific check for users who haven't done anything yet today
-    cron.schedule('0 20 * * *', async () => {
+    cron.schedule('30 14 * * *', async () => {
         try {
-            console.log('🕒 Running Nightly Streak Warning...');
+            console.log('🕒 Running Nightly Streak Warning (8 PM IST)...');
             await notificationService.checkDynamicNotifs();
         } catch (error) {
             console.error('❌ Scheduler Error (Nightly Warning):', error.message);
@@ -48,7 +48,7 @@ const initializeScheduler = () => {
 
     // 4. Weekly GitHub PDF Report (Every Sunday at 7:30 PM IST / 14:00 UTC)
     // Sends comprehensive activity reports to all users
-    cron.schedule('0 14 * * 0', async () => {
+    cron.schedule('50 14 * * 1', async () => {
         try {
             console.log('📊 Running Weekly PDF Report generation...');
             const reportService = require('../services/reportService');

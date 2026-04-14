@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { createPortal } from "react-dom";
@@ -26,6 +26,7 @@ import {
   Eye,
   Clock,
   Trash2,
+  ShieldCheck,
 } from "lucide-react";
 import { projectsApi, showcaseApi } from "../services/api";
 import Button from "../components/ui/Button";
@@ -210,6 +211,13 @@ function ShowcaseCard({
               )}
             </div>
           </div>
+          {/* Collaboration Badge */}
+          {showcase.collaboration?.status === 'active' && (
+            <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
+              <ShieldCheck size={10} />
+              Open to Build
+            </div>
+          )}
           {/* Template Badge */}
           {showcase.template && showcase.template !== "general" && (
             <span className="absolute top-3 right-3 px-2 py-1 rounded-full bg-purple-500/80 text-white text-[10px] font-bold uppercase tracking-wider">
@@ -278,11 +286,10 @@ function ShowcaseCard({
             <div className="flex items-center gap-4">
               <button
                 onClick={() => onStar(showcase.id)}
-                className={`flex items-center gap-1.5 text-sm transition-colors ${
-                  showcase.hasStarred
-                    ? "text-yellow-400"
-                    : "text-slate-400 hover:text-yellow-400"
-                }`}
+                className={`flex items-center gap-1.5 text-sm transition-colors ${showcase.hasStarred
+                  ? "text-yellow-400"
+                  : "text-slate-400 hover:text-yellow-400"
+                  }`}
               >
                 <Star
                   size={16}
@@ -297,6 +304,10 @@ function ShowcaseCard({
                 <MessageCircle size={16} />
                 <span>{showcase.commentCount}</span>
               </button>
+              <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                <ShieldCheck size={16} className="text-emerald-500/50" />
+                <span>{showcase.vouchCount || 0}</span>
+              </div>
             </div>
             <span className="text-slate-500 text-xs flex items-center gap-1">
               <Clock size={10} />
@@ -364,23 +375,23 @@ function ShowcaseCard({
                           {/* Delete button - only show for comment author or showcase owner */}
                           {(comment.userId === currentUserId ||
                             showcase.isOwner) && (
-                            <button
-                              onClick={async () => {
-                                setDeletingCommentId(comment.id);
-                                await onDeleteComment(showcase.id, comment.id);
-                                setDeletingCommentId(null);
-                              }}
-                              disabled={deletingCommentId === comment.id}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
-                              title="Delete comment"
-                            >
-                              {deletingCommentId === comment.id ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={12} />
-                              )}
-                            </button>
-                          )}
+                              <button
+                                onClick={async () => {
+                                  setDeletingCommentId(comment.id);
+                                  await onDeleteComment(showcase.id, comment.id);
+                                  setDeletingCommentId(null);
+                                }}
+                                disabled={deletingCommentId === comment.id}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
+                                title="Delete comment"
+                              >
+                                {deletingCommentId === comment.id ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={12} />
+                                )}
+                              </button>
+                            )}
                         </div>
                       ))}
                     </div>
@@ -567,11 +578,10 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
                   <button
                     key={project.id}
                     onClick={() => setSelectedProject(project)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      selectedProject?.id === project.id
-                        ? "border-purple-500 bg-purple-500/10"
-                        : "border-white/10 hover:border-white/20 bg-white/5"
-                    }`}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${selectedProject?.id === project.id
+                      ? "border-purple-500 bg-purple-500/10"
+                      : "border-white/10 hover:border-white/20 bg-white/5"
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="font-semibold text-white">
@@ -674,11 +684,10 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
                     onClick={() =>
                       setFormData({ ...formData, template: template.id })
                     }
-                    className={`p-3 rounded-xl border-2 text-center transition-all ${
-                      formData.template === template.id
-                        ? "border-purple-500 bg-purple-500/10"
-                        : "border-white/10 hover:border-white/20"
-                    }`}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${formData.template === template.id
+                      ? "border-purple-500 bg-purple-500/10"
+                      : "border-white/10 hover:border-white/20"
+                      }`}
                   >
                     <span className="text-2xl">{template.icon}</span>
                     <p className="text-white text-xs mt-1">{template.name}</p>
@@ -770,7 +779,21 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
 // Main Showcase Page
 export default function Showcase() {
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState("discover");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "discover";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
   const [showcases, setShowcases] = useState([]);
   const [myShowcases, setMyShowcases] = useState([]);
   const [myProjects, setMyProjects] = useState([]);
@@ -887,10 +910,10 @@ export default function Showcase() {
         prev.map((s) =>
           s.id === showcaseId
             ? {
-                ...s,
-                hasStarred: response.data.starred,
-                starCount: response.data.starCount,
-              }
+              ...s,
+              hasStarred: response.data.starred,
+              starCount: response.data.starCount,
+            }
             : s
         )
       );
@@ -898,10 +921,10 @@ export default function Showcase() {
         prev.map((s) =>
           s.id === showcaseId
             ? {
-                ...s,
-                hasStarred: response.data.starred,
-                starCount: response.data.starCount,
-              }
+              ...s,
+              hasStarred: response.data.starred,
+              starCount: response.data.starCount,
+            }
             : s
         )
       );
@@ -930,10 +953,10 @@ export default function Showcase() {
         prev.map((s) =>
           s.id === showcaseId
             ? {
-                ...s,
-                comments: [...(s.comments || []), newComment],
-                commentCount: (s.commentCount || 0) + 1,
-              }
+              ...s,
+              comments: [...(s.comments || []), newComment],
+              commentCount: (s.commentCount || 0) + 1,
+            }
             : s
         )
       );
@@ -951,10 +974,10 @@ export default function Showcase() {
         showcaseList.map((s) =>
           s.id === showcaseId
             ? {
-                ...s,
-                comments: (s.comments || []).filter((c) => c.id !== commentId),
-                commentCount: Math.max(0, (s.commentCount || 0) - 1),
-              }
+              ...s,
+              comments: (s.comments || []).filter((c) => c.id !== commentId),
+              commentCount: Math.max(0, (s.commentCount || 0) - 1),
+            }
             : s
         );
       setShowcases(updateShowcaseComments);
@@ -1011,26 +1034,34 @@ export default function Showcase() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-xl w-full sm:w-fit">
           <button
-            onClick={() => setActiveTab("discover")}
-            className={`flex-1 sm:flex-none flex items-center justify-center whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-              activeTab === "discover"
-                ? "bg-purple-500 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
+            onClick={() => handleTabChange("discover")}
+            className={`flex-1 sm:flex-none flex items-center justify-center whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${activeTab === "discover"
+              ? "bg-purple-500 text-white"
+              : "text-slate-400 hover:text-white"
+              }`}
           >
             <Eye className="w-4 h-4 mr-2" />
             Discover Projects
           </button>
           <button
-            onClick={() => setActiveTab("mine")}
-            className={`flex-1 sm:flex-none flex items-center justify-center whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${
-              activeTab === "mine"
-                ? "bg-purple-500 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
+            onClick={() => handleTabChange("mine")}
+            className={`flex-1 sm:flex-none flex items-center justify-center whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${activeTab === "mine"
+              ? "bg-purple-500 text-white"
+              : "text-slate-400 hover:text-white"
+              }`}
           >
             <Trophy className="w-4 h-4 mr-2" />
             My Showcases
+          </button>
+          <button
+            onClick={() => handleTabChange("collaborators")}
+            className={`flex-1 sm:flex-none flex items-center justify-center whitespace-nowrap px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors ${activeTab === "collaborators"
+              ? "bg-purple-500 text-white"
+              : "text-slate-400 hover:text-white"
+              }`}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Matchmaking
           </button>
         </div>
 
@@ -1127,6 +1158,83 @@ export default function Showcase() {
               </div>
             )}
 
+            {/* Matchmaking Tab */}
+            {activeTab === "collaborators" && (
+              <div className="space-y-6">
+                <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 mb-8">
+                  <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Users className="text-emerald-400" /> Builder Matchmaking
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    Find and connect with other developers looking to build the next big thing.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(() => {
+                    const uniqueOwners = [];
+                    const seenOwners = new Set();
+
+                    showcases.forEach(s => {
+                      if (s.collaboration?.status === 'active' && !seenOwners.has(s.userId)) {
+                        seenOwners.add(s.userId);
+                        uniqueOwners.push(s);
+                      }
+                    });
+
+                    if (uniqueOwners.length === 0) {
+                      return (
+                        <div className="col-span-full py-20 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                          <Users className="w-16 h-16 text-slate-600 mx-auto mb-4 opacity-50" />
+                          <h3 className="text-white font-bold mb-2">No active builders found</h3>
+                          <p className="text-slate-500 text-sm">Check back later or enable "Open to Build" on your profile!</p>
+                        </div>
+                      );
+                    }
+
+                    return uniqueOwners.map((builder) => (
+                      <motion.div
+                        key={builder.userId}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-[#1a1b2e]/50 border border-white/5 rounded-3xl p-6 hover:border-emerald-500/30 transition-all duration-300 group"
+                      >
+                        <div className="flex items-center gap-4 mb-6">
+                          <img
+                            src={builder.ownerAvatar || `https://ui-avatars.com/api/?name=${builder.ownerName}`}
+                            alt={builder.ownerName}
+                            className="w-16 h-16 rounded-2xl object-cover ring-2 ring-emerald-500/20 shadow-xl shadow-emerald-500/10"
+                          />
+                          <div>
+                            <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{builder.ownerName}</h3>
+                            <Link to={`/public/profile/${builder.ownerGithub || builder.ownerName}`} className="text-emerald-500/80 text-xs hover:underline flex items-center gap-1">
+                              Visit Profile <ExternalLink size={10} />
+                            </Link>
+                          </div>
+                        </div>
+
+                        <div className="bg-emerald-500/5 rounded-2xl p-4 border border-emerald-500/10 mb-6">
+                          <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">Goal</p>
+                          <p className="text-slate-300 text-sm italic leading-relaxed">"{builder.collaboration?.goal || "Looking for partners to build something epic."}"</p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-3">Seeking Partners for</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(builder.collaboration?.seekingStack || []).map((skill, i) => (
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
             {/* My Showcases Tab */}
             {activeTab === "mine" && (
               <div>
@@ -1160,12 +1268,10 @@ export default function Showcase() {
                         Only <strong>public GitHub repositories</strong> from
                         your Projects can be showcased.
                         {privateProjectCount > 0 &&
-                          ` (${privateProjectCount} private repo${
-                            privateProjectCount > 1 ? "s" : ""
+                          ` (${privateProjectCount} private repo${privateProjectCount > 1 ? "s" : ""
                           } hidden)`}
                         {noRepoProjectCount > 0 &&
-                          ` (${noRepoProjectCount} project${
-                            noRepoProjectCount > 1 ? "s" : ""
+                          ` (${noRepoProjectCount} project${noRepoProjectCount > 1 ? "s" : ""
                           } without GitHub repos)`}
                       </span>
                     </p>
@@ -1229,7 +1335,7 @@ export default function Showcase() {
                             isOwner: true,
                             hasStarred: false,
                           }}
-                          onStar={() => {}}
+                          onStar={() => { }}
                           onComment={handleComment}
                           onDeleteComment={handleDeleteComment}
                           currentUserId={user?.id}

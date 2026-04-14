@@ -76,51 +76,116 @@ const getShowcases = async (req, res, next) => {
             );
         }
 
+        // Enrich with Social Zone Data - Robust implementation
+        let enrichedShowcases = [...showcases];
+        try {
+            const projectIds = [...new Set(showcases.map(s => s.projectId).filter(Boolean))];
+            const ownerIds = [...new Set(showcases.map(s => s.userId).filter(Boolean))];
+
+            let projectVouches = {};
+            let ownerCollab = {};
+
+            if (projectIds.length > 0) {
+                const subProjectIds = projectIds.slice(0, 10);
+                const endorsementsSnapshot = await collections.endorsements()
+                    .where('projectId', 'in', subProjectIds)
+                    .get();
+
+                endorsementsSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    projectVouches[d.projectId] = (projectVouches[d.projectId] || 0) + 1;
+                });
+            }
+
+            if (ownerIds.length > 0) {
+                const subOwnerIds = ownerIds.slice(0, 10);
+                const ownersSnapshot = await collections.users()
+                    .where(admin.firestore.FieldPath.documentId(), 'in', subOwnerIds)
+                    .get();
+
+                ownersSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    ownerCollab[doc.id] = d.social?.collaboration || { status: 'inactive' };
+                });
+            }
+
+            enrichedShowcases = showcases.map(s => ({
+                ...s,
+                vouchCount: projectVouches[s.projectId] || 0,
+                collaboration: ownerCollab[s.userId] || { status: 'inactive' }
+            }));
+        } catch (enrichError) {
+            console.error('Social enrichment failed in getShowcases:', enrichError);
+            // Fallback to basic showcases if enrichment fails
+        }
+
         res.json({
             success: true,
-            data: showcases,
-            count: showcases.length,
+            data: enrichedShowcases,
+            count: enrichedShowcases.length,
         });
     } catch (error) {
         next(new APIError(error.message, 500));
     }
 };
 
-/**
- * Get current user's showcased projects
- * GET /api/showcase/mine
- */
 const getMyShowcases = async (req, res, next) => {
     try {
         const userId = req.auth.userId;
 
-        // Simple query without orderBy to avoid requiring a composite index
         const snapshot = await collections.showcases()
             .where('userId', '==', userId)
             .get();
 
-        const showcases = [];
+        let showcases = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             showcases.push({
                 id: doc.id,
                 ...data,
+                isOwner: true,
+                hasStarred: data.stars?.includes(userId) || false,
                 starCount: data.stars?.length || 0,
                 commentCount: data.comments?.length || 0,
             });
         });
 
-        // Sort in JavaScript instead of Firestore
-        showcases.sort((a, b) => {
-            const aDate = a.createdAt?.seconds || 0;
-            const bDate = b.createdAt?.seconds || 0;
-            return bDate - aDate; // Descending
-        });
+        // Enrich with Social Zone Data
+        let enrichedShowcases = [...showcases];
+        try {
+            const projectIds = [...new Set(showcases.map(s => s.projectId).filter(Boolean))];
+
+            let projectVouches = {};
+
+            if (projectIds.length > 0) {
+                const subProjectIds = projectIds.slice(0, 10);
+                const endorsementsSnapshot = await collections.endorsements()
+                    .where('projectId', 'in', subProjectIds)
+                    .get();
+
+                endorsementsSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    projectVouches[d.projectId] = (projectVouches[d.projectId] || 0) + 1;
+                });
+            }
+
+            // We know the owner info for 'mine' is the current user
+            const userDoc = await collections.users().doc(userId).get();
+            const userData = userDoc.data();
+            const collaboration = userData?.social?.collaboration || { status: 'inactive' };
+
+            enrichedShowcases = showcases.map(s => ({
+                ...s,
+                vouchCount: projectVouches[s.projectId] || 0,
+                collaboration: collaboration
+            }));
+        } catch (enrichError) {
+            console.error('Social enrichment failed in getMyShowcases:', enrichError);
+        }
 
         res.json({
             success: true,
-            data: showcases,
-            count: showcases.length,
+            data: enrichedShowcases,
         });
     } catch (error) {
         next(new APIError(error.message, 500));
@@ -425,14 +490,56 @@ const getTrending = async (req, res, next) => {
         });
 
         // Sort by star count descending
-        showcases.sort((a, b) => b.starCount - a.starCount);
+        showcases.sort((a, b) => (b.starCount || 0) - (a.starCount || 0));
 
         // Return top 10
-        showcases = showcases.slice(0, 10);
+        let topShowcases = showcases.slice(0, 10);
+
+        // Enrich with Social Zone Data
+        let enrichedTrending = [...topShowcases];
+        try {
+            const projectIds = [...new Set(topShowcases.map(s => s.projectId).filter(Boolean))];
+            const ownerIds = [...new Set(topShowcases.map(s => s.userId).filter(Boolean))];
+
+            let projectVouches = {};
+            let ownerCollab = {};
+
+            if (projectIds.length > 0) {
+                const subProjectIds = projectIds.slice(0, 10);
+                const endorsementsSnapshot = await collections.endorsements()
+                    .where('projectId', 'in', subProjectIds)
+                    .get();
+
+                endorsementsSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    projectVouches[d.projectId] = (projectVouches[d.projectId] || 0) + 1;
+                });
+            }
+
+            if (ownerIds.length > 0) {
+                const subOwnerIds = ownerIds.slice(0, 10);
+                const ownersSnapshot = await collections.users()
+                    .where(admin.firestore.FieldPath.documentId(), 'in', subOwnerIds)
+                    .get();
+
+                ownersSnapshot.forEach(doc => {
+                    const d = doc.data();
+                    ownerCollab[doc.id] = d.social?.collaboration || { status: 'inactive' };
+                });
+            }
+
+            enrichedTrending = topShowcases.map(s => ({
+                ...s,
+                vouchCount: projectVouches[s.projectId] || 0,
+                collaboration: ownerCollab[s.userId] || { status: 'inactive' }
+            }));
+        } catch (enrichError) {
+            console.error('Social enrichment failed in getTrending:', enrichError);
+        }
 
         res.json({
             success: true,
-            data: showcases,
+            data: enrichedTrending,
         });
     } catch (error) {
         next(new APIError(error.message, 500));
