@@ -3,7 +3,6 @@ import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
 import { preferencesApi, notificationsApi, githubApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
-import MobileAppToken from '../MobileAppToken';
 import { Target, Clock, Zap, Package, FileDown } from 'lucide-react';
 
 /**
@@ -234,11 +233,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     )}
                                 </div>
 
-                                {/* Mobile App Token */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-white mb-3">Mobile Connectivity</h3>
-                                    <MobileAppToken />
-                                </div>
+
 
                                 {/* GitHub Report */}
                                 <div className="bg-slate-800/50 rounded-xl p-4">

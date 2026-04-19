@@ -1,12 +1,11 @@
-
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import { logsApi, projectsApi, githubApi } from '../services/api'
 import LoadingText from '../components/ui/LoadingText'
 import Calendar from '../components/dashboard/Calendar'
-import MobileAppToken from '../components/MobileAppToken'
 import { useState, useEffect, useRef } from 'react'
+import AppDownloadPopup from '../components/AppDownloadPopup'
 import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1177,18 +1176,12 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Row 3: Mobile App Token */}
-                                <div className="block flex-shrink-0">
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 mt-5">
-                                        <div className="lg:col-span-12">
-                                            <MobileAppToken />
-                                        </div>
-                                    </div>
-                                </div>
+
                             </ReactLenis>
                         </div>
                     )}
                 </div>
+                <AppDownloadPopup />
             </motion.div>
         </PixelTransition>
     );
