@@ -22,6 +22,7 @@ DevTrack has evolved beyond a simple tracker into a full-scale developer ecosyst
     - 🧩 **Complexity Hotspots**
     - 💡 **Actionable Next Steps**
 - **Project Discovery**: AI-driven generation of personalized project ideas tailored to the user's tech stack and skill level.
+- **GitHub Clone Counter**: Real-time tracking of repository traffic, measuring total and unique clones per project.
 - **Task Management**: Project-specific TODO lists integrated directly into the project workspace.
 
 ### 3. Social & Proof of Work

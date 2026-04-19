@@ -27,4 +27,7 @@ router.put('/:id', requireAuth, validate('updateProject'), projectController.upd
 // Delete project
 router.delete('/:id', requireAuth, projectController.deleteProject);
 
+// Cleanup: remove projects with deleted GitHub repos and duplicates
+router.post('/cleanup', requireAuth, projectController.cleanupProjects);
+
 module.exports = router;

@@ -21,6 +21,7 @@ import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
 import { CacheProvider } from './context/CacheContext'
+import { authApi } from './services/api'
 
 // Component that handles automatic onboarding redirect after signup
 function OnboardingRedirect({ children }) {
@@ -80,6 +81,31 @@ function OnboardingRedirect({ children }) {
     return children
 }
 
+// Background component to keep backend user profile and tokens in sync with Clerk
+function BackgroundSync() {
+    const { isSignedIn, isLoaded, user } = useUser();
+    const [synced, setSynced] = useState(false);
+
+    useEffect(() => {
+        const syncProfile = async () => {
+            if (isLoaded && isSignedIn && !synced) {
+                try {
+                    console.log('🔄 Syncing user profile with backend...');
+                    await authApi.sync();
+                    setSynced(true);
+                    console.log('✅ Profile synced successfully');
+                } catch (error) {
+                    console.error('❌ Failed to sync user profile:', error);
+                }
+            }
+        };
+
+        syncProfile();
+    }, [isLoaded, isSignedIn, synced, user?.id]);
+
+    return null;
+}
+
 
 import { ReactLenis } from 'lenis/react'
 
@@ -91,6 +117,7 @@ function App() {
     return (
         <ReactLenis root>
             <CacheProvider>
+                <BackgroundSync />
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={

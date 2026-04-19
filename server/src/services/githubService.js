@@ -37,13 +37,30 @@ class GitHubService {
    * Get user's repositories
    */
   async getRepos(username, perPage = 10) {
-    const { data } = await this.octokit.rest.repos.listForUser({
-      username,
-      sort: "updated",
-      per_page: perPage,
-    });
+    let repositories;
 
-    return data.map((repo) => ({
+    try {
+      // Use listForAuthenticatedUser to get BOTH public and private repos
+      // This is the preferred method when we have a user token
+      const { data } = await this.octokit.rest.repos.listForAuthenticatedUser({
+        sort: "updated",
+        per_page: perPage,
+        visibility: "all", // "all" gives both public and private
+        affiliation: "owner,collaborator,organization_member",
+      });
+      repositories = data;
+    } catch (error) {
+      console.warn("Could not fetch using listForAuthenticatedUser, falling back to listForUser:", error.message);
+      // Fallback for when we only have a public PAT or specific username access
+      const { data } = await this.octokit.rest.repos.listForUser({
+        username,
+        sort: "updated",
+        per_page: perPage,
+      });
+      repositories = data;
+    }
+
+    return repositories.map((repo) => ({
       name: repo.name,
       fullName: repo.full_name,
       description: repo.description,
@@ -1111,6 +1128,8 @@ class GitHubService {
         keyFiles,
         commitStats,
         trueCommitCount,
+        cloneData,
+        viewData,
       ] = await Promise.all([
         this.octokit.rest.repos.get({ owner, repo }).then((r) => r.data),
         this.getAllCommitsForRepo(owner, repo, 100),
@@ -1124,6 +1143,8 @@ class GitHubService {
         this.getKeyFileContents(owner, repo),
         this.getCommitStats(owner, repo, 30),
         this.getTrueCommitCount(owner, repo),
+        this.getRepoClones(owner, repo),
+        this.getRepoViews(owner, repo),
       ]);
 
       // Process languages
@@ -1166,6 +1187,13 @@ class GitHubService {
         forks: repoData.forks_count,
         openIssuesCount: repoData.open_issues_count,
         size: repoData.size,
+        clones: cloneData.totalClones || 0,
+        uniqueClones: cloneData.uniqueClones || 0,
+        views: viewData.totalViews || 0,
+        uniqueViews: viewData.uniqueViews || 0,
+        cloneHistory: cloneData.cloneDays || [],
+        viewHistory: viewData.viewDays || [],
+        trafficRestricted: cloneData.restricted || viewData.restricted || false,
 
         // Dates
         createdAt: repoData.created_at,
@@ -1210,6 +1238,60 @@ class GitHubService {
   async getRepoInfo(owner, repo) {
     // Delegate to enhanced method
     return this.getCompleteRepoInfo(owner, repo);
+  }
+
+  /**
+   * Get clone traffic for a repository
+   * Requires push access to the repository
+   */
+  async getRepoClones(owner, repo) {
+    try {
+      const { data } = await this.octokit.rest.repos.getClones({
+        owner,
+        repo,
+        per: "day",
+      });
+      return {
+        totalClones: data.count,
+        uniqueClones: data.uniques,
+        cloneDays: data.clones,
+        restricted: false,
+      };
+    } catch (error) {
+      const isRestricted = error.message.includes("push access") || error.status === 403;
+      console.warn(
+        `Could not fetch clone data for ${owner}/${repo}:`,
+        error.message
+      );
+      return { totalClones: 0, uniqueClones: 0, cloneDays: [], restricted: isRestricted };
+    }
+  }
+
+  /**
+   * Get view traffic (visitors) for a repository
+   * Requires push access to the repository
+   */
+  async getRepoViews(owner, repo) {
+    try {
+      const { data } = await this.octokit.rest.repos.getViews({
+        owner,
+        repo,
+        per: "day",
+      });
+      return {
+        totalViews: data.count,
+        uniqueViews: data.uniques,
+        viewDays: data.views,
+        restricted: false,
+      };
+    } catch (error) {
+      const isRestricted = error.message.includes("push access") || error.status === 403;
+      console.warn(
+        `Could not fetch view data for ${owner}/${repo}:`,
+        error.message
+      );
+      return { totalViews: 0, uniqueViews: 0, viewDays: [], restricted: isRestricted };
+    }
   }
 
   /**

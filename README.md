@@ -20,8 +20,10 @@ Traditional portfolios show where you _are_. DevTrack shows how you _got there_.
 
 ---
 
-## ✨ Recent Updates (March 2026)
+## ✨ Recent Updates (April 2026)
 
+- **GitHub Repo Clone Counter:** Added real-time tracking of repository traffic. DevTrack now monitors total and unique clones for all tracked projects.
+- **Comprehensive Feature Roadmap:** Added a detailed status tracking document in the `Project Brief` folder. This catalogs "Done" features (including LeetCode, Showcase, and AI Ideas), identifies "Remaining" gaps, and outlines "Professional Suggestions" for the platform.
 - **Enhanced Security via Deferred OAuth Scopes:** DevTrack now only asks for basic GitHub read access on sign-up. Elevated permissions are prompted via a secure modal only when you choose to track private repositories or perform updates on any repository in your account.
 - **Premium UI Upgrades:** Restyled UI with Glassmorphism layers, and responsive smooth scroll integrations across the platform for a high-end application aesthetic.
 - **Smart Background AI Analysis:** Project repository AI analysis (identifying complexity/vulnerabilities) runs smoothly in the background, updating your dashboards dynamically.
@@ -94,6 +96,35 @@ npm run dev
 
 Developed with ❤️ by **Alpha Coders**:
 [Ayush Chaudhary](https://github.com/AyushChowdhuryCSE) • [Rajdeep Das](https://github.com/yourajdeep) • [Vikash Gupta](https://github.com/Vortex-16)
+
+---
+
+## 📊 Detailed Contribution Report
+
+### Description
+This update includes the creation of a comprehensive **Feature Roadmap & Status Report** within the `Project Brief` folder. The roadmap was built after a deep audit of the server-side controllers and client-side logic to ensure all advanced features (LeetCode, Showcase, Social, Goals) are accurately cataloged.
+
+Fixes # (No specific issue - Feature Documentation)
+
+### Type of change
+- [x] New feature (non-breaking change which adds functionality)
+- [x] This change requires a documentation update
+
+### How Has This Been Tested?
+- [x] **File Verification**: Verified `Feature_Roadmap.md` exists and contains accurate data matched against the current Express controllers.
+- [x] **README Sync**: Updated main README to reflect April 2026 updates.
+
+**Test Configuration**:
+* OS: Windows
+* Workspace: DevTrack
+* Engine: AI Codebase Audit
+
+### Checklist:
+- [x] My code follows the style guidelines of this project
+- [x] I have performed a self-review of my own code
+- [x] I have commented my code, particularly in hard-to-understand areas
+- [x] I have made corresponding changes to the documentation
+- [x] My changes generate no new warnings
 
 ---
 

@@ -212,7 +212,7 @@ function ShowcaseCard({
             </div>
           </div>
           {/* Collaboration Badge */}
-          {showcase.collaboration?.status === 'active' && (
+          {showcase.openToBuild && (
             <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-emerald-500/80 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-lg">
               <ShieldCheck size={10} />
               Open to Build
@@ -447,6 +447,8 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
     summary: "",
     template: "general",
     imageBase64: null,
+    openToBuild: false,
+    openToBuildGoal: "",
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -501,6 +503,9 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
         technologies: selectedProject.technologies || [],
         template: formData.template,
         imageBase64: formData.imageBase64,
+        openToBuild: formData.openToBuild,
+        openToBuildGoal: formData.openToBuildGoal,
+        openToBuildStack: selectedProject.technologies || [],
         ownerName: user?.fullName || user?.username || "Anonymous",
         ownerAvatar: user?.imageUrl || null,
         ownerEmail: user?.primaryEmailAddress?.emailAddress || null,
@@ -517,6 +522,8 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
         summary: "",
         template: "general",
         imageBase64: null,
+        openToBuild: false,
+        openToBuildGoal: "",
       });
       setImagePreview(null);
     } catch (err) {
@@ -534,6 +541,8 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
       summary: "",
       template: "general",
       imageBase64: null,
+      openToBuild: false,
+      openToBuildGoal: "",
     });
     setImagePreview(null);
     setError("");
@@ -735,6 +744,40 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
                   </label>
                 )}
               </div>
+            </div>
+
+            {/* Open to Build Toggle */}
+            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <h4 className="text-sm font-bold text-white uppercase tracking-tight">Open to Build</h4>
+                    <p className="text-[10px] text-slate-500">Enable this to find collaborators for this project</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setFormData({ ...formData, openToBuild: !formData.openToBuild })}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${formData.openToBuild ? 'bg-emerald-500' : 'bg-slate-800'}`}
+                >
+                  <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${formData.openToBuild ? 'right-1' : 'left-1'}`} />
+                </button>
+              </div>
+
+              {formData.openToBuild && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="overflow-hidden"
+                >
+                  <textarea
+                    value={formData.openToBuildGoal}
+                    onChange={(e) => setFormData({ ...formData, openToBuildGoal: e.target.value })}
+                    placeholder="What are you looking for? (e.g. Seeking a React dev to help with UI...)"
+                    className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500/50 focus:outline-none transition-colors resize-none h-16"
+                  />
+                </motion.div>
+              )}
             </div>
 
             {error && (
@@ -1003,6 +1046,30 @@ export default function Showcase() {
       setMyShowcases((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
       console.error("Failed to delete showcase:", error);
+    }
+  };
+
+  // Handle Open to Build toggle per showcase
+  const handleToggleOpenToBuild = async (showcaseId, currentValue) => {
+    const newValue = !currentValue;
+    // Optimistically update UI
+    setMyShowcases((prev) =>
+      prev.map((s) =>
+        s.id === showcaseId
+          ? { ...s, openToBuild: newValue }
+          : s
+      )
+    );
+    try {
+      await showcaseApi.toggleOpenToBuild(showcaseId, newValue);
+    } catch (err) {
+      console.error("Failed to toggle Open to Build:", err);
+      // Revert on failure
+      setMyShowcases((prev) =>
+        prev.map((s) =>
+          s.id === showcaseId ? { ...s, openToBuild: currentValue } : s
+        )
+      );
     }
   };
 
@@ -1340,13 +1407,30 @@ export default function Showcase() {
                           onDeleteComment={handleDeleteComment}
                           currentUserId={user?.id}
                         />
-                        <button
-                          onClick={() => handleDeleteShowcase(showcase.id)}
-                          className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-colors"
-                          title="Remove from Showcase"
-                        >
-                          <X size={14} />
-                        </button>
+                        {/* Owner action buttons */}
+                        <div className="absolute top-3 right-3 z-10 flex gap-2">
+                          {/* Open to Build toggle */}
+                          <button
+                            onClick={() => handleToggleOpenToBuild(showcase.id, showcase.openToBuild)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                              showcase.openToBuild
+                                ? 'bg-emerald-500/80 text-white hover:bg-red-500/80'
+                                : 'bg-slate-800/90 text-slate-400 hover:bg-emerald-500/80 hover:text-white'
+                            }`}
+                            title={showcase.openToBuild ? 'Click to disable Open to Build' : 'Click to mark as Open to Build'}
+                          >
+                            <ShieldCheck size={10} />
+                            {showcase.openToBuild ? 'Open' : 'Open?'}
+                          </button>
+                          {/* Delete button */}
+                          <button
+                            onClick={() => handleDeleteShowcase(showcase.id)}
+                            className="p-2 rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+                            title="Remove from Showcase"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

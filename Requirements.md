@@ -15,8 +15,8 @@
   - 30-day heatmap, weekly chart, streak counter, and basic filters (tag, date range, mood).
   - Pagination for history; editing and deletion must preserve streak calculations.
 - **Project Tracker**
-  - CRUD projects with name, GitHub URL, languages, status/progress %, AI analysis summary, commits, and created date.
-  - Pull GitHub repo metadata (commits, languages, activity) on creation and on-demand re-sync.
+  - CRUD projects with name, GitHub URL, languages, status/progress %, AI analysis summary, commits, clone counts (total/unique), and created date.
+  - Pull GitHub repo metadata (commits, languages, activity, clones) on creation and on-demand re-sync.
   - Display project stats and progress bars on dashboard and project list.
 - **GitHub Integration**
   - OAuth PAT from backend; use Octokit for profile, repos, languages, activity, commits.

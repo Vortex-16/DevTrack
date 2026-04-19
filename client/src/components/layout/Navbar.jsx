@@ -308,125 +308,12 @@ function Sidebar({ onOpenSettings }) {
 function MobileNavbar({ onOpenSettings }) {
     const location = useLocation()
     const [isHidden, setIsHidden] = useState(false)
-    const [activeGroup, setActiveGroup] = useState(null) // ID of currently expanded group
-
-    const lastScrollY = useRef(0)
-
-    // Listen for scroll events (window + dashboard container)
+    const [activeGroup, setActiveGroup] = useState(null)
+    
+    // Keep navbar constant on mobile (removed scroll reveal logic)
     useEffect(() => {
-        const handleScroll = (e) => {
-            // Only apply on mobile dashboard, system-info, learning, or projects
-            const isAnimatedPage = location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/system-info') || location.pathname.startsWith('/learning') || location.pathname.startsWith('/projects') || location.pathname.startsWith('/github-insights') || location.pathname.startsWith('/chat') || location.pathname.startsWith('/showcase')
-
-            if (!isAnimatedPage || window.innerWidth >= 768) {
-                setIsHidden(false)
-                return
-            }
-
-            // Get scroll position from target (element or window)
-            const currentY = e.target === document ? window.scrollY : (e.target.scrollTop || 0)
-            const diff = currentY - lastScrollY.current
-
-            // Logic: Hide on scroll down (> 60px), Show on scroll up or at top
-            if (currentY < 10) {
-                setIsHidden(false)
-            } else if (diff > 0 && currentY > 60) {
-                setIsHidden(true)
-            } else if (diff < 0) { // Show immediately on scroll up
-                setIsHidden(false)
-            }
-
-            lastScrollY.current = currentY
-        }
-
-        // Attach to window and specific container
-        window.addEventListener('scroll', handleScroll, { passive: true })
-
-        let checkForContainer;
-        let timeout;
-
-        const attachToContainer = () => {
-            const container = document.getElementById('dashboard-scroll-container') || document.getElementById('learning-scroll-container')
-            if (container) {
-                container.addEventListener('scroll', handleScroll, { passive: true })
-                return true
-            }
-            return false
-        }
-
-        // Try immediately
-        if (!attachToContainer()) {
-            checkForContainer = setInterval(() => {
-                if (attachToContainer()) {
-                    clearInterval(checkForContainer)
-                }
-            }, 500)
-
-            timeout = setTimeout(() => {
-                clearInterval(checkForContainer)
-            }, 5000)
-        }
-        // Continuous integrity check: ensure we're listening to the live element
-        const currentContainerRef = { current: null }
-
-        const checkAndAttach = () => {
-            const dashboard = document.getElementById('dashboard-scroll-container')
-            const learning = document.getElementById('learning-scroll-container')
-            const projects = document.getElementById('projects-scroll-container')
-            const githubInsights = document.getElementById('github-insights-scroll-container')
-            const chat = document.getElementById('chat-scroll-container')
-            const showcase = document.getElementById('showcase-scroll-container')
-
-            // Prioritize based on current path to avoid ambiguity, though IDs are unique per page
-            let targetDiv = null
-            if (location.pathname.startsWith('/dashboard')) targetDiv = dashboard
-            else if (location.pathname.startsWith('/learning')) targetDiv = learning
-            else if (location.pathname.startsWith('/projects')) targetDiv = projects
-            else if (location.pathname.startsWith('/github-insights')) targetDiv = githubInsights
-            else if (location.pathname.startsWith('/chat')) targetDiv = chat
-            else if (location.pathname.startsWith('/showcase')) targetDiv = showcase
-
-            // If we found a valid container
-            if (targetDiv) {
-                // If it's a new/different element than what we have bound
-                if (targetDiv !== currentContainerRef.current) {
-                    // Detach from old if exists
-                    if (currentContainerRef.current) {
-                        currentContainerRef.current.removeEventListener('scroll', handleScroll)
-                    }
-
-                    // Attach to new
-                    targetDiv.addEventListener('scroll', handleScroll, { passive: true })
-                    currentContainerRef.current = targetDiv
-                    // console.log("Navbar: Re-attached scroll listener to", targetDiv.id)
-                }
-            } else {
-                // No container found (maybe loading), clear ref if we had one
-                if (currentContainerRef.current) {
-                    currentContainerRef.current.removeEventListener('scroll', handleScroll)
-                    currentContainerRef.current = null
-                }
-            }
-        }
-
-        // Run immediately
-        checkAndAttach()
-
-        // Poll every 1s to handle re-mounts/loading
-        const integrityInterval = setInterval(checkAndAttach, 1000)
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll)
-            if (checkForContainer) clearInterval(checkForContainer)
-            if (timeout) clearTimeout(timeout)
-            const container = document.getElementById('dashboard-scroll-container') || document.getElementById('learning-scroll-container')
-            if (container) container.removeEventListener('scroll', handleScroll)
-            clearInterval(integrityInterval)
-            if (currentContainerRef.current) {
-                currentContainerRef.current.removeEventListener('scroll', handleScroll)
-            }
-        }
-    }, [location.pathname])
+        setIsHidden(false)
+    }, [])
 
     const handleGroupClick = (group) => {
         if (group.type === 'single') return
@@ -441,9 +328,9 @@ function MobileNavbar({ onOpenSettings }) {
         <>
             <motion.nav
                 className="md:hidden sticky top-4 z-[10000] mx-auto max-w-4xl px-2"
-                initial={{ y: -100, opacity: 0 }}
-                animate={{ y: isHidden ? -100 : 0, opacity: isHidden ? 0 : 1 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                initial={{ y: 0, opacity: 1 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.2 }}
             >
                 <div
                     className="rounded-full px-2 py-2 flex items-center justify-between backdrop-blur-xl"

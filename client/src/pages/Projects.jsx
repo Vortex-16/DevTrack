@@ -182,6 +182,14 @@ function ProjectCard({
   onGenerateReadme,
   onCopySuggestion,
 }) {
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const statusColors = {
     Active: {
       bg: "bg-emerald-500/20",
@@ -308,241 +316,358 @@ function ProjectCard({
           </div>
         </div>
 
-        {/* Expandable Section */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 space-y-6">
+        {/* Expandable Section Content */}
+        {(() => {
+          const detailContent = (
+            <div className="pt-4 space-y-6">
 
-                {/* AI Analysis Section */}
-                {project.aiAnalysis && (
-                  <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
-                    {/* Tab Headers */}
-                    <div className="flex border-b border-white/5">
-                      <button
-                        onClick={() => setActiveTab("next")}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "next"
-                          ? "bg-purple-500/10 text-purple-400 border-b-2 border-purple-500"
-                          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
-                          }`}
+              {/* AI Analysis Section */}
+              {project.aiAnalysis && (
+                <div className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                  {/* Tab Headers */}
+                  <div className="flex border-b border-white/5">
+                    <button
+                      onClick={() => setActiveTab("next")}
+                      className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "next"
+                        ? "bg-purple-500/10 text-purple-400 border-b-2 border-purple-500"
+                        : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                        }`}
+                    >
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      What Next
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("warning")}
+                      className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "warning"
+                        ? "bg-red-500/10 text-red-400 border-b-2 border-red-500"
+                        : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                        }`}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Warnings
+                      {(hotspots.length > 0 || vulnerabilities.length > 0) && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="p-4 min-h-[160px]">
+                    {activeTab === "next" ? (
+                      /* --- WHAT NEXT TAB --- */
+                      <motion.div
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        key="next"
+                        className="space-y-3"
                       >
-                        <Lightbulb className="w-3.5 h-3.5" />
-                        What Next
-                      </button>
-                      <button
-                        onClick={() => setActiveTab("warning")}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === "warning"
-                          ? "bg-red-500/10 text-red-400 border-b-2 border-red-500"
-                          : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
-                          }`}
-                      >
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Warnings
-                        {(hotspots.length > 0 || vulnerabilities.length > 0) && (
-                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        )}
-                      </button>
-                    </div>
+                        {suggestions.length > 0 ? (
+                          suggestions.slice(0, 3).map((task, idx) => {
+                            const taskText = typeof task === 'object' ? task.task : task;
+                            const priority = typeof task === 'object' ? task.priority : 'medium';
 
-                    {/* Tab Content */}
-                    <div className="p-4 min-h-[160px]">
-                      {activeTab === "next" ? (
-                        /* --- WHAT NEXT TAB --- */
-                        <motion.div
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          key="next"
-                          className="space-y-3"
-                        >
-                          {suggestions.length > 0 ? (
-                            suggestions.slice(0, 3).map((task, idx) => {
-                              const taskText = typeof task === 'object' ? task.task : task;
-                              const priority = typeof task === 'object' ? task.priority : 'medium';
-
-                              return (
-                                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group/item">
-                                  <div className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${priority === 'high' ? 'bg-red-400' : 'bg-purple-400'}`} />
-                                  <div className="flex-1">
-                                    <p className="text-sm text-slate-300 leading-snug group-hover/item:text-white transition-colors">
-                                      {taskText}
-                                    </p>
-                                    {typeof task === 'object' && task.impact && (
-                                      <p className="text-[10px] text-slate-500 mt-1">{task.impact}</p>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() => onCopySuggestion && onCopySuggestion(taskText)}
-                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all transform scale-90 hover:scale-100"
-                                    title="Copy suggestion"
-                                  >
-                                    <ArrowLeft className="w-3 h-3 rotate-180" />
-                                  </button>
+                            return (
+                              <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group/item">
+                                <div className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${priority === 'high' ? 'bg-red-400' : 'bg-purple-400'}`} />
+                                <div className="flex-1">
+                                  <p className="text-sm text-slate-300 leading-snug group-hover/item:text-white transition-colors">
+                                    {taskText}
+                                  </p>
+                                  {typeof task === 'object' && task.impact && (
+                                    <p className="text-[10px] text-slate-500 mt-1">{task.impact}</p>
+                                  )}
                                 </div>
-                              )
-                            })
-                          ) : (
-                            <div className="text-center py-8">
-                              <CheckCircle className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
-                              <p className="text-slate-400 text-xs">No immediate actions found. Good job!</p>
-                            </div>
-                          )}
-                        </motion.div>
-                      ) : (
-                        /* --- WARNING TAB --- */
-                        <motion.div
-                          initial={{ opacity: 0, x: 10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          key="warning"
-                          className="space-y-4"
-                        >
-                          {vulnerabilities.length === 0 && hotspots.length === 0 ? (
-                            <div className="text-center py-8">
-                              <Lock className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
-                              <p className="text-slate-400 text-xs">No critical issues detected. Secure & Clean!</p>
-                            </div>
-                          ) : (
-                            <>
-                              {/* Security Vulnerabilities */}
-                              {vulnerabilities.length > 0 && (
-                                <div className="space-y-2">
-                                  <h4 className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                    <Lock className="w-3 h-3" /> Security Risks
-                                  </h4>
-                                  {vulnerabilities.slice(0, 2).map((vuln, idx) => (
-                                    <div key={idx} className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                                      <div className="flex justify-between items-start mb-1">
-                                        <span className="text-xs font-bold text-red-300">{vuln.issue}</span>
-                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase font-bold">{vuln.severity || 'High'}</span>
+                                <button
+                                  onClick={() => onCopySuggestion && onCopySuggestion(taskText)}
+                                  className="opacity-0 group-hover/item:opacity-100 p-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all transform scale-90 hover:scale-100"
+                                  title="Copy suggestion"
+                                >
+                                  <ArrowLeft className="w-3 h-3 rotate-180" />
+                                </button>
+                              </div>
+                            )
+                          })
+                        ) : (
+                          <div className="text-center py-8">
+                            <CheckCircle className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
+                            <p className="text-slate-400 text-xs">No immediate actions found. Good job!</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : (
+                      /* --- WARNING TAB --- */
+                      <motion.div
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        key="warning"
+                        className="space-y-4"
+                      >
+                        {vulnerabilities.length === 0 && hotspots.length === 0 ? (
+                          <div className="text-center py-8">
+                            <Lock className="w-8 h-8 text-emerald-500/30 mx-auto mb-2" />
+                            <p className="text-slate-400 text-xs">No critical issues detected. Secure & Clean!</p>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Security Vulnerabilities */}
+                            {vulnerabilities.length > 0 && (
+                              <div className="space-y-2">
+                                <h4 className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                  <Lock className="w-3 h-3" /> Security Risks
+                                </h4>
+                                {vulnerabilities.slice(0, 2).map((vuln, idx) => (
+                                  <div key={idx} className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <span className="text-xs font-bold text-red-300">{vuln.issue}</span>
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase font-bold">{vuln.severity || 'High'}</span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mb-1.5">File: {vuln.file || 'Unknown'}</p>
+                                    <div className="text-[10px] text-slate-300 bg-black/20 p-1.5 rounded">
+                                      Fix: {vuln.recommendation}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Complexity Hotspots */}
+                            {hotspots.length > 0 && (
+                              <div className="space-y-2">
+                                <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1 flex items-center gap-1.5 mt-2">
+                                  <Activity className="w-3 h-3" /> Complexity Hotspots
+                                </h4>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {hotspots.slice(0, 3).map((hotspot, idx) => (
+                                    <div key={idx} className="space-y-1">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-medium text-slate-300 truncate max-w-[200px]" title={hotspot.file}>
+                                          {hotspot.file}
+                                        </span>
+                                        <span className={`font-bold ${hotspot.complexityScore >= 8 ? 'text-red-400' : 'text-orange-400'}`}>
+                                          {hotspot.complexityScore}/10
+                                        </span>
                                       </div>
-                                      <p className="text-[10px] text-slate-400 mb-1.5">File: {vuln.file || 'Unknown'}</p>
-                                      <div className="text-[10px] text-slate-300 bg-black/20 p-1.5 rounded">
-                                        Fix: {vuln.recommendation}
+                                      <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full ${hotspot.complexityScore >= 8 ? 'bg-red-500' : 'bg-orange-500'}`}
+                                          style={{ width: `${(hotspot.complexityScore / 10) * 100}%` }}
+                                        />
                                       </div>
+                                      {/* Display the reason for complexity */}
+                                      {hotspot.reason && (
+                                        <p className="text-[10px] text-slate-500 italic leading-tight pl-1 border-l-2 border-white/10">
+                                          "{hotspot.reason}"
+                                        </p>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
-                              )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </motion.div>
+                    )}
 
-                              {/* Complexity Hotspots */}
-                              {hotspots.length > 0 && (
-                                <div className="space-y-2">
-                                  <h4 className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1 flex items-center gap-1.5 mt-2">
-                                    <Activity className="w-3 h-3" /> Complexity Hotspots
-                                  </h4>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    {hotspots.slice(0, 3).map((hotspot, idx) => (
-                                      <div key={idx} className="space-y-1">
-                                        <div className="flex justify-between items-center text-xs">
-                                          <span className="font-medium text-slate-300 truncate max-w-[200px]" title={hotspot.file}>
-                                            {hotspot.file}
-                                          </span>
-                                          <span className={`font-bold ${hotspot.complexityScore >= 8 ? 'text-red-400' : 'text-orange-400'}`}>
-                                            {hotspot.complexityScore}/10
-                                          </span>
-                                        </div>
-                                        <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
-                                          <div
-                                            className={`h-full rounded-full ${hotspot.complexityScore >= 8 ? 'bg-red-500' : 'bg-orange-500'}`}
-                                            style={{ width: `${(hotspot.complexityScore / 10) * 100}%` }}
-                                          />
-                                        </div>
-                                        {/* Display the reason for complexity */}
-                                        {hotspot.reason && (
-                                          <p className="text-[10px] text-slate-500 italic leading-tight pl-1 border-l-2 border-white/10">
-                                            "{hotspot.reason}"
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </motion.div>
+                  </div>
+
+                  {/* Tech Stack Pills */}
+                  <div className="flex flex-wrap gap-2 p-3 border-t border-white/5 bg-white/[0.02]">
+                    {(project.technologies || []).map((tech, i) => {
+                      const techName = typeof tech === "string" ? tech : tech?.name || String(tech);
+                      return (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 rounded-md bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5 hover:border-white/20 hover:text-white transition-colors cursor-default"
+                        >
+                          {techName}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Detailed Stats Row */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="flex gap-6 text-[11px]">
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
+                      Stars
+                    </span>
+                    <span className="text-white font-medium flex items-center gap-1">
+                      <Star
+                        size={12}
+                        className="text-yellow-500 fill-yellow-500"
+                      />{" "}
+                      {project.githubData?.stars || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
+                      Commits
+                    </span>
+                    <span className="text-white font-medium flex items-center gap-1">
+                      <FileText size={12} className="text-blue-400" />{" "}
+                      {project.commits || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
+                      Issues
+                    </span>
+                    <span className="text-white font-medium flex items-center gap-1">
+                      <Bug size={12} className="text-red-400" />{" "}
+                      {project.githubData?.openIssues || 0}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
+                      Clones {project.githubData?.allTimeClones > (project.githubData?.clones || 0) ? '(All-Time)' : '(14d)'}
+                    </span>
+                    <span className="text-white font-medium flex items-center gap-1 group/stat relative">
+                      {project.githubData?.trafficRestricted ? (
+                        <div className="flex items-center gap-1 opacity-60 cursor-help" title="Push access or 'repo' scope required for traffic stats">
+                          <Lock size={10} className="text-yellow-500" />
+                          <span className="text-slate-500">Locked</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Download size={12} className="text-emerald-400" />{" "}
+                          {project.githubData?.allTimeClones || project.githubData?.clones || 0}
+                        </>
                       )}
-
-                    </div>
-
-                    {/* Right: Complexity & health */}
-
-                    {/* Tech Stack Pills */}
-                    <div className="flex flex-wrap gap-2 p-3 border-t border-white/5 bg-white/[0.02]">
-                      {(project.technologies || []).map((tech, i) => {
-                        const techName = typeof tech === "string" ? tech : tech?.name || String(tech);
-                        return (
-                          <span
-                            key={i}
-                            className="px-2.5 py-1 rounded-md bg-white/5 text-slate-400 text-[10px] font-medium border border-white/5 hover:border-white/20 hover:text-white transition-colors cursor-default"
-                          >
-                            {techName}
-                          </span>
-                        );
-                      })}
-                    </div>
+                    </span>
                   </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
+                      Views {project.githubData?.allTimeViews > (project.githubData?.views || 0) ? '(All-Time)' : '(14d)'}
+                    </span>
+                    <span className="text-white font-medium flex items-center gap-1">
+                      {project.githubData?.trafficRestricted ? (
+                        <div className="flex items-center gap-1 opacity-60 cursor-help" title="Push access or 'repo' scope required for traffic stats">
+                          <Lock size={10} className="text-yellow-500" />
+                          <span className="text-slate-500">Locked</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Globe size={12} className="text-cyan-400" />{" "}
+                          {project.githubData?.allTimeViews || project.githubData?.views || 0}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {project.repositoryUrl && (
+                  <button
+                    onClick={() => onReanalyze(project)}
+                    disabled={analyzing}
+                    className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-all disabled:opacity-50"
+                    title="Re-analyze Repository"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Re-analyze</span>
+                    {analyzing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RefreshCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                    )}
+                  </button>
                 )}
+              </div>
 
-                {/* Detailed Stats Row */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <div className="flex gap-6 text-[11px]">
-                    <div className="flex flex-col">
-                      <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
-                        Stars
-                      </span>
-                      <span className="text-white font-medium flex items-center gap-1">
-                        <Star
-                          size={12}
-                          className="text-yellow-500 fill-yellow-500"
-                        />{" "}
-                        {project.githubData?.stars || 0}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
-                        Commits
-                      </span>
-                      <span className="text-white font-medium flex items-center gap-1">
-                        <FileText size={12} className="text-blue-400" />{" "}
-                        {project.commits || 0}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
-                        Issues
-                      </span>
-                      <span className="text-white font-medium flex items-center gap-1">
-                        <Bug size={12} className="text-red-400" />{" "}
-                        {project.githubData?.openIssues || 0}
-                      </span>
-                    </div>
-                  </div>
-
+              {/* Action Buttons in Modal/Details */}
+              {/* Action Buttons in Modal/Details (Desktop Only) */}
+              {isDesktop && (
+                <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-white/10">
                   {project.repositoryUrl && (
                     <button
-                      onClick={() => onReanalyze(project)}
-                      disabled={analyzing}
-                      className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-all disabled:opacity-50"
-                      title="Re-analyze Repository"
+                      onClick={() => onGenerateReadme(project)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider border border-white/10"
+                      title="Generate README"
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Re-analyze</span>
-                      {analyzing ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <RefreshCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-                      )}
+                      <FileText className="w-4 h-4" />
+                      README
                     </button>
                   )}
+                  {project.status !== "Completed" && (
+                    <button
+                      onClick={() => onComplete(project)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-500/20 transition-all"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark Done
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onEdit(project)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider border border-white/10"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(project.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider border border-red-500/20 transition-all"
+                  >
+                    <Bug className="w-4 h-4" />
+                    Delete
+                  </button>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+          );
+
+          return (
+            <>
+              {/* Mobile Inline Accordion */}
+              {!isDesktop && (
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden lg:hidden"
+                    >
+                      {detailContent}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
+
+              {/* Desktop Details Modal */}
+              {isDesktop && (
+                <Modal
+                  isOpen={isExpanded}
+                  onClose={onToggle}
+                  title={
+                    <div className="flex items-center gap-2">
+                      <Projector className="w-5 h-5 text-purple-400" />
+                      <span>{project.name} Details</span>
+                    </div>
+                  }
+                >
+                  <div data-lenis-prevent="true" className="max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+                    {detailContent}
+                  </div>
+                </Modal>
+              )}
+            </>
+          );
+        })()}
 
         {/* Footer (Actions) */}
         <div className="mt-auto pt-4 flex items-center justify-between border-t border-white/5 mt-4">
@@ -620,8 +745,7 @@ function ProjectCard({
 }
 
 // Modal Component
-// Modal Component
-function Modal({ isOpen, onClose, title, children }) {
+function Modal({ isOpen, onClose, title, children, size = "md" }) {
   const modalRef = useRef(null);
   const contentRef = useRef(null);
   const globalLenis = useLenis();
@@ -678,6 +802,13 @@ function Modal({ isOpen, onClose, title, children }) {
 
   if (!isOpen) return null;
 
+  const sizeClasses = {
+    sm: "max-w-md",
+    md: "max-w-lg",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl",
+  };
+
   return createPortal(
     <AnimatePresence>
       <motion.div
@@ -689,7 +820,7 @@ function Modal({ isOpen, onClose, title, children }) {
       >
         <div
           ref={modalRef}
-          className="w-full max-w-lg rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar"
+          className={`w-full ${sizeClasses[size]} rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar relative z-[101]`}
           style={{
             background:
               "linear-gradient(145deg, rgba(30, 35, 50, 0.98), rgba(20, 25, 40, 0.99))",

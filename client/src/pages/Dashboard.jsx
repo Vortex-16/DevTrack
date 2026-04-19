@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom'
 import PixelTransition from '../components/ui/PixelTransition'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, ExternalLink } from 'lucide-react'
+import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, ExternalLink, Download, Globe } from 'lucide-react'
 import { useCache } from '../context/CacheContext'
 import { ReactLenis } from 'lenis/react'
 import Skeleton, { SkeletonCard, SkeletonActivity, SkeletonStats } from '../components/ui/Skeleton'
@@ -1105,7 +1105,7 @@ export default function Dashboard() {
                                         <div className="flex items-center justify-between mb-1.5">
                                             <h2 className="text-base font-semibold text-white">Your Stats</h2>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
                                             <AssetCard
                                                 icon={<Brain size={isScrollable ? 20 : 16} />}
                                                 title="Learning"
@@ -1146,7 +1146,7 @@ export default function Dashboard() {
                                                 value={uniqueTags.length}
                                                 change={uniqueTags.length > 0 ? 5 : 0}
                                                 color="orange"
-                                                delay={0.3}
+                                                delay={0.4}
                                                 compact={!isScrollable}
                                                 loading={logsLoading}
                                             />

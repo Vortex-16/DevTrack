@@ -110,7 +110,6 @@ const createProject = async (req, res, next) => {
                 throw new APIError('Invalid GitHub repository URL', 400);
             }
 
-            // 2. Fetch User for Identity Check
             const userDoc = await collections.users().doc(userId).get();
             if (!userDoc.exists) {
                 throw new APIError('User profile not found', 404);
@@ -122,8 +121,29 @@ const createProject = async (req, res, next) => {
                 throw new APIError('Please link your GitHub account in settings first', 400);
             }
 
+            // Get FRESH OAuth token from Clerk
+            let githubAccessToken = userData.githubAccessToken || null;
+            try {
+                const { clerkClient } = require('@clerk/clerk-sdk-node');
+                const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
+                    userId,
+                    'oauth_github'
+                );
+
+                if (oauthTokens?.data?.[0]?.token) {
+                    githubAccessToken = oauthTokens.data[0].token;
+                    // Update cache
+                    collections.users().doc(userId).update({
+                        githubAccessToken: githubAccessToken,
+                        updatedAt: new Date().toISOString()
+                    }).catch(err => console.error('Failed to update token cache in createProject:', err.message));
+                }
+            } catch (tokenErr) {
+                console.warn('⚠️ Could not get fresh OAuth token for createProject:', tokenErr.message);
+            }
+
             // 3. Check if user owns or is a contributor to the repo
-            const github = new GitHubService(userData.githubAccessToken);
+            const github = new GitHubService(githubAccessToken);
 
             // First check if repo exists and get its info
             let repoInfo;
@@ -140,11 +160,12 @@ const createProject = async (req, res, next) => {
                 throw new APIError(`Cannot access repository: ${err.message}`, 400);
             }
 
-            // Check ownership (case-insensitive)
+            // Check ownership OR push permissions (better for Orgs/Private repos)
             const isOwner = parsed.owner.toLowerCase() === userGithubUsername.toLowerCase();
+            const hasPushAccess = repoInfo.permissions?.push || repoInfo.permissions?.admin;
 
-            // If not owner, check if user is a contributor
-            if (!isOwner) {
+            // If not owner and no push access, check if user is a contributor
+            if (!isOwner && !hasPushAccess) {
                 try {
                     const contributorsResponse = await github.octokit.rest.repos.listContributors({
                         owner: parsed.owner,
@@ -175,15 +196,31 @@ const createProject = async (req, res, next) => {
                 }
             }
 
-            // [NEW] Check if project with this repo already exists to prevent duplicates
-            // We check both exact match and potentially normalized versions if needed, 
-            // but for now exact match on the provided URL is a good start.
-            const existingSnapshot = await collections.projects()
+            // Get all user projects since we need to compare normalized URLs reliably
+            const allProjectsSnapshot = await collections.projects()
                 .where('uid', '==', userId)
-                .where('repositoryUrl', '==', repositoryUrl)
                 .get();
+                
+            const normalizeRepoUrl = (url) => {
+                if (!url) return '';
+                try {
+                    return url.toLowerCase().trim()
+                        .replace(/^https?:\/\/(www\.)?/, '')
+                        .replace(/\.git$/, '')
+                        .replace(/\/$/, '')
+                        .replace(/^github\.com\//, '');
+                } catch (e) {
+                    return url.toLowerCase().trim();
+                }
+            };
 
-            if (!existingSnapshot.empty) {
+            const providedNormalized = normalizeRepoUrl(repositoryUrl);
+            const isDuplicate = allProjectsSnapshot.docs.some(doc => {
+                const dbUrl = normalizeRepoUrl(doc.data().repositoryUrl);
+                return dbUrl && dbUrl === providedNormalized;
+            });
+
+            if (isDuplicate) {
                 throw new APIError('A project with this repository URL is already in your DevTrack', 400);
             }
 
@@ -274,6 +311,14 @@ const createProject = async (req, res, next) => {
                         const groqService = getGroqService();
                         const fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
 
+                        // Handle cumulative traffic stats
+                        const oldGithubData = {}; // For a new project, there is no old data to merge
+                        const mergedViews = mergeTrafficHistory(oldGithubData.viewHistory, fetchedGithubData.viewHistory);
+                        const mergedClones = mergeTrafficHistory(oldGithubData.cloneHistory, fetchedGithubData.cloneHistory);
+                        
+                        fetchedGithubData.allTimeViews = mergedViews.reduce((sum, d) => sum + (d.count || 0), 0);
+                        fetchedGithubData.allTimeClones = mergedClones.reduce((sum, d) => sum + (d.count || 0), 0);
+
                         // Update project with analyzed data
                         await collections.projects().doc(projectId).update({
                             githubData: fetchedGithubData,
@@ -338,6 +383,23 @@ const updateProject = async (req, res, next) => {
             ...updates,
             updatedAt: new Date().toISOString(),
         };
+
+        // If githubData is being updated, merge traffic histories for "All Time" stats
+        if (updates.githubData) {
+            const oldGithubData = project.githubData || {};
+            const newGithubData = updates.githubData;
+
+            const mergedViews = mergeTrafficHistory(oldGithubData.viewHistory, newGithubData.viewHistory);
+            const mergedClones = mergeTrafficHistory(oldGithubData.cloneHistory, newGithubData.cloneHistory);
+
+            updateData.githubData = {
+                ...newGithubData,
+                viewHistory: mergedViews,
+                cloneHistory: mergedClones,
+                allTimeViews: mergedViews.reduce((sum, d) => sum + (d.count || 0), 0),
+                allTimeClones: mergedClones.reduce((sum, d) => sum + (d.count || 0), 0)
+            };
+        }
 
         await projectRef.update(updateData);
 
@@ -418,7 +480,7 @@ const getStats = async (req, res, next) => {
         // Optimized query: select only needed fields
         const projectsSnapshot = await collections.projects()
             .where('uid', '==', userId)
-            .select('status', 'commits', 'updatedAt', 'technologies')
+            .select('status', 'commits', 'updatedAt', 'technologies', 'githubData')
             .get();
 
         const projects = projectsSnapshot.docs.map((doc) => doc.data());
@@ -427,6 +489,8 @@ const getStats = async (req, res, next) => {
         const activeProjects = projects.filter(p => p.status === 'Active').length;
         const completedProjects = projects.filter(p => p.status === 'Completed').length;
         const totalCommits = projects.reduce((sum, p) => sum + (p.commits || 0), 0);
+        const totalClones = projects.reduce((sum, p) => sum + (p.githubData?.allTimeClones || p.githubData?.clones || 0), 0);
+        const totalViews = projects.reduce((sum, p) => sum + (p.githubData?.allTimeViews || p.githubData?.views || 0), 0);
 
         // Calculate commit growth based on project update times as a proxy
         const oneWeekAgo = new Date();
@@ -464,6 +528,8 @@ const getStats = async (req, res, next) => {
             completedProjects,
             totalCommits,
             totalCommitGrowth,
+            totalClones,
+            totalViews,
             topTechnologies,
         };
 
@@ -479,6 +545,153 @@ const getStats = async (req, res, next) => {
     }
 };
 
+/**
+ * Helper to merge traffic history and avoid duplicates
+ */
+const mergeTrafficHistory = (oldHistory = [], newHistory = []) => {
+    if (!Array.isArray(oldHistory)) oldHistory = [];
+    if (!Array.isArray(newHistory)) newHistory = [];
+    
+    const historyMap = new Map();
+    oldHistory.forEach(item => {
+        if (item && item.timestamp) historyMap.set(item.timestamp, item);
+    });
+    newHistory.forEach(item => {
+        if (item && item.timestamp) historyMap.set(item.timestamp, item);
+    });
+
+    return Array.from(historyMap.values())
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+};
+
+/**
+ * Cleanup projects: remove deleted GitHub repos and duplicates
+ * POST /api/projects/cleanup
+ */
+const cleanupProjects = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+
+        // Fetch all user projects
+        const snapshot = await collections.projects()
+            .where('uid', '==', userId)
+            .get();
+
+        const allProjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const projectsWithRepo = allProjects.filter(p => p.repositoryUrl);
+
+        if (projectsWithRepo.length === 0) {
+            return res.status(200).json({
+                success: true,
+                data: { deletedRepos: 0, duplicatesRemoved: 0, totalRemoved: 0, message: 'No linked projects to check.' }
+            });
+        }
+
+        // Get fresh GitHub token
+        const GitHubService = require('../services/githubService');
+        let githubAccessToken = null;
+        try {
+            const userDoc = await collections.users().doc(userId).get();
+            githubAccessToken = userDoc.data()?.githubAccessToken || null;
+
+            const { clerkClient } = require('@clerk/clerk-sdk-node');
+            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
+            if (oauthTokens?.data?.[0]?.token) {
+                githubAccessToken = oauthTokens.data[0].token;
+            }
+        } catch (tokenErr) {
+            console.warn('Could not get fresh token for cleanup:', tokenErr.message);
+        }
+
+        if (!githubAccessToken) {
+            return res.status(200).json({
+                success: true,
+                data: { deletedRepos: 0, duplicatesRemoved: 0, totalRemoved: 0, message: 'No GitHub token available — skipping cleanup.' }
+            });
+        }
+
+        const github = new GitHubService(githubAccessToken);
+        const toDelete = new Set();
+
+        // --- Pass 1: Find duplicates (keep the oldest entry, remove newer ones) ---
+        const seenNormalized = new Map(); // normalized url -> project id (first seen)
+        const normalizeRepoUrl = (url) => {
+            if (!url) return '';
+            try {
+                return url.toLowerCase().trim()
+                    .replace(/^https?:\/\/(www\.)?/, '')
+                    .replace(/\.git$/, '')
+                    .replace(/\/$/, '')
+                    .replace(/^github\.com\//, '');
+            } catch (e) { return url.toLowerCase().trim(); }
+        };
+
+        // Sort by createdAt ascending so we keep the oldest
+        const sorted = [...projectsWithRepo].sort((a, b) =>
+            new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+        );
+
+        for (const p of sorted) {
+            const key = normalizeRepoUrl(p.repositoryUrl);
+            if (!key) continue;
+            if (seenNormalized.has(key)) {
+                // Duplicate — mark for deletion
+                toDelete.add(p.id);
+            } else {
+                seenNormalized.set(key, p.id);
+            }
+        }
+
+        // --- Pass 2: Check each unique repo against GitHub ---
+        const uniqueProjects = projectsWithRepo.filter(p => !toDelete.has(p.id));
+        const checkPromises = uniqueProjects.map(async (project) => {
+            const parsed = GitHubService.parseGitHubUrl(project.repositoryUrl);
+            if (!parsed) return;
+            try {
+                await github.octokit.rest.repos.get({ owner: parsed.owner, repo: parsed.repo });
+                // Repo exists — keep it
+            } catch (err) {
+                if (err.status === 404) {
+                    console.log(`🗑️  Repo deleted on GitHub: ${parsed.owner}/${parsed.repo} — removing project ${project.id}`);
+                    toDelete.add(project.id);
+                }
+                // Other errors (403, 500) — skip, don't delete
+            }
+        });
+
+        await Promise.all(checkPromises);
+
+        // --- Delete all flagged projects ---
+        if (toDelete.size > 0) {
+            await Promise.all([...toDelete].map(id => collections.projects().doc(id).delete()));
+            console.log(`✅ Cleanup removed ${toDelete.size} project(s) for user ${userId}`);
+
+            // Invalidate stats cache
+            statsCache.del(`stats_${userId}`);
+        }
+
+        // Compute split for response
+        const duplicatesRemoved = projectsWithRepo.filter(p => {
+            if (!toDelete.has(p.id)) return false;
+            const key = normalizeRepoUrl(p.repositoryUrl);
+            return seenNormalized.get(key) !== p.id; // it was a dupe, not 404
+        }).length;
+        const deletedRepos = toDelete.size - duplicatesRemoved;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalRemoved: toDelete.size,
+                deletedRepos,
+                duplicatesRemoved,
+            }
+        });
+    } catch (error) {
+        console.error('❌ Cleanup error:', error.message);
+        next(error);
+    }
+};
+
 module.exports = {
     getProjects,
     getProject,
@@ -486,4 +699,5 @@ module.exports = {
     updateProject,
     deleteProject,
     getStats,
+    cleanupProjects,
 };

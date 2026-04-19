@@ -97,6 +97,7 @@ export const projectsApi = {
     update: (id, data) => api.put(`/projects/${id}`, data),
     delete: (id) => api.delete(`/projects/${id}`),
     getStats: () => api.get('/projects/stats'),
+    cleanup: () => api.post('/projects/cleanup'),
 };
 
 export const healthApi = {
@@ -197,6 +198,8 @@ export const showcaseApi = {
         api.post(`/showcase/${id}/comments`, { content, authorName, authorAvatar }),
     deleteComment: (showcaseId, commentId) =>
         api.delete(`/showcase/${showcaseId}/comments/${commentId}`),
+    toggleOpenToBuild: (id, openToBuild, goal, seekingStack) =>
+        api.patch(`/showcase/${id}/open-to-build`, { openToBuild, goal, seekingStack }),
 };
 
 export const leetCodeApi = {

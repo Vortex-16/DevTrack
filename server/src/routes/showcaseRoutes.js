@@ -16,6 +16,7 @@ const {
     addComment,
     deleteComment,
     getTrending,
+    toggleOpenToBuild,
 } = require('../controllers/showcaseController');
 
 // All routes require authentication
@@ -47,5 +48,8 @@ router.post('/:id/comments', addComment);
 
 // DELETE /api/showcase/:id/comments/:commentId - Delete a comment
 router.delete('/:id/comments/:commentId', deleteComment);
+
+// PATCH /api/showcase/:id/open-to-build - Toggle Open to Build for a specific showcase
+router.patch('/:id/open-to-build', toggleOpenToBuild);
 
 module.exports = router;

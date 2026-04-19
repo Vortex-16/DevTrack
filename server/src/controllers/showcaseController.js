@@ -112,7 +112,8 @@ const getShowcases = async (req, res, next) => {
             enrichedShowcases = showcases.map(s => ({
                 ...s,
                 vouchCount: projectVouches[s.projectId] || 0,
-                collaboration: ownerCollab[s.userId] || { status: 'inactive' }
+                // collaboration badge is now per-showcase (openToBuild field), not per-user
+                collaboration: s.openToBuild ? { status: 'active', goal: s.openToBuildGoal || '', seekingStack: s.openToBuildStack || [] } : { status: 'inactive' }
             }));
         } catch (enrichError) {
             console.error('Social enrichment failed in getShowcases:', enrichError);
@@ -177,7 +178,8 @@ const getMyShowcases = async (req, res, next) => {
             enrichedShowcases = showcases.map(s => ({
                 ...s,
                 vouchCount: projectVouches[s.projectId] || 0,
-                collaboration: collaboration
+                // collaboration badge is now per-showcase (openToBuild field), not per-user
+                collaboration: s.openToBuild ? { status: 'active', goal: s.openToBuildGoal || '', seekingStack: s.openToBuildStack || [] } : { status: 'inactive' }
             }));
         } catch (enrichError) {
             console.error('Social enrichment failed in getMyShowcases:', enrichError);
@@ -287,6 +289,9 @@ const createShowcase = async (req, res, next) => {
             ownerAvatar: ownerAvatar || null,
             ownerEmail: ownerEmail || null,
             ownerGithub: ownerGithub || null,
+            openToBuild: !!req.body.openToBuild,
+            openToBuildGoal: req.body.openToBuildGoal || '',
+            openToBuildStack: req.body.openToBuildStack || [],
             stars: [],
             comments: [],
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -531,7 +536,8 @@ const getTrending = async (req, res, next) => {
             enrichedTrending = topShowcases.map(s => ({
                 ...s,
                 vouchCount: projectVouches[s.projectId] || 0,
-                collaboration: ownerCollab[s.userId] || { status: 'inactive' }
+                // collaboration badge is now per-showcase (openToBuild field), not per-user
+                collaboration: s.openToBuild ? { status: 'active', goal: s.openToBuildGoal || '', seekingStack: s.openToBuildStack || [] } : { status: 'inactive' }
             }));
         } catch (enrichError) {
             console.error('Social enrichment failed in getTrending:', enrichError);
@@ -594,6 +600,39 @@ const deleteComment = async (req, res, next) => {
     }
 };
 
+/**
+ * Toggle "Open to Build" flag for a specific showcase
+ * PATCH /api/showcase/:id/open-to-build
+ */
+const toggleOpenToBuild = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const { id } = req.params;
+        const { openToBuild, goal, seekingStack } = req.body;
+
+        const docRef = collections.showcases().doc(id);
+        const doc = await docRef.get();
+
+        if (!doc.exists) throw new APIError('Showcase not found', 404);
+        if (doc.data().userId !== userId) throw new APIError('Not authorized', 403);
+
+        await docRef.update({
+            openToBuild: !!openToBuild,
+            openToBuildGoal: goal || '',
+            openToBuildStack: Array.isArray(seekingStack) ? seekingStack : [],
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        res.json({
+            success: true,
+            openToBuild: !!openToBuild,
+            message: openToBuild ? '"Open to Build" enabled for this showcase' : '"Open to Build" disabled for this showcase',
+        });
+    } catch (error) {
+        next(error instanceof APIError ? error : new APIError(error.message, 500));
+    }
+};
+
 module.exports = {
     getShowcases,
     getMyShowcases,
@@ -604,4 +643,5 @@ module.exports = {
     addComment,
     deleteComment,
     getTrending,
+    toggleOpenToBuild,
 };

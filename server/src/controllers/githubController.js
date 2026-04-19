@@ -218,7 +218,28 @@ const getRepos = async (req, res, next) => {
             throw new APIError('GitHub account not connected', 400);
         }
 
-        const githubService = new GitHubService();
+        // Get FRESH OAuth token from Clerk for private repo access
+        let githubAccessToken = user.githubAccessToken || null;
+        try {
+            const { clerkClient } = require('@clerk/clerk-sdk-node');
+            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
+                userId,
+                'oauth_github'
+            );
+
+            if (oauthTokens?.data?.[0]?.token) {
+                githubAccessToken = oauthTokens.data[0].token;
+                // Update cache asynchronously
+                collections.users().doc(userId).update({
+                    githubAccessToken: githubAccessToken,
+                    updatedAt: new Date().toISOString()
+                }).catch(err => console.error('Failed to update token cache in getRepos:', err.message));
+            }
+        } catch (tokenErr) {
+            console.warn('⚠️ Could not get fresh OAuth token for getRepos:', tokenErr.message);
+        }
+
+        const githubService = new GitHubService(githubAccessToken);
         const repos = await githubService.getRepos(user.githubUsername, limit);
 
         res.status(200).json({
