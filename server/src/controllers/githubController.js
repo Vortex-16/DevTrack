@@ -205,6 +205,7 @@ const getRepos = async (req, res, next) => {
     try {
         const { userId } = req.auth;
         const limit = parseInt(req.query.limit) || 10;
+        const filterImported = req.query.filterImported === 'true';
 
         const userDoc = await collections.users().doc(userId).get();
 
@@ -240,7 +241,53 @@ const getRepos = async (req, res, next) => {
         }
 
         const githubService = new GitHubService(githubAccessToken);
-        const repos = await githubService.getRepos(user.githubUsername, limit);
+        let repos = await githubService.getRepos(user.githubUsername, limit);
+
+        // If filterImported=true, fetch ALL user projects from Firestore and filter
+        if (filterImported) {
+            const normalizeUrl = (url) => {
+                if (!url) return '';
+                try {
+                    return url.toLowerCase().trim()
+                        .replace(/^https?:\/\/(www\.)?/, '')
+                        .replace(/\.git$/, '')
+                        .replace(/\/$/, '')
+                        .replace(/^github\.com\//, '');
+                } catch (e) {
+                    return url.toLowerCase().trim();
+                }
+            };
+
+            // Fetch ALL user projects (no limit) just for URL/name comparison
+            const allProjectsSnapshot = await collections.projects()
+                .where('uid', '==', userId)
+                .select('repositoryUrl', 'name')
+                .get();
+
+            const existingUrls = new Set();
+            const existingNames = new Set();
+
+            allProjectsSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.repositoryUrl) {
+                    existingUrls.add(normalizeUrl(data.repositoryUrl));
+                }
+                if (data.name) {
+                    existingNames.add(data.name.toLowerCase());
+                }
+            });
+
+            console.log(`🔍 [filterImported] User has ${allProjectsSnapshot.size} projects in DB`);
+
+            repos = repos.filter(repo => {
+                const normalizedUrl = normalizeUrl(repo.url);
+                const alreadyByUrl = existingUrls.has(normalizedUrl);
+                const alreadyByName = existingNames.has(repo.name?.toLowerCase());
+                return !alreadyByUrl && !alreadyByName;
+            });
+
+            console.log(`✅ [filterImported] ${repos.length} repos available for import`);
+        }
 
         res.status(200).json({
             success: true,

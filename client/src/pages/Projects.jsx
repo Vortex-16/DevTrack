@@ -1389,6 +1389,8 @@ export default function Projects() {
   const { getCachedData, setCachedData, hasCachedData } = useCache();
   const { hasRepoAccess } = useGitHubScopes();
   const [showGitHubModal, setShowGitHubModal] = useState(false);
+  // Guard against React Strict Mode double-invocation of fetchData
+  const isFetchingRef = useRef(false);
 
   // Helper function to sanitize project data
   const sanitizeProjects = (projects) => {
@@ -1423,6 +1425,8 @@ export default function Projects() {
   const sanitizedCachedProjects = sanitizeProjects(cachedData.projects || []);
 
   const [projects, setProjects] = useState(sanitizedCachedProjects);
+  // Always-current ref so closures (fetchGitHubRepos, etc.) read the latest projects list
+  const projectsRef = useRef(sanitizedCachedProjects);
   const [loading, setLoading] = useState(!hasCachedData("projects_data"));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState(
@@ -1472,20 +1476,18 @@ export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (searchParams.get('import') === 'github') {
+      // Reset list so fetchGitHubRepos runs fresh with current projects state
+      setGithubRepos([]);
+      setSelectedRepos(new Set());
       setShowImportModal(true);
-      // Use replace: true to prevent back button issues and ensure URL is cleaned
       setSearchParams({}, { replace: true });
-      // We don't call fetchGitHubRepos here because of hoisting, 
-      // instead we use a separate useEffect below that watches showImportModal
     }
   }, [searchParams, setSearchParams]);
 
   // Auto-fetch repos when modal opens
-  useEffect(() => {
-    if (showImportModal && githubRepos.length === 0 && !loadingRepos) {
-      fetchGitHubRepos();
-    }
-  }, [showImportModal, githubRepos.length, loadingRepos]);
+  // NOTE: we call fetchGitHubRepos directly in handleOpenImportModal, not via useEffect,
+  // to avoid stale-closure issues with the projects state.
+  // This useEffect is intentionally left empty to avoid re-fetching on every render.
 
   const defaultFormData = {
     name: "",
@@ -1506,7 +1508,9 @@ export default function Projects() {
   }, []);
 
   const fetchData = async () => {
-    console.log("DEBUG: fetchData called at", new Date().toISOString());
+    // Prevent concurrent fetches (React Strict Mode double-invoke guard)
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       if (!hasCachedData("projects_data")) {
         setLoading(true);
@@ -1515,7 +1519,7 @@ export default function Projects() {
       }
 
       const [projectsRes, statsRes] = await Promise.all([
-        projectsApi.getAll({ limit: 50 }).catch(() => ({ data: { data: { projects: [] } } })),
+        projectsApi.getAll({ limit: 200 }).catch(() => ({ data: { data: { projects: [] } } })),
         projectsApi.getStats().catch(() => ({ data: { data: {} } })),
       ]);
 
@@ -1528,12 +1532,22 @@ export default function Projects() {
       };
 
       // Sanitize project data to fix legacy data structures
-      const newProjects = sanitizeProjects(rawProjects);
+      const sanitized = sanitizeProjects(rawProjects);
+
+      // Deduplicate by project id to prevent React duplicate-key warnings
+      const seen = new Set();
+      const newProjects = sanitized.filter(p => {
+        if (!p.id || seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
 
       setProjects(newProjects);
+      // Keep ref in sync
+      projectsRef.current = newProjects;
       setStats(newStats);
 
-      // Cache data
+      // Cache deduplicated data
       setCachedData("projects_data", {
         projects: newProjects,
         stats: newStats,
@@ -1543,6 +1557,7 @@ export default function Projects() {
     } finally {
       setLoading(false);
       setIsRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -2020,37 +2035,24 @@ export default function Projects() {
     }
   };
 
-  // Fetch GitHub public repos for import
+  // Fetch GitHub repos for import — backend does the heavy lifting with filterImported=true
+  // which queries ALL Firestore projects (no pagination cap) for accurate filtering.
   const fetchGitHubRepos = async () => {
     setLoadingRepos(true);
     try {
-      const response = await githubApi.getRepos(100);
-      // API returns {data: {username, totalRepos, repos} }
+      // Pass filterImported=true so the backend filters against ALL user projects in Firestore
+      const response = await githubApi.getRepos(200, true);
       const repos = response.data?.data?.repos || [];
-      
-      // Robust URL normalization for reliable filtering
-      const normalizeUrl = (url) => {
-        if (!url) return '';
-        try {
-          return url.toLowerCase().trim()
-            .replace(/^https?:\/\/(www\.)?/, '') // remove protocol and www
-            .replace(/\.git$/, '')               // remove .git suffix
-            .replace(/\/$/, '');                 // remove trailing slash
-        } catch (e) {
-          return url.toLowerCase().trim();
-        }
-      };
 
-      // Filter out already-added projects by normalized URL
-      const existingRepoUrls = new Set(
-        projects.map(p => normalizeUrl(p.repositoryUrl)).filter(Boolean)
-      );
-      
-      const availableRepos = repos.filter(
-        repo => !existingRepoUrls.has(normalizeUrl(repo.url))
-      );
-      
-      setGithubRepos(availableRepos);
+      // Deduplicate by name as a final safety net (GitHub API edge case)
+      const seenNames = new Set();
+      const uniqueRepos = repos.filter(repo => {
+        if (!repo.name || seenNames.has(repo.name)) return false;
+        seenNames.add(repo.name);
+        return true;
+      });
+
+      setGithubRepos(uniqueRepos);
       setSelectedRepos(new Set());
     } catch (err) {
       console.error('Error fetching GitHub repos:', err);
@@ -2060,9 +2062,12 @@ export default function Projects() {
     }
   };
 
-  // Open import modal and fetch repos
+  // Open import modal — directly calls fetchGitHubRepos so it reads current projects via projectsRef
   const handleOpenImportModal = () => {
+    setGithubRepos([]);
+    setSelectedRepos(new Set());
     setShowImportModal(true);
+    // Call directly (not via useEffect) to guarantee projectsRef is current
     fetchGitHubRepos();
   };
 
@@ -2072,23 +2077,47 @@ export default function Projects() {
 
     setImportingRepos(true);
     const reposToImport = githubRepos.filter(repo => selectedRepos.has(repo.name));
+    let successCount = 0;
+    const skipped = [];
 
     try {
       for (const repo of reposToImport) {
-        await projectsApi.create({
-          name: repo.name,
-          description: repo.description || '',
-          status: 'Active',
-          repositoryUrl: repo.url,
-          technologies: repo.language ? [repo.language] : [],
-        });
+        try {
+          await projectsApi.create({
+            name: repo.name,
+            description: repo.description || '',
+            status: 'Active',
+            repositoryUrl: repo.url,
+            technologies: repo.language ? [repo.language] : [],
+          });
+          successCount++;
+        } catch (repoErr) {
+          // 400 = duplicate or validation error — skip gracefully
+          const status = repoErr?.response?.status;
+          if (status === 400) {
+            console.warn(`⚠️ Skipping ${repo.name}: already imported or invalid`);
+            skipped.push(repo.name);
+          } else {
+            throw repoErr; // re-throw unexpected errors
+          }
+        }
       }
+
       setShowImportModal(false);
       setSelectedRepos(new Set());
-      fetchData(); // Refresh projects list
+
+      if (successCount > 0) {
+        // Reset the fetch guard so fetchData runs again
+        isFetchingRef.current = false;
+        fetchData();
+      }
+
+      if (skipped.length > 0) {
+        console.info(`ℹ️ ${skipped.length} repo(s) were already imported: ${skipped.join(', ')}`);
+      }
     } catch (err) {
       console.error('Error importing repos:', err);
-      alert('Failed to import some repositories. Please try again.');
+      alert(`Failed to import repositories: ${err?.response?.data?.error || err.message}`);
     } finally {
       setImportingRepos(false);
     }

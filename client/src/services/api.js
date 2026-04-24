@@ -106,7 +106,8 @@ export const healthApi = {
 
 export const githubApi = {
     getProfile: () => api.get('/github/profile'),
-    getRepos: (limit = 10) => api.get('/github/repos', { params: { limit } }),
+    getRepos: (limit = 10, filterImported = false) =>
+        api.get('/github/repos', { params: { limit, filterImported } }),
     getLanguages: () => api.get('/github/languages'),
     analyzeRepo: (owner, repo) => api.get(`/github/repo/${owner}/${repo}`),
     getActivity: () => api.get('/github/activity'),
