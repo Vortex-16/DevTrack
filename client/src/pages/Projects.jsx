@@ -242,17 +242,22 @@ function ProjectCard({
     return "Suggested next step";
   };
 
+  const toDisplayText = (value, fallback = "-") => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (!value || typeof value !== "object") return fallback;
+
+    if (typeof value.title === "string" && value.title.trim()) return value.title;
+    if (typeof value.name === "string" && value.name.trim()) return value.name;
+    if (typeof value.issue === "string" && value.issue.trim()) return value.issue;
+    if (typeof value.recommendation === "string" && value.recommendation.trim()) return value.recommendation;
+    if (typeof value.number !== "undefined") return `Issue #${value.number}`;
+
+    return fallback;
+  };
+
   const formatIssueItem = (item) => {
-    if (typeof item === "string") return item;
-    if (!item || typeof item !== "object") return "Issue";
-
-    if (typeof item.title === "string" && item.title.trim()) return item.title;
-
-    if (typeof item.number !== "undefined") {
-      return `Issue #${item.number}`;
-    }
-
-    return "Issue";
+    return toDisplayText(item, "Issue");
   };
 
   const maxComplexity = 10;
@@ -403,7 +408,7 @@ function ProjectCard({
                                     {taskText}
                                   </p>
                                   {typeof task === 'object' && task.impact && (
-                                    <p className="text-[10px] text-slate-500 mt-1">{task.impact}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1">{toDisplayText(task.impact, 'Medium impact')}</p>
                                   )}
                                 </div>
                                 <button
@@ -452,7 +457,7 @@ function ProjectCard({
                                     </div>
                                     <p className="text-[10px] text-slate-400 mb-1.5">File: {vuln.file || 'Unknown'}</p>
                                     <div className="text-[10px] text-slate-300 bg-black/20 p-1.5 rounded">
-                                      Fix: {vuln.recommendation}
+                                      Fix: {toDisplayText(vuln.recommendation, 'No recommendation available')}
                                     </div>
                                   </div>
                                 ))}
@@ -485,7 +490,7 @@ function ProjectCard({
                                       {/* Display the reason for complexity */}
                                       {hotspot.reason && (
                                         <p className="text-[10px] text-slate-500 italic leading-tight pl-1 border-l-2 border-white/10">
-                                          "{hotspot.reason}"
+                                          "{toDisplayText(hotspot.reason, 'No additional context provided')}"
                                         </p>
                                       )}
                                     </div>

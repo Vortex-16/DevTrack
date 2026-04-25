@@ -15,7 +15,7 @@ const { fetchGitHubAvatar } = require('../services/profileSyncService');
 const syncUser = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-bç 
+
         // Get user details from Clerk
         const clerkUser = await clerkClient.users.getUser(userId);
 
