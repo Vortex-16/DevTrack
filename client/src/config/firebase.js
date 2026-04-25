@@ -38,7 +38,7 @@ export const initializeFirebase = () => {
         }
 
         app = initializeApp(firebaseConfig);
-        console.log('✅ Firebase initialized');
+        // console.log('Firebase initialized');
         return app;
     } catch (error) {
         console.error('Failed to initialize Firebase:', error);

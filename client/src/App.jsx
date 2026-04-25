@@ -90,12 +90,12 @@ function BackgroundSync() {
         const syncProfile = async () => {
             if (isLoaded && isSignedIn && !synced) {
                 try {
-                    console.log('🔄 Syncing user profile with backend...');
+                    // console.log('Syncing user profile with backend...');
                     await authApi.sync();
                     setSynced(true);
-                    console.log('✅ Profile synced successfully');
+                    // console.log('Profile synced successfully');
                 } catch (error) {
-                    console.error('❌ Failed to sync user profile:', error);
+                    console.error('Failed to sync user profile:', error);
                 }
             }
         };

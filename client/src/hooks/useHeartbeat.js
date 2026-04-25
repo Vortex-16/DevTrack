@@ -10,9 +10,9 @@ const useHeartbeat = (intervalMs = 5 * 60 * 1000) => {
         const ping = async () => {
             try {
                 await healthApi.check();
-                console.log('💓 Heartbeat: Backend is alive');
+                // console.log('Heartbeat: Backend is alive');
             } catch (error) {
-                console.warn('💓 Heartbeat: Failed to ping backend', error.message);
+                console.warn('Heartbeat: Failed to ping backend', error.message);
             }
         };
 
