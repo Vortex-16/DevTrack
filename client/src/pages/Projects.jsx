@@ -242,6 +242,19 @@ function ProjectCard({
     return "Suggested next step";
   };
 
+  const formatIssueItem = (item) => {
+    if (typeof item === "string") return item;
+    if (!item || typeof item !== "object") return "Issue";
+
+    if (typeof item.title === "string" && item.title.trim()) return item.title;
+
+    if (typeof item.number !== "undefined") {
+      return `Issue #${item.number}`;
+    }
+
+    return "Issue";
+  };
+
   const maxComplexity = 10;
 
   return (
@@ -434,7 +447,7 @@ function ProjectCard({
                                 {vulnerabilities.slice(0, 2).map((vuln, idx) => (
                                   <div key={idx} className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
                                     <div className="flex justify-between items-start mb-1">
-                                      <span className="text-xs font-bold text-red-300">{vuln.issue}</span>
+                                      <span className="text-xs font-bold text-red-300">{formatIssueItem(vuln.issue)}</span>
                                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase font-bold">{vuln.severity || 'High'}</span>
                                     </div>
                                     <p className="text-[10px] text-slate-400 mb-1.5">File: {vuln.file || 'Unknown'}</p>
