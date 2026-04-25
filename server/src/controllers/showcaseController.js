@@ -7,6 +7,7 @@ const { collections, admin } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
 const cloudinary = require('cloudinary').v2;
 const emailService = require('../services/emailService');
+const { getNotificationService } = require('../services/notificationService');
 
 // Initialize Cloudinary
 cloudinary.config({
@@ -389,6 +390,29 @@ const toggleStar = async (req, res, next) => {
                 stars: admin.firestore.FieldValue.arrayUnion(userId),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
+
+            // Notify project owner (don't notify if starring own project)
+            if (data.userId && data.userId !== userId) {
+                try {
+                    // Get the name of the person who starred
+                    const starrerDoc = await collections.users().doc(userId).get();
+                    const starrerName = starrerDoc.exists
+                        ? (starrerDoc.data().displayName || starrerDoc.data().username || 'Someone')
+                        : 'Someone';
+
+                    const newStarCount = stars.length + 1;
+                    const notifSvc = getNotificationService();
+                    await notifSvc.sendShowcaseStar(
+                        data.userId,
+                        starrerName,
+                        data.projectName || 'your project',
+                        id,
+                        newStarCount
+                    );
+                } catch (notifError) {
+                    console.error('Failed to send star notification:', notifError.message);
+                }
+            }
         }
 
         res.json({
@@ -442,18 +466,35 @@ const addComment = async (req, res, next) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Send email notification to owner (if not commenting on own project)
-        if (showcaseData.userId !== userId && showcaseData.ownerEmail) {
+        // Send email + push notification to owner (if not commenting on own project)
+        if (showcaseData.userId !== userId) {
+            // Email
+            if (showcaseData.ownerEmail) {
+                try {
+                    await emailService.sendCommentNotification(
+                        showcaseData.ownerEmail,
+                        showcaseData.projectName,
+                        authorName || 'Someone',
+                        escapeHtml(content)
+                    );
+                } catch (emailError) {
+                    console.error('Failed to send comment email:', emailError.message);
+                }
+            }
+
+            // FCM push + in-app notification
             try {
-                await emailService.sendCommentNotification(
-                    showcaseData.ownerEmail,
-                    showcaseData.projectName,
+                const notifSvc = getNotificationService();
+                const snippet = content.length > 80 ? content.substring(0, 77) + '...' : content;
+                await notifSvc.sendShowcaseComment(
+                    showcaseData.userId,
                     authorName || 'Someone',
-                    escapeHtml(content)
+                    showcaseData.projectName || 'your project',
+                    snippet,
+                    id
                 );
-            } catch (emailError) {
-                console.error('Failed to send comment notification email:', emailError);
-                // Don't fail the request if email fails
+            } catch (notifError) {
+                console.error('Failed to send comment notification:', notifError.message);
             }
         }
 

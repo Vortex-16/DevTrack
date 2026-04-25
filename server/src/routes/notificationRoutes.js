@@ -1,26 +1,29 @@
 /**
  * Notification Routes
- * Routes for push notification management
+ * All routes for push notification management and in-app notification CRUD.
  */
 
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const notificationController = require('../controllers/notificationController');
+const c = require('../controllers/notificationController');
 
-// Get notification status
-router.get('/status', requireAuth, notificationController.getNotificationStatus);
+// ─── Status ──────────────────────────────────────────────────────────────────
+router.get('/status', requireAuth, c.getNotificationStatus);
 
-// Register FCM token
-router.post('/register', requireAuth, notificationController.registerToken);
+// ─── FCM Token ───────────────────────────────────────────────────────────────
+router.post('/register', requireAuth, c.registerToken);
+router.delete('/register', requireAuth, c.unregisterToken);
 
-// Unregister FCM token
-router.delete('/register', requireAuth, notificationController.unregisterToken);
+// ─── In-App Notifications CRUD ───────────────────────────────────────────────
+router.get('/', requireAuth, c.getNotifications);                    // GET  /api/notifications
+router.patch('/read-all', requireAuth, c.markAllRead);               // PATCH /api/notifications/read-all
+router.patch('/:id/read', requireAuth, c.markRead);                  // PATCH /api/notifications/:id/read
+router.delete('/:id', requireAuth, c.deleteNotification);            // DELETE /api/notifications/:id
 
-// Send test notification
-router.post('/test', requireAuth, notificationController.sendTestNotification);
-
-// Check and send reminders (for scheduler/cron)
-router.post('/check-reminders', notificationController.checkReminders);
+// ─── Test & Scheduled Checks ─────────────────────────────────────────────────
+router.post('/test', requireAuth, c.sendTestNotification);           // POST /api/notifications/test
+router.post('/check-reminders', c.checkReminders);                   // POST /api/notifications/check-reminders
+router.post('/check-dynamic', c.checkDynamic);                       // POST /api/notifications/check-dynamic
 
 module.exports = router;

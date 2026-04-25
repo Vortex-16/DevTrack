@@ -95,6 +95,7 @@ export const projectsApi = {
     getById: (id) => api.get(`/projects/${id}`),
     create: (data) => api.post('/projects', data),
     update: (id, data) => api.put(`/projects/${id}`, data),
+    reanalyze: (id) => api.post(`/projects/${id}/reanalyze`),
     delete: (id) => api.delete(`/projects/${id}`),
     getStats: () => api.get('/projects/stats'),
     cleanup: () => api.post('/projects/cleanup'),
@@ -147,10 +148,17 @@ export const preferencesApi = {
 };
 
 export const notificationsApi = {
+    // Status & FCM token
     getStatus: () => api.get('/notifications/status'),
     registerToken: (token) => api.post('/notifications/register', { token }),
     unregisterToken: () => api.delete('/notifications/register'),
     sendTest: () => api.post('/notifications/test'),
+
+    // In-app notification CRUD
+    getAll: (limit = 20) => api.get('/notifications', { params: { limit } }),
+    markRead: (id) => api.patch(`/notifications/${id}/read`),
+    markAllRead: () => api.patch('/notifications/read-all'),
+    deleteOne: (id) => api.delete(`/notifications/${id}`),
 };
 
 export const bookmarksApi = {

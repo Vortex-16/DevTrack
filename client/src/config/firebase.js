@@ -21,6 +21,8 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 let app = null;
 let messaging = null;
+let cachedFcmToken = null;
+let inFlightTokenPromise = null;
 
 /**
  * Initialize Firebase app
@@ -67,6 +69,15 @@ export const getFirebaseMessaging = () => {
  * @returns {Promise<string|null>} FCM token or null if failed
  */
 export const requestNotificationPermission = async () => {
+    if (cachedFcmToken && Notification.permission === 'granted') {
+        return cachedFcmToken;
+    }
+
+    if (inFlightTokenPromise) {
+        return inFlightTokenPromise;
+    }
+
+    inFlightTokenPromise = (async () => {
     try {
         // Check if notifications are supported
         if (!('Notification' in window)) {
@@ -82,10 +93,10 @@ export const requestNotificationPermission = async () => {
 
         // Check VAPID key
         if (!VAPID_KEY) {
-            console.error('❌ VAPID key is not configured! Check VITE_FIREBASE_VAPID_KEY environment variable.');
+            console.error('VAPID key is not configured! Check VITE_FIREBASE_VAPID_KEY environment variable.');
             return null;
         }
-        console.log('🔑 VAPID key is configured');
+        // console.log('VAPID key is configured');
 
         // Request permission
         const permission = await Notification.requestPermission();
@@ -93,7 +104,7 @@ export const requestNotificationPermission = async () => {
             console.log('Notification permission denied');
             return null;
         }
-        console.log('✅ Notification permission granted');
+        // console.log(' Notification permission granted');
 
         // Get messaging instance
         const messagingInstance = getFirebaseMessaging();
@@ -102,38 +113,42 @@ export const requestNotificationPermission = async () => {
             return null;
         }
 
-        // Register service worker with error handling
+        // Register or reuse service worker
         let registration;
         try {
-            console.log('📝 Registering service worker...');
-            registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log('✅ Service Worker registered:', registration.scope);
+            registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+            if (!registration) {
+                // console.log('Registering service worker...');
+                registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                // console.log('Service Worker registered:', registration.scope);
+            }
 
             // Wait for the service worker to be ready
             await navigator.serviceWorker.ready;
-            console.log('✅ Service Worker is ready');
+            // console.log('Service Worker is ready');
         } catch (swError) {
-            console.error('❌ Service Worker registration failed:', swError);
+            console.error('Service Worker registration failed:', swError);
             return null;
         }
 
         // Get FCM token with detailed error handling
         try {
-            console.log('📲 Getting FCM token...');
+            // console.log('Getting FCM token...');
             const token = await getToken(messagingInstance, {
                 vapidKey: VAPID_KEY,
                 serviceWorkerRegistration: registration,
             });
 
             if (token) {
-                console.log('✅ FCM Token obtained:', token.substring(0, 20) + '...');
+                // console.log('FCM Token obtained:', token.substring(0, 20) + '...');
+                cachedFcmToken = token;
                 return token;
             } else {
-                console.warn('⚠️ No FCM token available - getToken returned null');
+                console.warn('No FCM token available - getToken returned null');
                 return null;
             }
         } catch (tokenError) {
-            console.error('❌ Error getting FCM token:', tokenError);
+            console.error('Error getting FCM token:', tokenError);
             console.error('Token error details:', {
                 code: tokenError.code,
                 message: tokenError.message,
@@ -141,9 +156,14 @@ export const requestNotificationPermission = async () => {
             return null;
         }
     } catch (error) {
-        console.error('❌ Error in requestNotificationPermission:', error);
+        console.error('Error in requestNotificationPermission:', error);
         return null;
+    } finally {
+        inFlightTokenPromise = null;
     }
+    })();
+
+    return inFlightTokenPromise;
 };
 
 
@@ -156,7 +176,7 @@ export const onForegroundMessage = (callback) => {
     if (!messagingInstance) return null;
 
     return onMessage(messagingInstance, (payload) => {
-        console.log('📬 Foreground message received:', payload);
+        console.log('Foreground message received:', payload);
         callback(payload);
     });
 };

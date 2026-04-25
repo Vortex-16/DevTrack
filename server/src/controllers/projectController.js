@@ -139,7 +139,7 @@ const createProject = async (req, res, next) => {
                     }).catch(err => console.error('Failed to update token cache in createProject:', err.message));
                 }
             } catch (tokenErr) {
-                console.warn('⚠️ Could not get fresh OAuth token for createProject:', tokenErr.message);
+                console.warn('Could not get fresh OAuth token for createProject:', tokenErr.message);
             }
 
             // 3. Check if user owns or is a contributor to the repo
@@ -295,7 +295,7 @@ const createProject = async (req, res, next) => {
                     const parsed = GitHubService.parseGitHubUrl(repositoryUrl);
 
                     if (parsed) {
-                        console.log(`📊 [Background] Fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
+                        // console.log(`[Background] Fetching GitHub data for ${parsed.owner}/${parsed.repo}...`);
 
                         // Re-fetch user to get token safely inside async context if needed, 
                         // but strictly we can rely on existing checks. 
@@ -307,7 +307,7 @@ const createProject = async (req, res, next) => {
                         const github = new GitHubService(token);
                         const fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
 
-                        console.log('🤖 [Background] Running AI analysis...');
+                        // console.log('[Background] Running AI analysis...');
                         const groqService = getGroqService();
                         const fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
 
@@ -330,14 +330,14 @@ const createProject = async (req, res, next) => {
                             updatedAt: new Date().toISOString(),
                         });
 
-                        console.log(`✅ [Background] Project ${projectId} analysis complete`);
+                        // console.log(`[Background] Project ${projectId} analysis complete`);
 
                         // Recalculate Skills
                         const { recalculateSkills } = require('../services/skillService');
                         await recalculateSkills(userId);
                     }
                 } catch (bgError) {
-                    console.error(`❌ [Background] Analysis failed for project ${projectId}:`, bgError.message);
+                    console.error(`[Background] Analysis failed for project ${projectId}:`, bgError.message);
                     // Mark analysis as failed but don't delete the project
                     try {
                         await collections.projects().doc(projectId).update({
@@ -410,6 +410,91 @@ const updateProject = async (req, res, next) => {
             message: 'Project updated successfully',
             data: {
                 id: projectRef.id,
+                ...updatedDoc.data(),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Reanalyze a project from GitHub + AI and persist merged traffic totals.
+ * POST /api/projects/:id/reanalyze
+ */
+const reanalyzeProject = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+        const { id } = req.params;
+
+        const projectRef = collections.projects().doc(id);
+        const projectDoc = await projectRef.get();
+
+        if (!projectDoc.exists) {
+            throw new APIError('Project not found', 404);
+        }
+
+        const project = projectDoc.data();
+        if (project.uid !== userId) {
+            throw new APIError('Access denied', 403);
+        }
+
+        if (!project.repositoryUrl) {
+            throw new APIError('Project has no repository URL to analyze', 400);
+        }
+
+        const GitHubService = require('../services/githubService');
+        const { getGroqService } = require('../services/groqService');
+
+        const parsed = GitHubService.parseGitHubUrl(project.repositoryUrl);
+        if (!parsed) {
+            throw new APIError('Invalid GitHub repository URL', 400);
+        }
+
+        let githubAccessToken = null;
+        const userDoc = await collections.users().doc(userId).get();
+        if (userDoc.exists) {
+            githubAccessToken = userDoc.data()?.githubAccessToken || null;
+        }
+
+        const github = new GitHubService(githubAccessToken);
+        const fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
+
+        const groqService = getGroqService();
+        const fetchedAiAnalysis = await groqService.analyzeProjectProgress(fetchedGithubData);
+
+        const oldGithubData = project.githubData || {};
+        const mergedViews = mergeTrafficHistory(oldGithubData.viewHistory, fetchedGithubData.viewHistory);
+        const mergedClones = mergeTrafficHistory(oldGithubData.cloneHistory, fetchedGithubData.cloneHistory);
+
+        const mergedGithubData = {
+            ...fetchedGithubData,
+            viewHistory: mergedViews,
+            cloneHistory: mergedClones,
+            allTimeViews: mergedViews.reduce((sum, d) => sum + (d.count || 0), 0),
+            allTimeClones: mergedClones.reduce((sum, d) => sum + (d.count || 0), 0),
+        };
+
+        await projectRef.update({
+            githubData: mergedGithubData,
+            aiAnalysis: fetchedAiAnalysis,
+            progress: fetchedAiAnalysis?.progressPercentage || 0,
+            commits: fetchedGithubData?.totalCommits || 0,
+            technologies: fetchedGithubData?.languages?.map(l => l.name) || project.technologies || [],
+            isAnalyzing: false,
+            analysisError: null,
+            lastManualRefreshAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        });
+
+        statsCache.del(`stats_${userId}`);
+
+        const updatedDoc = await projectRef.get();
+        res.status(200).json({
+            success: true,
+            message: 'Project reanalyzed successfully',
+            data: {
+                id: updatedDoc.id,
                 ...updatedDoc.data(),
             },
         });
@@ -652,7 +737,7 @@ const cleanupProjects = async (req, res, next) => {
                 // Repo exists — keep it
             } catch (err) {
                 if (err.status === 404) {
-                    console.log(`🗑️  Repo deleted on GitHub: ${parsed.owner}/${parsed.repo} — removing project ${project.id}`);
+                    console.log(`Repo deleted on GitHub: ${parsed.owner}/${parsed.repo} — removing project ${project.id}`);
                     toDelete.add(project.id);
                 }
                 // Other errors (403, 500) — skip, don't delete
@@ -664,7 +749,7 @@ const cleanupProjects = async (req, res, next) => {
         // --- Delete all flagged projects ---
         if (toDelete.size > 0) {
             await Promise.all([...toDelete].map(id => collections.projects().doc(id).delete()));
-            console.log(`✅ Cleanup removed ${toDelete.size} project(s) for user ${userId}`);
+            console.log(`Cleanup removed ${toDelete.size} project(s) for user ${userId}`);
 
             // Invalidate stats cache
             statsCache.del(`stats_${userId}`);
@@ -687,7 +772,7 @@ const cleanupProjects = async (req, res, next) => {
             }
         });
     } catch (error) {
-        console.error('❌ Cleanup error:', error.message);
+        console.error('Cleanup error:', error.message);
         next(error);
     }
 };
@@ -697,6 +782,7 @@ module.exports = {
     getProject,
     createProject,
     updateProject,
+    reanalyzeProject,
     deleteProject,
     getStats,
     cleanupProjects,

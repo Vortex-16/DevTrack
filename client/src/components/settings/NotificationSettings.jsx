@@ -3,6 +3,7 @@ import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
 import { preferencesApi, notificationsApi, githubApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
+import NotificationBell from '../notifications/NotificationBell';
 import { Target, Clock, Zap, Package, FileDown } from 'lucide-react';
 
 /**
@@ -184,7 +185,15 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                             <div className="space-y-6">
                                 {/* Notification Status */}
                                 <div className="bg-slate-800/50 rounded-xl p-4">
-                                    <h3 className="text-lg font-semibold text-white mb-3">Push Notifications</h3>
+                                    <div className="flex items-center justify-between gap-3 mb-3">
+                                        <h3 className="text-lg font-semibold text-white">Push Notifications</h3>
+                                        <div className="relative">
+                                            <NotificationBell position="settings" showTooltip={false} />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mb-3">
+                                        In-app notifications are now available inside Settings.
+                                    </p>
 
                                     {!isSupported ? (
                                         <p className="text-yellow-400 text-sm">

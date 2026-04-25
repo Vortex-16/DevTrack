@@ -6,6 +6,7 @@
 const { collections } = require('../config/firebase');
 const { clerkClient } = require('@clerk/clerk-sdk-node');
 const { APIError } = require('../middleware/errorHandler');
+const { fetchGitHubAvatar } = require('../services/profileSyncService');
 
 /**
  * Sync user from Clerk to Firestore
@@ -14,7 +15,7 @@ const { APIError } = require('../middleware/errorHandler');
 const syncUser = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-
+bç 
         // Get user details from Clerk
         const clerkUser = await clerkClient.users.getUser(userId);
 
@@ -23,8 +24,8 @@ const syncUser = async (req, res, next) => {
         }
 
         // Debug: Log FULL Clerk user structure
-        console.log('🔍 FULL Clerk user object keys:', Object.keys(clerkUser));
-        console.log('🔍 Clerk externalAccounts:', JSON.stringify(clerkUser.externalAccounts, null, 2));
+        // console.log('FULL Clerk user object keys:', Object.keys(clerkUser));
+        // console.log('Clerk externalAccounts:', JSON.stringify(clerkUser.externalAccounts, null, 2));
 
         // Try multiple ways to find GitHub username
         let githubUsername = null;
@@ -43,23 +44,23 @@ const syncUser = async (req, res, next) => {
             if (githubAccount) {
                 githubUsername = githubAccount.username || githubAccount.providerUserId || null;
                 githubId = githubAccount.externalId || githubAccount.providerUserId || null;
-                console.log('✅ Found GitHub from externalAccounts:', { githubUsername, githubId });
+                // console.log('Found GitHub from externalAccounts:', { githubUsername, githubId });
             }
         }
 
         // Method 2: Check if Clerk user has a username property (often set from GitHub)
         if (!githubUsername && clerkUser.username) {
             githubUsername = clerkUser.username;
-            console.log('✅ Using Clerk username:', githubUsername);
+            // console.log('Using Clerk username:', githubUsername);
         }
 
         // Method 3: Check primaryWeb3Wallet or other OAuth fields
         if (!githubUsername && clerkUser.primaryUsername) {
             githubUsername = clerkUser.primaryUsername;
-            console.log('✅ Using primaryUsername:', githubUsername);
+            // console.log('Using primaryUsername:', githubUsername);
         }
 
-        console.log('🐙 Final GitHub data:', { githubUsername, githubId });
+        // console.log('Final GitHub data:', { githubUsername, githubId });
 
         // Try to get GitHub OAuth token for private repo access
         let githubAccessToken = null;
@@ -69,11 +70,11 @@ const syncUser = async (req, res, next) => {
                 userId,
                 'oauth_github'
             );
-            console.log('🔐 OAuth tokens response:', JSON.stringify(oauthTokens?.data, null, 2));
+            // console.log(' OAuth tokens response:', JSON.stringify(oauthTokens?.data, null, 2));
 
             if (oauthTokens?.data?.[0]?.token) {
                 githubAccessToken = oauthTokens.data[0].token;
-                console.log('✅ GitHub OAuth token retrieved');
+                // console.log('GitHub OAuth token retrieved');
 
                 // If we got a token but no username, try to fetch from GitHub API
                 if (!githubUsername && githubAccessToken) {
@@ -83,14 +84,14 @@ const syncUser = async (req, res, next) => {
                         const { data: ghUser } = await octokit.rest.users.getAuthenticated();
                         githubUsername = ghUser.login;
                         githubId = String(ghUser.id);
-                        console.log('✅ Got username from GitHub API:', githubUsername);
+                        // console.log('Got username from GitHub API:', githubUsername);
                     } catch (ghErr) {
-                        console.warn('⚠️ Could not fetch from GitHub API:', ghErr.message);
+                        console.warn('Could not fetch from GitHub API:', ghErr.message);
                     }
                 }
             }
         } catch (tokenErr) {
-            console.warn('⚠️ Could not retrieve GitHub OAuth token:', tokenErr.message);
+            console.warn('Could not retrieve GitHub OAuth token:', tokenErr.message);
         }
 
         const userData = {
@@ -114,15 +115,34 @@ const syncUser = async (req, res, next) => {
         if (existingUser.exists) {
             // Update existing user (preserve lastStartTime/lastEndTime)
             const existing = existingUser.data();
+
+            let githubAvatarUrl = existing.githubAvatarUrl || null;
+            if (githubUsername) {
+                githubAvatarUrl = await fetchGitHubAvatar(githubUsername, githubAccessToken);
+            }
+
             await userRef.update({
                 ...userData,
+                avatarUrl: githubAvatarUrl || userData.avatarUrl || existing.avatarUrl || null,
+                githubAvatarUrl: githubAvatarUrl || existing.githubAvatarUrl || null,
                 createdAt: existing.createdAt, // Keep original creation date
                 lastStartTime: existing.lastStartTime,
                 lastEndTime: existing.lastEndTime,
             });
         } else {
             // Create new user
+            let githubAvatarUrl = null;
+            if (githubUsername) {
+                githubAvatarUrl = await fetchGitHubAvatar(githubUsername, githubAccessToken);
+            }
+
             await userRef.set(userData);
+            if (githubAvatarUrl) {
+                await userRef.update({
+                    avatarUrl: githubAvatarUrl,
+                    githubAvatarUrl,
+                });
+            }
         }
 
         const updatedUser = await userRef.get();

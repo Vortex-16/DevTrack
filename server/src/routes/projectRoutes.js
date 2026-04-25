@@ -24,6 +24,9 @@ router.post('/', requireAuth, validate('createProject'), projectController.creat
 // Update project
 router.put('/:id', requireAuth, validate('updateProject'), projectController.updateProject);
 
+// Reanalyze project from GitHub + AI
+router.post('/:id/reanalyze', requireAuth, projectController.reanalyzeProject);
+
 // Delete project
 router.delete('/:id', requireAuth, projectController.deleteProject);
 

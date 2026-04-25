@@ -226,6 +226,22 @@ function ProjectCard({
   // Tab State
   const [activeTab, setActiveTab] = useState("next"); // "next" | "warning"
 
+  const formatSuggestionItem = (item) => {
+    if (typeof item === "string") return item;
+    if (!item || typeof item !== "object") return "Suggested next step";
+
+    if (typeof item.task === "string" && item.task.trim()) return item.task;
+    if (typeof item.title === "string" && item.title.trim()) return item.title;
+    if (typeof item.recommendation === "string" && item.recommendation.trim()) return item.recommendation;
+    if (typeof item.issue === "string" && item.issue.trim()) return item.issue;
+
+    if (typeof item.number !== "undefined" && typeof item.url === "string") {
+      return `Issue #${item.number}`;
+    }
+
+    return "Suggested next step";
+  };
+
   const maxComplexity = 10;
 
   return (
@@ -363,7 +379,7 @@ function ProjectCard({
                       >
                         {suggestions.length > 0 ? (
                           suggestions.slice(0, 3).map((task, idx) => {
-                            const taskText = typeof task === 'object' ? task.task : task;
+                            const taskText = formatSuggestionItem(task);
                             const priority = typeof task === 'object' ? task.priority : 'medium';
 
                             return (
@@ -1585,6 +1601,14 @@ export default function Projects() {
         githubData: {
           stars: repoInfo.stars,
           forks: repoInfo.forks,
+          clones: repoInfo.clones || 0,
+          uniqueClones: repoInfo.uniqueClones || 0,
+          views: repoInfo.views || 0,
+          uniqueViews: repoInfo.uniqueViews || 0,
+          cloneHistory: repoInfo.cloneHistory || [],
+          viewHistory: repoInfo.viewHistory || [],
+          allTimeClones: repoInfo.allTimeClones || 0,
+          allTimeViews: repoInfo.allTimeViews || 0,
           openIssues:
             repoInfo.openIssuesCount ||
             (Array.isArray(repoInfo.openIssues)
@@ -1829,43 +1853,15 @@ export default function Projects() {
 
     try {
       setAnalyzingId(project.id);
-      const analysisData = await analyzeWithGitHub(project.repositoryUrl);
+      const response = await projectsApi.reanalyze(project.id);
 
-      console.log("DEBUG: Analysis Result:", analysisData);
-
-      if (analysisData) {
-        // Correctly construct payload using direct properties from analysisData
-        const updatePayload = {
-          commits: analysisData.commits,
-          technologies:
-            analysisData.technologies.length > 0
-              ? analysisData.technologies
-              : project.technologies,
-          githubData: analysisData.githubData,
-          progress: analysisData.progress,
-          aiAnalysis: analysisData.aiAnalysis,
-        };
-
-        // Optimistically update
+      if (response.data?.success && response.data?.data) {
+        const updatedProject = response.data.data;
         setProjects((prev) =>
           prev.map((p) =>
-            p.id === project.id
-              ? { ...p, ...updatePayload, isAnalyzing: false }
-              : p
+            p.id === project.id ? updatedProject : p
           )
         );
-
-        const response = await projectsApi.update(project.id, updatePayload);
-
-        // Ensure authoritative state from server
-        if (response.data?.success && response.data?.data) {
-          const updatedProject = response.data.data;
-          setProjects((prev) =>
-            prev.map((p) =>
-              p.id === project.id ? updatedProject : p
-            )
-          );
-        }
       }
     } catch (err) {
       console.error("Error re-analyzing project:", err);
