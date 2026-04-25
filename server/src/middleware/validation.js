@@ -71,7 +71,7 @@ const schemas = {
 
     updateProject: Joi.object({
         name: Joi.string().min(1).max(100).optional(),
-        description: Joi.string().max(1000).optional(),
+        description: Joi.string().max(1000).allow('').optional(),
         status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
         repositoryUrl: Joi.string().uri().allow('').optional(),
         technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),

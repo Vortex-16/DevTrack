@@ -1847,7 +1847,7 @@ export default function Projects() {
       }
     } catch (err) {
       console.error("Error updating project:", err);
-      alert("Failed to update project");
+      setFormError(err.response?.data?.error || err.message || "Failed to update project");
       setLoading(false);
     }
   };
