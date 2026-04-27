@@ -1428,30 +1428,33 @@ export default function Projects() {
 
   // Helper function to sanitize project data
   const sanitizeProjects = (projects) => {
-    if (!Array.isArray(projects)) return [];
+    if (!projects) return [];
+    const projectsArray = Array.isArray(projects) ? projects : [projects];
 
-    return projects.map((project) => {
-      const sanitized = { ...project };
+    const sanitized = projectsArray.map((project) => {
+      const p = { ...project };
 
       // Fix openIssues if it's an array instead of a number
-      if (sanitized.githubData?.openIssues) {
-        if (Array.isArray(sanitized.githubData.openIssues)) {
-          sanitized.githubData = {
-            ...sanitized.githubData,
-            openIssues: sanitized.githubData.openIssues.length,
+      if (p.githubData?.openIssues) {
+        if (Array.isArray(p.githubData.openIssues)) {
+          p.githubData = {
+            ...p.githubData,
+            openIssues: p.githubData.openIssues.length,
           };
         }
       }
 
       // Fix technologies if it contains objects instead of strings
-      if (Array.isArray(sanitized.technologies)) {
-        sanitized.technologies = sanitized.technologies.map((tech) =>
+      if (Array.isArray(p.technologies)) {
+        p.technologies = p.technologies.map((tech) =>
           typeof tech === "string" ? tech : tech?.name || String(tech)
         );
       }
 
-      return sanitized;
+      return p;
     });
+
+    return Array.isArray(projects) ? sanitized : sanitized[0];
   };
 
   // Initialize from cache with sanitization
@@ -1700,7 +1703,7 @@ export default function Projects() {
       setFormData(defaultFormData);
       setFormError(null);
 
-      const newProject = createResponse.data?.data;
+      const newProject = sanitizeProjects(createResponse.data?.data);
 
       if (newProject) {
         // Optimistic UI: Add new project to state immediately
@@ -1874,7 +1877,7 @@ export default function Projects() {
       const response = await projectsApi.reanalyze(project.id);
 
       if (response.data?.success && response.data?.data) {
-        const updatedProject = response.data.data;
+        const updatedProject = sanitizeProjects(response.data.data);
         setProjects((prev) =>
           prev.map((p) =>
             p.id === project.id ? updatedProject : p
