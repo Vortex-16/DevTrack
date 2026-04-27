@@ -39,15 +39,85 @@ DevTrack has evolved beyond a simple tracker into a full-scale developer ecosyst
 
 ---
 
-## ⏳ Remaining & In-Progress Features
+## ⏳ Priority Execution Plan (Phased)
 
-Based on the current codebase trajectory and roadmap objectives.
+This plan follows the required priority order: **Bugs → Notifications → PDF Weekly Report**.
+Projects and Dashboard updates are intentionally moved to a later phase.
 
-1. **Portfolio Exporting**: Finalizing PDF growth reports for job applications.
-2. **Real-time Collaboration**: Dedicated team workspaces for shared projects.
-3. **Advanced Skill Heatmaps**: Visualizing mastery across specific technologies (e.g., React vs. Node) over time.
-4. **Mobile Parity**: Bringing the full feature set (Analytics/AI Chat) to the Expo and Flutter shells.
-5. **Multi-Platform Support**: Extending integrations to GitLab and Bitbucket.
+### Phase 1: Critical Bugs & Access Stability (Highest Priority)
+
+**Goal:** Stabilize private repo access flow and remove repeated re-consent friction.
+
+1. **7-Day Private Repo Access Persistence**
+- Keep private repo access active for 7 days after user grants it.
+- Prevent immediate fallback to normal signin flow after refresh/login.
+
+2. **Configurable Access Retention in Settings**
+- Add setting to control how long private repo access should be retained.
+- Ensure behavior is consistent across multi-device logins for the same user.
+
+3. **Security & Safety Hardening (Bug-Fix Scope)**
+- Improve token handling for GitHub PAT/OAuth tokens.
+- Confirm tokens are stored and rotated safely.
+- Add practical rate limiting for sensitive endpoints.
+
+**Exit Criteria**
+- Private repo access does not unexpectedly expire before configured duration.
+- Users do not repeatedly re-authorize on normal signin across devices.
+- No regression in existing GitHub sync and analysis flows.
+
+### Phase 2: Live Device Notifications
+
+**Goal:** Deliver WhatsApp-like real-time notifications to the correct logged-in user/device.
+
+1. **Realtime Notification Delivery**
+- Ensure instant push/in-app delivery to active device sessions.
+- Guarantee user-targeted routing (recipient must match authenticated user).
+
+2. **Delivery Reliability & State Sync**
+- Add ack/retry behavior for missed or delayed notifications.
+- Keep read/unread states synced across devices.
+
+3. **Notification UX Baseline**
+- Unified notification center and consistent badge counts.
+- Standardize payload format for project, social, and system alerts.
+
+**Exit Criteria**
+- Notifications reach the intended user in near real-time.
+- No cross-user notification leaks.
+- Read/unread status remains consistent across sessions.
+
+### Phase 3: PDF Weekly Report + GROQ Mail Insights
+
+**Goal:** Ship actionable weekly reports with private-repo-aware analysis.
+
+1. **Weekly PDF Report Generation**
+- Include private repository contributions when user has valid access.
+- Summarize what the user actually did during the week.
+
+2. **Improvement Guidance Section**
+- Add “what to fix next” recommendations.
+- Use GROQ-generated insights with concise action items.
+
+3. **Mail Delivery Workflow**
+- Send weekly report via email with GROQ summary snippet.
+- Add retry/failure logging for report generation and mail dispatch.
+
+**Exit Criteria**
+- Weekly PDF is generated reliably and delivered.
+- Report clearly includes activity summary + fix recommendations.
+- Private repo data is included only when access is valid.
+
+### Phase 4: Deferred (Work Later)
+
+#### Projects
+- Entire UI overhaul
+- Security upgrades for PAT/token safety
+- Strong user mapping: user -> projects -> interests -> AI chat context
+- Endpoint rate limiting expansion
+
+#### Dashboard
+- Real metric AI insights showing user growth progress over time
 
 ---
 

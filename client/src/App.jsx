@@ -85,6 +85,31 @@ function OnboardingRedirect({ children }) {
 function BackgroundSync() {
     const { isSignedIn, isLoaded, user } = useUser();
     const [synced, setSynced] = useState(false);
+    const [renewed, setRenewed] = useState(false);
+
+    useEffect(() => {
+        const renewGithubAccessIfNeeded = async () => {
+            if (!isLoaded || !isSignedIn || renewed) return;
+
+            const params = new URLSearchParams(window.location.search);
+            const shouldRenew = params.get('gh_access_renew') === '1';
+            if (!shouldRenew) return;
+
+            try {
+                await authApi.renewGithubAccess();
+            } catch (error) {
+                console.error('Failed to renew GitHub private access window:', error);
+            } finally {
+                params.delete('gh_access_renew');
+                const query = params.toString();
+                const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
+                window.history.replaceState({}, '', nextUrl);
+                setRenewed(true);
+            }
+        };
+
+        renewGithubAccessIfNeeded();
+    }, [isLoaded, isSignedIn, renewed]);
 
     useEffect(() => {
         const syncProfile = async () => {

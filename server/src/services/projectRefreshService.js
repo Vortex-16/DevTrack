@@ -6,6 +6,7 @@
 const { collections } = require('../config/firebase');
 const GitHubService = require('./githubService');
 const { getGroqService } = require('./groqService');
+const { getActiveGithubToken } = require('./githubAccessService');
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -100,7 +101,7 @@ const refreshProjectsBatch = async (options = {}) => {
             let token = userTokenCache.get(project.uid);
             if (token === undefined) {
                 const userDoc = await collections.users().doc(project.uid).get();
-                token = userDoc.exists ? (userDoc.data()?.githubAccessToken || null) : null;
+                token = userDoc.exists ? getActiveGithubToken(userDoc.data()) : null;
                 userTokenCache.set(project.uid, token);
             }
 

@@ -112,6 +112,32 @@ const aiLimiter = rateLimit({
 });
 app.use('/api/gemini/', aiLimiter);
 
+// Auth sync/renew limiter to reduce abuse on token-related endpoints
+const authSyncLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: {
+    success: false,
+    error: 'Too many authentication sync requests. Please wait and try again.',
+  },
+  skip: (req) => process.env.NODE_ENV === 'development',
+});
+app.use('/api/auth/sync', authSyncLimiter);
+app.use('/api/auth/renew-github-access', authSyncLimiter);
+
+// GitHub endpoint limiter for expensive/private-repo operations
+const githubLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 240,
+  message: {
+    success: false,
+    error: 'GitHub API rate limit reached for this session. Please retry shortly.',
+  },
+  skip: (req) => process.env.NODE_ENV === 'development',
+});
+app.use('/api/github/repo', githubLimiter);
+app.use('/api/github/repos', githubLimiter);
+
 // ======================
 // BODY PARSING
 // ======================

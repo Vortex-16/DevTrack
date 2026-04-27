@@ -3,11 +3,15 @@
  * Generates and commits README files for projects
  */
 
-const { clerkClient } = require('@clerk/clerk-sdk-node');
 const { collections } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
 const { getGroqService } = require('../services/groqService');
 const GitHubService = require('../services/githubService');
+const {
+    getActiveGithubToken,
+    hasGithubAccessExpired,
+    buildGithubAccessClearUpdate,
+} = require('../services/githubAccessService');
 
 /**
  * Parse GitHub URL to extract owner and repo
@@ -59,14 +63,12 @@ const generateReadme = async (req, res, next) => {
             throw new APIError('Invalid GitHub repository URL', 400);
         }
 
-        // 3. fetch github token from clerk
-        let userGithubToken;
-        try {
-            const tokenResponse = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
-            userGithubToken = tokenResponse.data[0]?.token;
-        } catch (error) {
-            console.warn('Failed to fetch user GitHub token:', error.message);
-            // Fallback to server PAT
+        // 3. resolve github token from active access window
+        const userDoc = await collections.users().doc(userId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        let userGithubToken = getActiveGithubToken(userData);
+        if (!userGithubToken && hasGithubAccessExpired(userData)) {
+            await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
         }
 
         // 4. Initialize GitHub service with user's token or fallback to env PAT
@@ -143,13 +145,13 @@ const commitReadme = async (req, res, next) => {
             throw new APIError('Invalid GitHub repository URL', 400);
         }
 
-        // 3. Fetch github token from clerk
-        let userGithubToken;
-        try {
-            const tokenResponse = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
-            userGithubToken = tokenResponse.data[0]?.token;
-        } catch (error) {
-            console.warn('Failed to fetch user GitHub token:', error.message);
+        // 3. Resolve github token from active access window
+        const userDoc = await collections.users().doc(userId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const userGithubToken = getActiveGithubToken(userData);
+        if (!userGithubToken && hasGithubAccessExpired(userData)) {
+            await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
+            throw new APIError('Private repository access expired. Reauthorize GitHub from settings.', 400);
         }
 
         // 4. Initialize GitHub service with user's token or fallback to env PAT

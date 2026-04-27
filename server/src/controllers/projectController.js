@@ -5,6 +5,11 @@
 
 const { collections } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
+const {
+    getActiveGithubToken,
+    hasGithubAccessExpired,
+    buildGithubAccessClearUpdate,
+} = require('../services/githubAccessService');
 
 /**
  * Get all projects for authenticated user
@@ -121,25 +126,9 @@ const createProject = async (req, res, next) => {
                 throw new APIError('Please link your GitHub account in settings first', 400);
             }
 
-            // Get FRESH OAuth token from Clerk
-            let githubAccessToken = userData.githubAccessToken || null;
-            try {
-                const { clerkClient } = require('@clerk/clerk-sdk-node');
-                const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                    userId,
-                    'oauth_github'
-                );
-
-                if (oauthTokens?.data?.[0]?.token) {
-                    githubAccessToken = oauthTokens.data[0].token;
-                    // Update cache
-                    collections.users().doc(userId).update({
-                        githubAccessToken: githubAccessToken,
-                        updatedAt: new Date().toISOString()
-                    }).catch(err => console.error('Failed to update token cache in createProject:', err.message));
-                }
-            } catch (tokenErr) {
-                console.warn('Could not get fresh OAuth token for createProject:', tokenErr.message);
+            let githubAccessToken = getActiveGithubToken(userData);
+            if (!githubAccessToken && hasGithubAccessExpired(userData)) {
+                collections.users().doc(userId).update(buildGithubAccessClearUpdate()).catch(() => null);
             }
 
             // 3. Check if user owns or is a contributor to the repo
@@ -302,7 +291,7 @@ const createProject = async (req, res, next) => {
                         // Note: We need a fresh service instance or reuse one. 
                         // Ideally we pass the token. fetching user again is safest for long running text
                         const userSnapshot = await collections.users().doc(userId).get();
-                        const token = userSnapshot.exists ? userSnapshot.data().githubAccessToken : null;
+                        const token = userSnapshot.exists ? getActiveGithubToken(userSnapshot.data()) : null;
 
                         const github = new GitHubService(token);
                         const fetchedGithubData = await github.getCompleteRepoInfo(parsed.owner, parsed.repo);
@@ -454,7 +443,11 @@ const reanalyzeProject = async (req, res, next) => {
         let githubAccessToken = null;
         const userDoc = await collections.users().doc(userId).get();
         if (userDoc.exists) {
-            githubAccessToken = userDoc.data()?.githubAccessToken || null;
+            const userData = userDoc.data() || {};
+            githubAccessToken = getActiveGithubToken(userData);
+            if (!githubAccessToken && hasGithubAccessExpired(userData)) {
+                await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
+            }
         }
 
         const github = new GitHubService(githubAccessToken);
@@ -677,15 +670,13 @@ const cleanupProjects = async (req, res, next) => {
         let githubAccessToken = null;
         try {
             const userDoc = await collections.users().doc(userId).get();
-            githubAccessToken = userDoc.data()?.githubAccessToken || null;
-
-            const { clerkClient } = require('@clerk/clerk-sdk-node');
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
+            const userData = userDoc.data() || {};
+            githubAccessToken = getActiveGithubToken(userData);
+            if (!githubAccessToken && hasGithubAccessExpired(userData)) {
+                await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
             }
         } catch (tokenErr) {
-            console.warn('Could not get fresh token for cleanup:', tokenErr.message);
+            console.warn('Could not resolve token for cleanup:', tokenErr.message);
         }
 
         if (!githubAccessToken) {

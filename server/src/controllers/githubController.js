@@ -6,6 +6,75 @@
 const GitHubService = require('../services/githubService');
 const { collections } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
+const { clerkClient } = require('@clerk/clerk-sdk-node');
+const {
+    getActiveGithubToken,
+    hasGithubAccessExpired,
+    buildGithubAccessUpdate,
+    buildGithubAccessClearUpdate,
+    getGithubAccessWindow,
+} = require('../services/githubAccessService');
+
+const hasRepoScopeFromClerkUser = (clerkUser) => {
+    const githubAccount = clerkUser?.externalAccounts?.find(
+        (acc) => acc.provider === 'github' || acc.provider === 'oauth_github'
+    );
+    if (!githubAccount) return false;
+
+    const approvedScopes = githubAccount.approvedScopes || '';
+    if (Array.isArray(approvedScopes)) {
+        return approvedScopes.includes('repo');
+    }
+    return String(approvedScopes)
+        .split(/[\s,]+/)
+        .map((scope) => scope.trim())
+        .filter(Boolean)
+        .includes('repo');
+};
+
+const resolveGithubTokenForUser = async (userId, userData) => {
+    const now = new Date();
+    let token = getActiveGithubToken(userData, now);
+    if (token) return token;
+
+    if (hasGithubAccessExpired(userData, now)) {
+        await collections.users().doc(userId).update(buildGithubAccessClearUpdate(now)).catch(() => null);
+        return null;
+    }
+
+    const { expiresAt } = getGithubAccessWindow(userData);
+    const expiryDate = expiresAt ? new Date(expiresAt) : null;
+    const hasValidWindow = !expiryDate || Number.isNaN(expiryDate.getTime()) || expiryDate > now;
+    if (!hasValidWindow) return null;
+
+    try {
+        const clerkUser = await clerkClient.users.getUser(userId);
+        // Some Clerk setups expose GitHub under different provider keys.
+        // Try both to avoid falling back to PAT when a valid user token exists.
+        const providerKeys = ['github', 'oauth_github'];
+        for (const providerKey of providerKeys) {
+            try {
+                const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, providerKey);
+                token = oauthTokens?.data?.[0]?.token || null;
+                if (token) break;
+            } catch {
+                // Ignore provider-specific failures and try the next key.
+            }
+        }
+
+        // If no token was returned and repo scope is missing, respect current access window policy.
+        if (!token && !hasRepoScopeFromClerkUser(clerkUser)) return null;
+        if (!token) return null;
+
+        await collections.users().doc(userId).update(
+            buildGithubAccessUpdate(token, userData, now)
+        ).catch(() => null);
+
+        return token;
+    } catch {
+        return null;
+    }
+};
 
 /**
  * Get user's GitHub activity summary
@@ -101,32 +170,7 @@ const getCommits = async (req, res, next) => {
             });
         }
 
-        // Get FRESH OAuth token from Clerk for accurate contribution data
-        let githubAccessToken = user.githubAccessToken || null;
-
-        try {
-            const { clerkClient } = require('@clerk/clerk-sdk-node');
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                userId,
-                'oauth_github'
-            );
-
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-                console.log('🔑 Using FRESH OAuth token from Clerk for contributions');
-
-                // Update the cached token in Firestore for future use
-                // Don't await this to speed up response
-                collections.users().doc(userId).update({
-                    githubAccessToken: githubAccessToken,
-                    updatedAt: new Date().toISOString()
-                }).catch(err => console.error('Failed to update token cache:', err.message));
-            } else {
-                console.log('⚠️ No fresh OAuth token available, using cached or PAT');
-            }
-        } catch (tokenErr) {
-            console.warn('⚠️ Could not get fresh OAuth token from Clerk:', tokenErr.message);
-        }
+        const githubAccessToken = await resolveGithubTokenForUser(userId, user);
 
         console.log(`🔍 Fetching GitHub data for user: ${user.githubUsername} (userId: ${userId})`);
         console.log(`🔑 Using ${githubAccessToken ? 'user OAuth token' : 'server PAT'}`);
@@ -219,26 +263,7 @@ const getRepos = async (req, res, next) => {
             throw new APIError('GitHub account not connected', 400);
         }
 
-        // Get FRESH OAuth token from Clerk for private repo access
-        let githubAccessToken = user.githubAccessToken || null;
-        try {
-            const { clerkClient } = require('@clerk/clerk-sdk-node');
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                userId,
-                'oauth_github'
-            );
-
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-                // Update cache asynchronously
-                collections.users().doc(userId).update({
-                    githubAccessToken: githubAccessToken,
-                    updatedAt: new Date().toISOString()
-                }).catch(err => console.error('Failed to update token cache in getRepos:', err.message));
-            }
-        } catch (tokenErr) {
-            console.warn('⚠️ Could not get fresh OAuth token for getRepos:', tokenErr.message);
-        }
+        const githubAccessToken = await resolveGithubTokenForUser(userId, user);
 
         const githubService = new GitHubService(githubAccessToken);
         let repos = await githubService.getRepos(user.githubUsername, limit);
@@ -374,9 +399,12 @@ const analyzeRepo = async (req, res, next) => {
                 const userDoc = await collections.users().doc(req.auth.userId).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    if (userData.githubAccessToken) {
-                        userToken = userData.githubAccessToken;
+                    const activeToken = getActiveGithubToken(userData);
+                    if (activeToken) {
+                        userToken = activeToken;
                         console.log('🔑 Using user OAuth token for private access');
+                    } else if (hasGithubAccessExpired(userData)) {
+                        collections.users().doc(req.auth.userId).update(buildGithubAccessClearUpdate()).catch(() => null);
                     }
                 }
             } catch (tokenErr) {
@@ -423,8 +451,11 @@ const getRepoLanguages = async (req, res, next) => {
                 const userDoc = await collections.users().doc(req.auth.userId).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    if (userData.githubAccessToken) {
-                        userToken = userData.githubAccessToken;
+                    const activeToken = getActiveGithubToken(userData);
+                    if (activeToken) {
+                        userToken = activeToken;
+                    } else if (hasGithubAccessExpired(userData)) {
+                        collections.users().doc(req.auth.userId).update(buildGithubAccessClearUpdate()).catch(() => null);
                     }
                 }
             } catch (tokenErr) {
@@ -457,33 +488,15 @@ const createRepo = async (req, res, next) => {
             throw new APIError('Repository name is required', 400);
         }
 
-        // Get FRESH token from Clerk (not cached Firestore token)
-        const { clerkClient } = require('@clerk/clerk-sdk-node');
-        let githubAccessToken = null;
-
-        try {
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                userId,
-                'oauth_github'
-            );
-            console.log('🔐 Fresh OAuth tokens from Clerk:', JSON.stringify(oauthTokens?.data, null, 2));
-
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-
-                // Also update the cached token in Firestore
-                await collections.users().doc(userId).update({
-                    githubAccessToken: githubAccessToken,
-                    updatedAt: new Date().toISOString()
-                });
-                console.log('✅ Updated cached token in Firestore');
-            }
-        } catch (tokenErr) {
-            console.error('❌ Failed to get fresh token from Clerk:', tokenErr.message);
+        const userDoc = await collections.users().doc(userId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const githubAccessToken = getActiveGithubToken(userData);
+        if (!githubAccessToken && hasGithubAccessExpired(userData)) {
+            await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
         }
 
         if (!githubAccessToken) {
-            throw new APIError('GitHub account not properly connected. Please sign out and sign in again with GitHub to grant repository access.', 400);
+            throw new APIError('Private repository access expired or not connected. Reauthorize GitHub from settings to continue.', 400);
         }
 
         const { Octokit } = require('octokit');
@@ -565,6 +578,10 @@ const createRepo = async (req, res, next) => {
  */
 const getInsights = async (req, res, next) => {
     try {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
         const { userId } = req.auth;
 
         const userDoc = await collections.users().doc(userId).get();
@@ -573,23 +590,13 @@ const getInsights = async (req, res, next) => {
         }
 
         let user = userDoc.data();
-        let githubAccessToken = user.githubAccessToken || null;
-
-        // Get fresh OAuth token from Clerk for full access
-        const { clerkClient } = require('@clerk/clerk-sdk-node');
-        try {
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-            }
-        } catch (tokenErr) {
-            console.warn('Could not get fresh OAuth token:', tokenErr.message);
-        }
+        const githubAccessToken = await resolveGithubTokenForUser(userId, user);
 
         // Auto-sync GitHub username if missing
         if (!user.githubUsername) {
             console.log('🔄 GitHub username missing, attempting auto-sync...');
             try {
+                const { clerkClient } = require('@clerk/clerk-sdk-node');
                 const clerkUser = await clerkClient.users.getUser(userId);
                 let githubUsername = null;
 
@@ -614,7 +621,6 @@ const getInsights = async (req, res, next) => {
                 if (githubUsername) {
                     await collections.users().doc(userId).update({
                         githubUsername,
-                        githubAccessToken,
                         updatedAt: new Date().toISOString()
                     });
                     user.githubUsername = githubUsername;
@@ -668,15 +674,9 @@ const getSimilarProjects = async (req, res, next) => {
 
             try {
                 // Get user's GitHub access token for private repos
-                let githubAccessToken = user.githubAccessToken || null;
-                const { clerkClient } = require('@clerk/clerk-sdk-node');
-                try {
-                    const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, 'oauth_github');
-                    if (oauthTokens?.data?.[0]?.token) {
-                        githubAccessToken = oauthTokens.data[0].token;
-                    }
-                } catch (tokenErr) {
-                    console.warn('Could not get OAuth token:', tokenErr.message);
+                let githubAccessToken = getActiveGithubToken(user);
+                if (!githubAccessToken && hasGithubAccessExpired(user)) {
+                    await collections.users().doc(userId).update(buildGithubAccessClearUpdate());
                 }
 
                 const githubService = new GitHubService(githubAccessToken);

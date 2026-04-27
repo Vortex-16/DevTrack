@@ -5,6 +5,7 @@
 
 const { collections } = require('../config/firebase');
 const { APIError } = require('../middleware/errorHandler');
+const { resolveGithubAccessDays } = require('../services/githubAccessService');
 
 // Default preferences for users who skip onboarding
 const DEFAULT_PREFERENCES = {
@@ -13,6 +14,7 @@ const DEFAULT_PREFERENCES = {
     reminderMode: 'adaptive',
     fixedTime: null,
     breakDetection: true,
+    githubAccessRetentionDays: 7,
 };
 
 /**
@@ -48,6 +50,7 @@ const savePreferences = async (req, res, next) => {
             breakDetection: typeof preferences.breakDetection === 'boolean'
                 ? preferences.breakDetection
                 : DEFAULT_PREFERENCES.breakDetection,
+            githubAccessRetentionDays: resolveGithubAccessDays(preferences.githubAccessRetentionDays),
         };
 
         const updateData = {
@@ -166,6 +169,9 @@ const updatePreferences = async (req, res, next) => {
             }
             if (typeof preferences.breakDetection === 'boolean') {
                 updatedPreferences.breakDetection = preferences.breakDetection;
+            }
+            if (preferences.githubAccessRetentionDays !== undefined) {
+                updatedPreferences.githubAccessRetentionDays = resolveGithubAccessDays(preferences.githubAccessRetentionDays);
             }
 
             // Public Profile Customization

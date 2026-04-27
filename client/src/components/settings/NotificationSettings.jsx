@@ -28,6 +28,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         reminderMode: 'adaptive',
         fixedTime: null,
         breakDetection: true,
+        githubAccessRetentionDays: 7,
     });
     const [userGoal, setUserGoal] = useState('');
     const [loading, setLoading] = useState(true);
@@ -261,6 +262,25 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     <p className="text-xs text-slate-500 mt-2">
                                         Reports are also sent automatically every Sunday at 9 AM.
                                     </p>
+                                </div>
+
+                                {/* GitHub Private Access Retention */}
+                                <div className="bg-slate-800/50 rounded-xl p-4">
+                                    <h3 className="text-lg font-semibold text-white mb-3">Private Repo Access Window</h3>
+                                    <p className="text-sm text-slate-400 mb-4">
+                                        Control how long DevTrack keeps your private-repo OAuth access active before requiring reauthorization.
+                                    </p>
+                                    <select
+                                        value={preferences.githubAccessRetentionDays || 7}
+                                        onChange={(e) => setPreferences({ ...preferences, githubAccessRetentionDays: Number(e.target.value) })}
+                                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-purple-500 focus:outline-none"
+                                    >
+                                        <option value={1}>1 day</option>
+                                        <option value={3}>3 days</option>
+                                        <option value={7}>7 days (recommended)</option>
+                                        <option value={14}>14 days</option>
+                                        <option value={30}>30 days</option>
+                                    </select>
                                 </div>
 
                                 {/* Reminder Mode */}

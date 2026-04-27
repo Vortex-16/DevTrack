@@ -9,6 +9,7 @@ const fs = require('fs');
 const emailService = require('./emailService');
 const { collections } = require('../config/firebase');
 const GitHubService = require('./githubService');
+const { getActiveGithubToken } = require('./githubAccessService');
 
 class ReportService {
     constructor() {
@@ -144,7 +145,7 @@ class ReportService {
         }
 
         // Get GitHub insights
-        const githubService = new GitHubService(user.githubAccessToken);
+        const githubService = new GitHubService(getActiveGithubToken(user));
         const insights = await githubService.getGitHubInsights(user.githubUsername);
 
         // Get recent activity

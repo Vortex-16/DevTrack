@@ -56,30 +56,32 @@ const StatMini = ({ icon: Icon, label, value, color }) => (
 
 export default function GitHubInsights() {
     const { getCachedData, setCachedData } = useCache()
-    const [loading, setLoading] = useState(!getCachedData('github_insights'))
+    const insightsCacheKey = 'github_insights_v2'
+    const [loading, setLoading] = useState(!getCachedData(insightsCacheKey))
     const [error, setError] = useState(null)
-    const [data, setData] = useState(getCachedData('github_insights') || null)
+    const [data, setData] = useState(getCachedData(insightsCacheKey) || null)
 
     useEffect(() => {
         const fetchInsights = async () => {
-            if (data) return // Already have data (from cache)
-
             try {
-                setLoading(true)
+                setError(null)
+                if (!data) setLoading(true)
                 const response = await githubApi.getInsights()
                 const insightsData = response.data.data
                 setData(insightsData)
-                setCachedData('github_insights', insightsData)
+                setCachedData(insightsCacheKey, insightsData)
             } catch (err) {
                 console.error('Error fetching insights:', err)
-                setError(err.response?.data?.error || 'Failed to fetch GitHub insights')
+                if (!data) {
+                    setError(err.response?.data?.error || 'Failed to fetch GitHub insights')
+                }
             } finally {
                 setLoading(false)
             }
         }
 
         fetchInsights()
-    }, [data, setCachedData])
+    }, [setCachedData])
 
     const accountAge = useMemo(() => {
         if (!data?.profile?.createdAt) return null

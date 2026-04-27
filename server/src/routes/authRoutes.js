@@ -12,6 +12,9 @@ const authController = require('../controllers/authController');
 // Sync user from Clerk to Firestore
 router.post('/sync', requireAuth, authController.syncUser);
 
+// Explicitly renew GitHub private-repo access window
+router.post('/renew-github-access', requireAuth, authController.renewGithubAccess);
+
 // Get current user profile
 router.get('/me', requireAuth, authController.getMe);
 

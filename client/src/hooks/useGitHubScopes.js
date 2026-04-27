@@ -1,24 +1,82 @@
 import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
+import { useEffect, useState } from 'react';
+import { authApi } from '../services/api';
 
 export function useGitHubScopes() {
     const { user, isLoaded } = useUser();
+    const { isSignedIn } = useAuth();
+    const [serverHasAccess, setServerHasAccess] = useState(false);
+    const [serverChecked, setServerChecked] = useState(false);
 
-    // Check if the user has the 'repo' scope granted
-    const hasRepoAccess = () => {
-        if (!isLoaded || !user) return false;
+    const getClerkRepoScopeState = () => {
+        if (!isLoaded || !user) return 'unknown';
 
         const githubAccount = user.externalAccounts?.find(
             (acc) => acc.provider === 'github' || acc.provider === 'oauth_github'
         );
 
-        if (!githubAccount) return false;
+        if (!githubAccount) return 'none';
 
-        // Clerk's externalAccounts store approvedScopes as a string (e.g., "repo read:user user:email")
         const approvedScopes = githubAccount.approvedScopes || '';
-        return approvedScopes.includes('repo');
+        if (Array.isArray(approvedScopes)) {
+            if (approvedScopes.length === 0) return 'unknown';
+            return approvedScopes.includes('repo') ? 'granted' : 'missing';
+        }
+        if (typeof approvedScopes === 'string') {
+            const scopes = approvedScopes.split(/\s+/).filter(Boolean);
+            if (scopes.length === 0) return 'unknown';
+            return scopes.includes('repo') ? 'granted' : 'missing';
+        }
+        return 'unknown';
     };
 
+    // Check if the user has the 'repo' scope granted
+    const hasRepoAccess = () => {
+        const scopeState = getClerkRepoScopeState();
+        if (serverHasAccess) return true;
+        return scopeState === 'granted';
+    };
+
+    useEffect(() => {
+        const checkServerAccess = async () => {
+            if (!isLoaded || !isSignedIn) {
+                setServerHasAccess(false);
+                setServerChecked(true);
+                return;
+            }
+
+            try {
+                const response = await authApi.getMe();
+                const userData = response?.data?.user || {};
+                const hasToken = typeof userData.githubAccessActive === 'boolean'
+                    ? userData.githubAccessActive
+                    : !!userData.githubAccessToken;
+                const expiresAt = userData.githubAccessExpiresAt ? new Date(userData.githubAccessExpiresAt) : null;
+                const isValid = !expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt > new Date();
+
+                setServerHasAccess(hasToken && isValid);
+            } catch {
+                setServerHasAccess(false);
+            } finally {
+                setServerChecked(true);
+            }
+        };
+
+        checkServerAccess();
+    }, [isLoaded, isSignedIn, user?.id]);
+
     // Request elevated 'repo' access
+    const addRenewFlag = (url) => {
+        try {
+            const parsed = new URL(url, window.location.origin);
+            parsed.searchParams.set('gh_access_renew', '1');
+            return parsed.toString();
+        } catch {
+            return url;
+        }
+    };
+
     const requestRepoAccess = async (redirectUrl = window.location.href) => {
         if (!isLoaded || !user) return;
 
@@ -31,7 +89,7 @@ export function useGitHubScopes() {
                 // Return the response for manual redirect processing
                 const response = await githubAccount.reauthorize({
                     additionalScopes: ['repo'],
-                    redirectUrl
+                    redirectUrl: addRenewFlag(redirectUrl)
                 });
 
                 if (response?.verification?.externalVerificationRedirectURL) {
@@ -48,5 +106,5 @@ export function useGitHubScopes() {
         }
     };
 
-    return { hasRepoAccess: hasRepoAccess(), requestRepoAccess, isLoaded };
+    return { hasRepoAccess: hasRepoAccess(), requestRepoAccess, isLoaded: isLoaded && serverChecked };
 }

@@ -4,6 +4,7 @@
  */
 
 const { collections } = require('../config/firebase');
+const { getActiveGithubToken } = require('./githubAccessService');
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -43,7 +44,7 @@ const refreshUserAvatar = async (userId, options = {}) => {
         return { success: false, skipped: true, reason: 'No GitHub username linked' };
     }
 
-    const avatarUrl = await fetchGitHubAvatar(user.githubUsername, options.githubToken || user.githubAccessToken || null);
+    const avatarUrl = await fetchGitHubAvatar(user.githubUsername, options.githubToken || getActiveGithubToken(user) || null);
     if (!avatarUrl) {
         return { success: false, error: 'Could not fetch GitHub avatar' };
     }

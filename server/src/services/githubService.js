@@ -598,9 +598,9 @@ class GitHubService {
    */
   async getGitHubInsights(username) {
     try {
-      const query = `
-                query($username: String!) {
-                    user(login: $username) {
+        const query = `
+            query {
+              viewer {
                         name
                         login
                         avatarUrl
@@ -608,7 +608,7 @@ class GitHubService {
                         createdAt
                         followers { totalCount }
                         following { totalCount }
-                        repositories(first: 100, ownerAffiliations: OWNER) {
+                        repositories(first: 100, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
                             totalCount
                             nodes {
                                 isPrivate
@@ -626,6 +626,12 @@ class GitHubService {
                                 }
                             }
                         }
+                            publicRepositories: repositories(first: 1, privacy: PUBLIC, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
+                              totalCount
+                            }
+                            privateRepositories: repositories(first: 1, privacy: PRIVATE, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
+                              totalCount
+                            }
                         contributionsCollection {
                             totalCommitContributions
                             totalPullRequestContributions
@@ -652,8 +658,8 @@ class GitHubService {
                 }
             `;
 
-      const response = await this.octokit.graphql(query, { username });
-      const user = response.user;
+          const response = await this.octokit.graphql(query);
+          const user = response.viewer;
 
       if (!user) return null;
 
@@ -666,19 +672,74 @@ class GitHubService {
         (sum, repo) => sum + repo.forkCount,
         0
       );
-      const publicRepos = user.repositories.nodes.filter(
-        (r) => !r.isPrivate
-      ).length;
-      const privateRepos = user.repositories.nodes.filter(
-        (r) => r.isPrivate
-      ).length;
-      const sourceRepos = user.repositories.nodes.filter(
+      const totalReposFromGraph = user.repositories?.totalCount ?? 0;
+      const privateReposRaw = user.privateRepositories?.totalCount ?? 0;
+      const publicReposRaw = user.publicRepositories?.totalCount ?? 0;
+      const repositories = Array.isArray(user.repositories?.nodes) ? user.repositories.nodes : [];
+
+      // GitHub REST authenticated profile exposes the authoritative own public/private split.
+      // Use it when available, fall back to repository snapshots otherwise.
+      let profilePublicRepos = null;
+      let profilePrivateRepos = null;
+      try {
+        const { data: authenticatedUser } = await this.octokit.rest.users.getAuthenticated();
+        profilePublicRepos = Number.isInteger(authenticatedUser?.public_repos)
+          ? authenticatedUser.public_repos
+          : null;
+        profilePrivateRepos = Number.isInteger(authenticatedUser?.total_private_repos)
+          ? authenticatedUser.total_private_repos
+          : null;
+      } catch {
+        profilePublicRepos = null;
+        profilePrivateRepos = null;
+      }
+
+      let reposForVisibility = [];
+      try {
+        reposForVisibility = await this.getRepos(user.login, 100);
+      } catch {
+        reposForVisibility = [];
+      }
+
+      const privateReposFromNodes = repositories.filter((r) => r.isPrivate).length;
+      const publicReposFromNodes = repositories.length - privateReposFromNodes;
+
+      const privateReposFromRest = reposForVisibility.filter((r) => r.isPrivate).length;
+      const publicReposFromRest = reposForVisibility.length - privateReposFromRest;
+
+      // Prefer complete snapshots in this order:
+      // 1) REST listForAuthenticatedUser snapshot
+      // 2) GraphQL node snapshot
+      // 3) GraphQL aggregate counters
+      const hasCompleteRestSnapshot = totalReposFromGraph > 0 && reposForVisibility.length === totalReposFromGraph;
+      const hasCompleteNodeSnapshot = totalReposFromGraph > 0 && repositories.length === totalReposFromGraph;
+      const privateReposComputed = hasCompleteRestSnapshot
+        ? privateReposFromRest
+        : (hasCompleteNodeSnapshot
+          ? privateReposFromNodes
+          : Math.min(Math.max(privateReposRaw, 0), totalReposFromGraph));
+      const publicReposComputed = hasCompleteRestSnapshot
+        ? publicReposFromRest
+        : (hasCompleteNodeSnapshot
+          ? publicReposFromNodes
+          : (publicReposRaw + privateReposComputed === totalReposFromGraph
+            ? publicReposRaw
+            : Math.max(0, totalReposFromGraph - privateReposComputed)));
+
+      const hasAuthoritativeProfileSplit = profilePublicRepos !== null && profilePrivateRepos !== null;
+      const publicRepos = hasAuthoritativeProfileSplit ? profilePublicRepos : publicReposComputed;
+      const privateRepos = hasAuthoritativeProfileSplit ? profilePrivateRepos : privateReposComputed;
+      const totalRepos = hasAuthoritativeProfileSplit
+        ? (profilePublicRepos + profilePrivateRepos)
+        : totalReposFromGraph;
+
+      const sourceRepos = repositories.filter(
         (r) => !r.isFork
       ).length;
 
       // Aggregate languages
       const languageMap = {};
-      user.repositories.nodes.forEach((repo) => {
+      repositories.forEach((repo) => {
         repo.languages.edges.forEach((edge) => {
           const name = edge.node.name;
           languageMap[name] = (languageMap[name] || 0) + edge.size;
@@ -730,7 +791,7 @@ class GitHubService {
           following: user.following.totalCount,
         },
         stats: {
-          totalRepos: user.repositories.totalCount,
+          totalRepos,
           publicRepos,
           privateRepos,
           sourceRepos,

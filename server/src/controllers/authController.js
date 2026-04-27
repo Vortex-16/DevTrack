@@ -7,6 +7,57 @@ const { collections } = require('../config/firebase');
 const { clerkClient } = require('@clerk/clerk-sdk-node');
 const { APIError } = require('../middleware/errorHandler');
 const { fetchGitHubAvatar } = require('../services/profileSyncService');
+const {
+    getActiveGithubToken,
+    hasGithubAccessExpired,
+    hasStoredGithubAccess,
+    buildGithubAccessUpdate,
+    buildGithubAccessClearUpdate,
+    getGithubAccessWindow,
+} = require('../services/githubAccessService');
+
+const parseScopeList = (approvedScopes) => {
+    if (Array.isArray(approvedScopes)) return approvedScopes;
+    return String(approvedScopes || '')
+        .split(/[\s,]+/)
+        .map((scope) => scope.trim())
+        .filter(Boolean);
+};
+
+const getClerkGithubOauthToken = async (userId) => {
+    const providerKeys = ['github', 'oauth_github'];
+
+    for (const providerKey of providerKeys) {
+        try {
+            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, providerKey);
+            const token = oauthTokens?.data?.[0]?.token || null;
+            if (token) return token;
+        } catch {
+            // Try next provider key.
+        }
+    }
+
+    return null;
+};
+
+const buildSafeUserResponse = (userData = {}) => {
+    const activeGithubToken = getActiveGithubToken(userData);
+    const {
+        githubAccessToken,
+        githubAccessTokenEncrypted,
+        githubAccessTokenIv,
+        githubAccessTokenAuthTag,
+        githubAccessTokenAlgorithm,
+        githubAccessTokenVersion,
+        ...safeUser
+    } = userData;
+
+    return {
+        ...safeUser,
+        githubAccessToken: null,
+        githubAccessActive: !!activeGithubToken,
+    };
+};
 
 /**
  * Sync user from Clerk to Firestore
@@ -63,35 +114,60 @@ const syncUser = async (req, res, next) => {
         // console.log('Final GitHub data:', { githubUsername, githubId });
 
         // Try to get GitHub OAuth token for private repo access
+        // Respect retention window: if expired, do not auto-renew during normal sync.
         let githubAccessToken = null;
+        let githubAccessUpdate = null;
+        const now = new Date();
+
+        const userRef = collections.users().doc(userId);
+        const existingUser = await userRef.get();
+        const existingData = existingUser.exists ? existingUser.data() : null;
+
+        if (existingData && hasGithubAccessExpired(existingData, now)) {
+            githubAccessUpdate = buildGithubAccessClearUpdate(now);
+        }
+
+        const approvedScopes = githubAccount?.approvedScopes || '';
+        const hasRepoScope = parseScopeList(approvedScopes).includes('repo');
+
+        const existingWindow = existingData ? getGithubAccessWindow(existingData) : null;
+        const expiresAtDate = existingWindow?.expiresAt ? new Date(existingWindow.expiresAt) : null;
+        const hasValidWindow = !expiresAtDate || Number.isNaN(expiresAtDate.getTime()) || expiresAtDate > now;
+        const missingTokenButRecoverable = !!existingData && !hasStoredGithubAccess(existingData, now) && hasValidWindow && hasRepoScope;
+
+        const canAutoFetchToken =
+            !existingData ||
+            !existingData?.githubAccessGrantedAt ||
+            missingTokenButRecoverable;
         try {
-            // Get OAuth access token from Clerk
-            const oauthTokens = await clerkClient.users.getUserOauthAccessToken(
-                userId,
-                'oauth_github'
-            );
-            // console.log(' OAuth tokens response:', JSON.stringify(oauthTokens?.data, null, 2));
+            if (canAutoFetchToken) {
+                // Get OAuth access token from Clerk (provider key can vary by setup)
+                githubAccessToken = await getClerkGithubOauthToken(userId);
 
-            if (oauthTokens?.data?.[0]?.token) {
-                githubAccessToken = oauthTokens.data[0].token;
-                // console.log('GitHub OAuth token retrieved');
+                if (githubAccessToken && hasRepoScope) {
+                    // Only persist as private-repo token when repo scope is present.
+                    githubAccessUpdate = buildGithubAccessUpdate(githubAccessToken, existingData || {}, now);
 
-                // If we got a token but no username, try to fetch from GitHub API
-                if (!githubUsername && githubAccessToken) {
-                    try {
-                        const { Octokit } = require('octokit');
-                        const octokit = new Octokit({ auth: githubAccessToken });
-                        const { data: ghUser } = await octokit.rest.users.getAuthenticated();
-                        githubUsername = ghUser.login;
-                        githubId = String(ghUser.id);
-                        // console.log('Got username from GitHub API:', githubUsername);
-                    } catch (ghErr) {
-                        console.warn('Could not fetch from GitHub API:', ghErr.message);
+                    // If we got a token but no username, try to fetch from GitHub API
+                    if (!githubUsername && githubAccessToken) {
+                        try {
+                            const { Octokit } = require('octokit');
+                            const octokit = new Octokit({ auth: githubAccessToken });
+                            const { data: ghUser } = await octokit.rest.users.getAuthenticated();
+                            githubUsername = ghUser.login;
+                            githubId = String(ghUser.id);
+                        } catch (ghErr) {
+                            console.warn('Could not fetch from GitHub API:', ghErr.message);
+                        }
                     }
                 }
             }
         } catch (tokenErr) {
             console.warn('Could not retrieve GitHub OAuth token:', tokenErr.message);
+        }
+
+        if (!githubAccessToken && existingData) {
+            githubAccessToken = getActiveGithubToken(existingData, now);
         }
 
         const userData = {
@@ -101,16 +177,12 @@ const syncUser = async (req, res, next) => {
             avatarUrl: clerkUser.imageUrl || null,
             githubUsername: githubUsername,
             githubId: githubId,
-            githubAccessToken: githubAccessToken,
+            githubAccessToken: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             lastStartTime: null,
             lastEndTime: null,
         };
-
-        // Upsert user in Firestore
-        const userRef = collections.users().doc(userId);
-        const existingUser = await userRef.get();
 
         if (existingUser.exists) {
             // Update existing user (preserve lastStartTime/lastEndTime)
@@ -123,6 +195,7 @@ const syncUser = async (req, res, next) => {
 
             await userRef.update({
                 ...userData,
+                ...(githubAccessUpdate || {}),
                 avatarUrl: githubAvatarUrl || userData.avatarUrl || existing.avatarUrl || null,
                 githubAvatarUrl: githubAvatarUrl || existing.githubAvatarUrl || null,
                 createdAt: existing.createdAt, // Keep original creation date
@@ -143,6 +216,9 @@ const syncUser = async (req, res, next) => {
                     githubAvatarUrl,
                 });
             }
+            if (githubAccessUpdate) {
+                await userRef.update(githubAccessUpdate);
+            }
         }
 
         const updatedUser = await userRef.get();
@@ -150,7 +226,49 @@ const syncUser = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'User synced successfully',
-            user: updatedUser.data(),
+            user: buildSafeUserResponse(updatedUser.data()),
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Renew GitHub private-repo access window intentionally from settings/reauthorize flow
+ * POST /api/auth/renew-github-access
+ */
+const renewGithubAccess = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+        const userRef = collections.users().doc(userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            throw new APIError('User not found', 404);
+        }
+
+        const token = await getClerkGithubOauthToken(userId);
+
+        if (!token) {
+            throw new APIError('No GitHub OAuth token found. Please reconnect GitHub access.', 400);
+        }
+
+        const now = new Date();
+        const updateData = buildGithubAccessUpdate(token, userDoc.data(), now);
+        await userRef.update(updateData);
+
+        const { retentionDays, expiresAt } = getGithubAccessWindow({
+            ...userDoc.data(),
+            ...updateData,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'GitHub private-repo access renewed successfully',
+            data: {
+                githubAccessRetentionDays: retentionDays,
+                githubAccessExpiresAt: expiresAt,
+            },
         });
     } catch (error) {
         next(error);
@@ -174,7 +292,7 @@ const getMe = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            user: userDoc.data(),
+            user: buildSafeUserResponse(userDoc.data()),
         });
     } catch (error) {
         next(error);
@@ -250,6 +368,7 @@ const deleteAccount = async (req, res, next) => {
 
 module.exports = {
     syncUser,
+    renewGithubAccess,
     getMe,
     updateActivityTime,
     deleteAccount,

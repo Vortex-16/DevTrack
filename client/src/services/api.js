@@ -115,7 +115,7 @@ export const githubApi = {
     getCommits: (days = 30) => api.get('/github/commits', { params: { days } }),
     getRepoLanguages: (owner, repo) => api.get(`/github/repo/${owner}/${repo}/languages`),
     createRepo: (name, description, isPrivate) => api.post('/github/repo', { name, description, isPrivate }),
-    getInsights: () => api.get('/github/insights'),
+    getInsights: () => api.get('/github/insights', { params: { _t: Date.now() } }),
     getSimilarProjects: (languages, topics, minStars, limit) =>
         api.get('/github/similar-projects', {
             params: {
@@ -137,6 +137,7 @@ export const geminiApi = {
 
 export const authApi = {
     sync: () => api.post('/auth/sync'),
+    renewGithubAccess: () => api.post('/auth/renew-github-access'),
     getMe: () => api.get('/auth/me'),
 };
 
