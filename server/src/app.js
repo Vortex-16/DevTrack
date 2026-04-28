@@ -29,6 +29,7 @@ const publicRoutes = require('./routes/publicRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const socialRoutes = require('./routes/socialRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -186,6 +187,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/social', socialRoutes);
+app.use('/api/reports', reportRoutes);
 
 // ======================
 // 404 HANDLER

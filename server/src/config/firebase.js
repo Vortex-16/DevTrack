@@ -70,6 +70,7 @@ const collections = {
     showcases: () => getFirestore().collection('showcases'),
     resumes: () => getFirestore().collection('resumes'),
     endorsements: () => getFirestore().collection('endorsements'),
+    reports: () => getFirestore().collection('reports'),
 };
 
 module.exports = {

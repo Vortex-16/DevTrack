@@ -971,11 +971,16 @@ class GitHubService {
               summary.reposWorkedOn.set(repoFullName, {
                 name: repoFullName,
                 commitsThisWeek: event.payload?.commits?.length || 1,
+                recentCommits: (event.payload?.commits || []).slice(0, 3).map(c => c.message),
               });
             } else {
               // Increment commit count
               const existing = summary.reposWorkedOn.get(repoFullName);
               existing.commitsThisWeek += event.payload?.commits?.length || 1;
+              
+              // Append unique commit messages
+              const newCommits = (event.payload?.commits || []).map(c => c.message);
+              existing.recentCommits = [...new Set([...(existing.recentCommits || []), ...newCommits])].slice(0, 5);
             }
             break;
           case "PullRequestEvent":
@@ -991,13 +996,27 @@ class GitHubService {
       const repoNames = Array.from(summary.reposWorkedOn.keys());
       const reposWithDetails = [];
 
-      for (const repoFullName of repoNames.slice(0, 6)) { // Limit to 6 repos for performance
+      for (const repoFullName of repoNames.slice(0, 6)) {
         try {
           const [owner, repo] = repoFullName.split('/');
           const { data: repoData } = await this.octokit.rest.repos.get({
             owner,
             repo,
           });
+
+          // Fetch Traffic (Clones) if possible
+          let cloneCount = 0;
+          try {
+            const { data: traffic } = await this.octokit.rest.repos.getClones({
+              owner,
+              repo,
+              per: 'week'
+            });
+            // Get the last week's clones
+            cloneCount = traffic.count || 0;
+          } catch (trafficError) {
+            // Likely no push access, default to 0
+          }
 
           const repoInfo = summary.reposWorkedOn.get(repoFullName);
           reposWithDetails.push({
@@ -1009,6 +1028,7 @@ class GitHubService {
             stars: repoData.stargazers_count || 0,
             commitsThisWeek: repoInfo.commitsThisWeek,
             description: repoData.description || null,
+            clones: cloneCount
           });
         } catch (repoError) {
           // If we can't fetch repo details, use basic info from event
@@ -1018,12 +1038,13 @@ class GitHubService {
           reposWithDetails.push({
             name: repoFullName,
             shortName: repoName,
-            isPrivate: false, // Default to public if we can't determine
+            isPrivate: false,
             isOwner: repoOwner.toLowerCase() === username.toLowerCase(),
             language: null,
             stars: 0,
             commitsThisWeek: repoInfo.commitsThisWeek,
             description: null,
+            clones: 0
           });
         }
       }

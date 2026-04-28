@@ -22,12 +22,11 @@ Traditional portfolios show where you _are_. DevTrack shows how you _got there_.
 
 ## ✨ Recent Updates (April 2026)
 
+- **Premium AI Reporting & History:** Upgraded weekly reports with deep technical intelligence (executive summaries, multi-point strategic guidance, and per-project briefs). All reports are now securely persisted in Firestore, allowing users to track their strategic growth over time.
+- **Enterprise-Grade AI Reliability:** Implemented a multi-key rotation system for Groq AI services. DevTrack now automatically falls back across 4 redundant API keys to handle rate limits and ensure 100% uptime for report generation.
+- **High-Fidelity PDF Layout:** Refactored the reporting engine for a premium aesthetic, featuring glassmorphism cards, sentiment tracking, and consistent automated headers/footers across multi-page documents.
 - **GitHub Repo Clone Counter:** Added real-time tracking of repository traffic. DevTrack now monitors total and unique clones for all tracked projects.
-- **Comprehensive Feature Roadmap:** Added a detailed status tracking document in the `Project Brief` folder. This catalogs "Done" features (including LeetCode, Showcase, and AI Ideas), identifies "Remaining" gaps, and outlines "Professional Suggestions" for the platform.
-- **Enhanced Security via Deferred OAuth Scopes:** DevTrack now only asks for basic GitHub read access on sign-up. Elevated permissions are prompted via a secure modal only when you choose to track private repositories or perform updates on any repository in your account.
-- **Premium UI Upgrades:** Restyled UI with Glassmorphism layers, and responsive smooth scroll integrations across the platform for a high-end application aesthetic.
-- **Smart Background AI Analysis:** Project repository AI analysis (identifying complexity/vulnerabilities) runs smoothly in the background, updating your dashboards dynamically.
-- **AI Project Discovery:** Generate and save custom project ideas tailored to your skill set and difficulty preferences directly from your DevTrack hub.
+- **AI Project Discovery:** Generate and save custom project ideas tailored to your skill set directly from your DevTrack hub.
 
 ---
 
@@ -87,7 +86,7 @@ npm run dev
 - [x] **Phase 1**: Core Tracking (Learning/Projects) & GitHub OAuth
 - [x] **Phase 2**: AI Analysis (Repository & Codebase Level)
 - [x] **Phase 3**: Notifications & Persistence (FCM/Firestore)
-- [x] **Phase 4**: Public Portfolio Sharing & PDF Growth Reports
+- [x] **Phase 4**: Public Portfolio Sharing & Premium AI Growth Reports (with secure history)
 - [ ] **Phase 5**: Team Collaboration & Peer Review Modules
 
 ---

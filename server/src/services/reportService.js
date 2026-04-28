@@ -10,6 +10,7 @@ const emailService = require('./emailService');
 const { collections } = require('../config/firebase');
 const GitHubService = require('./githubService');
 const { getActiveGithubToken } = require('./githubAccessService');
+const { getGroqService } = require('./groqService');
 
 class ReportService {
     constructor() {
@@ -38,11 +39,18 @@ class ReportService {
         white: '#ffffff',
     };
 
-    drawHeader(doc, subtitle) {
+    drawHeader(doc, subtitle, isShort = false) {
+        if (isShort) {
+            // Simplified header for subsequent pages
+            doc.rect(0, 0, doc.page.width, 50).fill(this.colors.dark);
+            doc.rect(0, 48, doc.page.width, 2).fill(this.colors.primary);
+            doc.font('Helvetica-Bold').fontSize(16).fillColor(this.colors.white).text('DevTrack', 50, 15);
+            doc.font('Helvetica').fontSize(8).fillColor(this.colors.muted).text(subtitle, doc.page.width - 200, 20, { width: 150, align: 'right' });
+            return;
+        }
+
         // Professional gradient-style header
         doc.rect(0, 0, doc.page.width, 110).fill(this.colors.dark);
-
-        // Accent line at bottom of header
         doc.rect(0, 108, doc.page.width, 2).fill(this.colors.primary);
 
         // Logo
@@ -62,8 +70,6 @@ class ReportService {
         weekAgo.setDate(weekAgo.getDate() - 7);
         const dateRange = `${weekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(dateRange, doc.page.width - 200, 55, { width: 150, align: 'right' });
-
-        doc.moveDown(5);
     }
 
     drawSectionHeader(doc, title, y) {
@@ -74,15 +80,15 @@ class ReportService {
     }
 
     // Enhanced page break check - prevents blank pages
-    checkPageBreak(doc, currentY, neededHeight = 100) {
+    checkPageBreak(doc, currentY, neededHeight = 100, subtitle = '') {
         const pageHeight = doc.page.height;
-        const bottomMargin = 90; // Increased to reserve space for footer
+        const bottomMargin = 80; 
         const contentEnd = pageHeight - bottomMargin;
 
-        // Only add page if we truly need more space AND have content to add
-        if (currentY + neededHeight > contentEnd && neededHeight > 0) {
+        if (currentY + neededHeight > contentEnd) {
             doc.addPage();
-            return 50; // Reset Y to top margin
+            this.drawHeader(doc, subtitle, true);
+            return 70; // Top margin for subsequent pages (after short header)
         }
         return currentY;
     }
@@ -132,300 +138,350 @@ class ReportService {
         doc.font('Helvetica-Bold').fontSize(9).fillColor(this.colors.text).text(name, x + 5, y + 10, { width: 105, align: 'center' });
     }
 
+    drawAIInsights(doc, insights, y, subtitle = '') {
+        const boxWidth = doc.page.width - 100;
+        const LEFT = 50;
+        const INNER_LEFT = 65;
+        const TEXT_WIDTH = boxWidth - 30;
+
+        // ── Section header ──────────────────────────────────────
+        doc.font('Helvetica-Bold').fontSize(13).fillColor(this.colors.primary)
+            .text('AI Strategic Insights', LEFT, y);
+        doc.moveTo(LEFT, y + 18).lineTo(doc.page.width - LEFT, y + 18)
+            .strokeColor(this.colors.light).lineWidth(1).stroke();
+        y += 30;
+
+        // ── Executive Summary card ───────────────────────────────
+        const execSummary = insights.executiveSummary || insights.summary || 'Solid work this week!';
+        const summaryLines = doc.heightOfString(execSummary, { width: TEXT_WIDTH - 20, lineGap: 2 });
+        const summaryBoxH = summaryLines + 30;
+
+        doc.roundedRect(LEFT, y, boxWidth, summaryBoxH, 8).fill('#f0f4ff');
+        doc.roundedRect(LEFT, y, boxWidth, summaryBoxH, 8).strokeColor('#c7d2fe').lineWidth(1).stroke();
+        // Badge
+        doc.roundedRect(LEFT + 8, y + 8, 100, 16, 8).fill(this.colors.primary);
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff')
+            .text('EXECUTIVE SUMMARY', LEFT + 12, y + 12);
+        doc.font('Helvetica').fontSize(9.5).fillColor('#1e293b')
+            .text(execSummary, INNER_LEFT, y + 30, { width: TEXT_WIDTH - 20, lineGap: 2 });
+        y += summaryBoxH + 12;
+
+        // ── Growth Score + Sentiment row ─────────────────────────
+        const growthScore = insights.growthScore;
+        const sentiment = insights.sentiment || 'Positive';
+        const sentimentColors = {
+            'Excellent': '#16a34a', 'Strong': '#059669', 'Positive': '#0369a1',
+            'Neutral': '#92400e', 'Encouraging': '#0369a1', 'Needs Attention': '#dc2626'
+        };
+        const sentimentBg = {
+            'Excellent': '#dcfce7', 'Strong': '#d1fae5', 'Positive': '#dbeafe',
+            'Neutral': '#fef3c7', 'Encouraging': '#dbeafe', 'Needs Attention': '#fee2e2'
+        };
+        const sColor = sentimentColors[sentiment] || '#0369a1';
+        const sBg = sentimentBg[sentiment] || '#dbeafe';
+
+        // Sentiment pill
+        const sentW = doc.widthOfString(sentiment) + 22;
+        doc.roundedRect(LEFT, y, sentW, 22, 11).fill(sBg);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(sColor)
+            .text(sentiment, LEFT + 11, y + 6);
+
+        // Growth score pill (if present)
+        if (growthScore) {
+            const scoreLabel = `Growth Score: ${growthScore.score}/100  ·  ${growthScore.label}`;
+            const scoreW = doc.widthOfString(scoreLabel) + 22;
+            doc.roundedRect(LEFT + sentW + 10, y, scoreW, 22, 11).fill('#f0fdf4');
+            doc.roundedRect(LEFT + sentW + 10, y, scoreW, 22, 11).strokeColor('#bbf7d0').lineWidth(1).stroke();
+            doc.font('Helvetica-Bold').fontSize(9).fillColor('#15803d')
+                .text(scoreLabel, LEFT + sentW + 21, y + 6);
+        }
+        y += 32;
+
+        // ── Strategic Insight bullets ────────────────────────────
+        const strategicInsights = insights.strategicInsights || [];
+        if (strategicInsights.length > 0) {
+            doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.text)
+                .text('Strategic Recommendations', INNER_LEFT, y);
+            y += 16;
+
+            for (const item of strategicInsights) {
+                const title  = item.title  || '';
+                const detail = item.detail || '';
+                const detailH = doc.heightOfString(detail, { width: TEXT_WIDTH - 45, lineGap: 1.5 });
+                const rowH = detailH + 25;
+
+                // Granular check for each recommendation
+                y = this.checkPageBreak(doc, y, rowH, subtitle);
+
+                // Bullet dot
+                doc.circle(INNER_LEFT + 4, y + 8, 3.5).fill(this.colors.primary);
+
+                // Title
+                doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1e293b')
+                    .text(title, INNER_LEFT + 14, y);
+                y += 13;
+
+                // Detail
+                doc.font('Helvetica').fontSize(9).fillColor('#475569')
+                    .text(detail, INNER_LEFT + 14, y, { width: TEXT_WIDTH - 45, lineGap: 1.5 });
+                y += detailH + 8;
+            }
+        }
+
+        // ── Risk Flags ───────────────────────────────────────────
+        const riskFlags = (insights.riskFlags || []).filter(
+            f => f && !f.toLowerCase().includes('no critical'));
+        if (riskFlags.length > 0) {
+            y = this.checkPageBreak(doc, y, 60, subtitle); // Ensure space for flags
+            y += 4;
+            doc.roundedRect(LEFT, y, boxWidth, 18, 4).fill('#fff7ed');
+            doc.roundedRect(LEFT, y, boxWidth, 18, 4).strokeColor('#fed7aa').lineWidth(1).stroke();
+            doc.font('Helvetica-Bold').fontSize(8).fillColor('#c2410c')
+                .text('⚠  Risk Flag', LEFT + 10, y + 4);
+            doc.font('Helvetica').fontSize(8).fillColor('#7c2d12')
+                .text(riskFlags[0], LEFT + 80, y + 4, { width: boxWidth - 90 });
+            y += 22;
+            if (riskFlags.length > 1) {
+                y = this.checkPageBreak(doc, y, 25, subtitle);
+                doc.roundedRect(LEFT, y, boxWidth, 18, 4).fill('#fff7ed');
+                doc.roundedRect(LEFT, y, boxWidth, 18, 4).strokeColor('#fed7aa').lineWidth(1).stroke();
+                doc.font('Helvetica').fontSize(8).fillColor('#7c2d12')
+                    .text(`⚠  ${riskFlags[1]}`, LEFT + 10, y + 4, { width: boxWidth - 20 });
+                y += 22;
+            }
+        }
+
+        return y + 14;
+    }
+
     async generatePDFReport(userId) {
-        // Get user data
         const userDoc = await collections.users().doc(userId).get();
-        if (!userDoc.exists) {
-            throw new Error('User not found');
-        }
         const user = userDoc.data();
-
-        if (!user.githubUsername) {
-            throw new Error('GitHub not connected');
-        }
-
-        // Get GitHub insights
+        
         const githubService = new GitHubService(getActiveGithubToken(user));
-        const insights = await githubService.getGitHubInsights(user.githubUsername);
+        const [insights, repos, contributions] = await Promise.all([
+            githubService.getGitHubInsights(user.githubUsername),
+            githubService.getRepos(user.githubUsername, 10),
+            githubService.getContributions(user.githubUsername)
+        ]);
 
-        // Get recent activity
+        const streak = contributions?.streak || 0;
+
         let recentActivity = null;
+        let aiInsights = null;
         try {
             recentActivity = await githubService.getActivitySummary(user.githubUsername);
+            const groqService = getGroqService();
+            aiInsights = await groqService.generateWeeklyInsights(recentActivity);
         } catch (e) {
-            console.warn('Could not fetch activity summary:', e.message);
+            console.warn('Supplementary data failed:', e.message);
         }
 
-        // Get streak from commits data
-        let streak = 0;
-        try {
-            const commitsData = await githubService.getRecentCommits(user.githubUsername, 30);
-            streak = commitsData.streak || 0;
-        } catch (e) {
-            console.warn('Could not fetch streak:', e.message);
-        }
+        const subtitle = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
 
-        // Get repos for projects section (Prioritize highly contributed projects)
-        let repos = [];
-        try {
-            // Try to get top contributed repos first
-            repos = await githubService.getTopContributedRepos(user.githubUsername, 5);
-
-            // Fallback to recent repos if no contribution data found or empty
-            if (!repos || repos.length === 0) {
-                console.log('No contribution data found, falling back to recent repos');
-                repos = await githubService.getRepos(user.githubUsername, 5);
-            }
-        } catch (e) {
-            console.warn('Could not fetch top repos:', e.message);
-            // Fallback to recent repos on error
-            try {
-                repos = await githubService.getRepos(user.githubUsername, 5);
-            } catch (err) {
-                console.warn('Fallback fetch failed:', err.message);
-            }
-        }
-
-        // Create PDF
         return new Promise((resolve, reject) => {
-            const doc = new PDFDocument({
-                margin: 50,
-                size: 'A4',
-                bufferPages: true
-            });
+            const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
             const chunks = [];
-
             doc.on('data', chunk => chunks.push(chunk));
-            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            
+            // Footer drawing helper
+            const drawFooter = (d) => {
+                const footerY = d.page.height - 45;
+                d.moveTo(50, footerY - 10).lineTo(d.page.width - 50, footerY - 10).strokeColor('#f1f5f9').lineWidth(1).stroke();
+                d.font('Helvetica').fontSize(8).fillColor('#94a3b8')
+                    .text('Confidential Weekly Performance Analysis • Generated by DevTrack Core AI Engine', 50, footerY, { align: 'center', width: d.page.width - 100 });
+            };
+
+            // Generate Impact Score early
+            const activityBonus = (recentActivity?.totalEvents || 0) * 0.8;
+            const impactScore = Math.min(99, Math.round((insights.rank?.score || 0) / 10 + activityBonus + (streak > 5 ? 10 : 0)));
+
+            doc.on('end', () => {
+                // Apply footer to all pages at the very end safely
+                const range = doc.bufferedPageRange();
+                for (let i = range.start; i < range.start + range.count; i++) {
+                    doc.switchToPage(i);
+                    
+                    // Critical: temporarily disable margins to prevent auto-paging from the footer itself
+                    const oldBottomMargin = doc.page.margins.bottom;
+                    doc.page.margins.bottom = 0;
+                    
+                    drawFooter(doc);
+                    
+                    doc.page.margins.bottom = oldBottomMargin;
+                }
+
+                resolve({
+                    pdfBuffer: Buffer.concat(chunks),
+                    aiInsights: aiInsights,
+                    stats: {
+                        totalCommits: insights.stats?.totalCommits || 0,
+                        totalPRs: insights.stats?.totalPRs || 0,
+                        streak: streak,
+                        impactScore: impactScore
+                    }
+                });
+            });
             doc.on('error', reject);
 
-            // Header with logo
-            this.drawHeader(doc, new Date().toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-            }));
+            // Start first page
+            this.drawHeader(doc, subtitle, false);
+            // We draw footer at the very end of content for each page transition
+            // and once more before doc.end()
+            let currentY = 140;
 
-            let currentY = 130;
+            // 1. Profile & Impact Score
+            doc.font('Helvetica-Bold').fontSize(20).fillColor('#1e293b').text(insights.profile?.name || user.name || user.githubUsername, 50, currentY);
+            doc.font('Helvetica').fontSize(12).fillColor('#64748b').text(`@${user.githubUsername}`, 50, currentY + 24);
 
-            // Profile Section
-            currentY = this.drawSectionHeader(doc, 'Developer Profile', currentY);
+            // Circular Impact Score - Premium Look
+            const centerX = doc.page.width - 80;
+            const centerY = currentY + 15;
+            doc.circle(centerX, centerY, 32).lineWidth(6).strokeColor('#f1f5f9').stroke();
+            doc.circle(centerX, centerY, 32).lineWidth(6).strokeColor('#6366f1').stroke();
+            
+            // Center the text: X = Center - (BoxWidth / 2)
+            doc.font('Helvetica-Bold').fontSize(18).fillColor('#1e293b')
+                .text(impactScore.toString(), centerX - 25, centerY - 9, { width: 50, align: 'center' });
+            doc.font('Helvetica').fontSize(7).fillColor('#6366f1')
+                .text('IMPACT', centerX - 25, centerY + 11, { width: 50, align: 'center' });
 
-            doc.font('Helvetica-Bold').fontSize(18).fillColor(this.colors.text).text(insights.profile?.name || user.name || user.githubUsername, 50, currentY);
-            doc.font('Helvetica').fontSize(11).fillColor(this.colors.muted).text(`@${user.githubUsername}`, 50, currentY + 22);
+            currentY += 85;
 
-            // Rank badge on right - larger and more prominent
-            const grade = insights.rank?.grade || 'C';
-            const gradeColors = { 'S+': '#fbbf24', 'S': '#f59e0b', 'A+': '#10b981', 'A': '#22c55e', 'B+': '#6366f1', 'B': '#8b5cf6', 'C+': '#64748b', 'C': '#94a3b8' };
-            doc.roundedRect(doc.page.width - 110, currentY - 5, 60, 40, 8).fill(gradeColors[grade] || this.colors.muted);
-            doc.font('Helvetica-Bold').fontSize(22).fillColor(this.colors.white).text(grade, doc.page.width - 110, currentY + 5, { width: 60, align: 'center' });
-            doc.font('Helvetica').fontSize(8).fillColor(this.colors.white).text('RANK', doc.page.width - 110, currentY + 28, { width: 60, align: 'center' });
-
-            currentY += 80; // Increased spacing
-
-            // Stats Grid - Key Metrics
-            currentY = this.drawSectionHeader(doc, 'Key Performance Metrics', currentY);
-
+            // 2. Metrics Snapshot
+            currentY = this.drawSectionHeader(doc, 'Performance Snapshot', currentY);
             const stats = insights.stats || {};
-            const statBoxWidth = (doc.page.width - 150) / 4;
+            const boxW = (doc.page.width - 130) / 4;
+            this.drawStatBox(doc, 'Commits', stats.totalCommits || 0, 50, currentY, boxW, '#6366f1');
+            this.drawStatBox(doc, 'PRs', stats.totalPRs || 0, 50 + boxW + 10, currentY, boxW, '#10b981');
+            this.drawStatBox(doc, 'Streak', `${streak}d`, 50 + (boxW + 10) * 2, currentY, boxW, '#f59e0b');
+            this.drawStatBox(doc, 'Solved', stats.totalIssuesSolved || 0, 50 + (boxW + 10) * 3, currentY, boxW, '#ef4444');
+            currentY += 100;
 
-            // Row 1 - Primary stats with accent colors - REORDERED FOR CONTRAST
-            this.drawStatBox(doc, 'Contributions', stats.totalContributions?.toLocaleString() || '0', 50, currentY, statBoxWidth, this.colors.primary);
-            this.drawStatBox(doc, 'Current Streak', `${streak}d`, 50 + statBoxWidth + 12, currentY, statBoxWidth, this.colors.accent); // Changed to Accent
-            this.drawStatBox(doc, 'Pull Requests', stats.totalPRs || '0', 50 + (statBoxWidth + 12) * 2, currentY, statBoxWidth, this.colors.success); // Changed to Success
-            this.drawStatBox(doc, 'Issues Closed', stats.totalIssuesSolved || '0', 50 + (statBoxWidth + 12) * 3, currentY, statBoxWidth, this.colors.warning);
+            // 3. Strategic AI Insights
+            if (aiInsights) {
+                // Reduced guard to 200 so it can start on page 1 if there is space
+                currentY = this.checkPageBreak(doc, currentY, 200, subtitle);
+                currentY = this.drawAIInsights(doc, aiInsights, currentY, subtitle);
+            }
 
-            currentY += 90; // Increased spacing
+            // 4. Repository Intelligence (with Clones/Stars)
+            if (recentActivity?.reposWorkedOn) {
+                currentY = this.checkPageBreak(doc, currentY, 150, subtitle);
+                currentY = this.drawSectionHeader(doc, 'Project Activity Intel', currentY);
 
-            // Row 2 - Secondary stats
-            this.drawStatBox(doc, 'Public Repos', stats.publicRepos || '0', 50, currentY, statBoxWidth);
-            this.drawStatBox(doc, 'Private Repos', stats.privateRepos || '0', 50 + statBoxWidth + 12, currentY, statBoxWidth);
-            this.drawStatBox(doc, 'Code Reviews', stats.totalReviews || '0', 50 + (statBoxWidth + 12) * 2, currentY, statBoxWidth);
-            this.drawStatBox(doc, 'Stars Earned', stats.totalStars || '0', 50 + (statBoxWidth + 12) * 3, currentY, statBoxWidth);
+                const reposToDraw = Array.isArray(recentActivity.reposWorkedOn) 
+                    ? recentActivity.reposWorkedOn 
+                    : Array.from(recentActivity.reposWorkedOn.values());
 
-            currentY += 100; // Increased spacing
+            for (const repoData of reposToDraw.slice(0, 5)) {
+                    const repoName = repoData.name;
+                    const commits = repoData.commitsThisWeek || 0;
+                    const stars = repoData.stars || 0;
+                    const clones = repoData.clones || 0;
+                    const insightRaw = (aiInsights?.projectInsights)
+                        ? aiInsights.projectInsights[repoName]
+                        : null;
 
-            // Recent Activity
-            if (recentActivity && (recentActivity.pushEvents || recentActivity.prEvents || recentActivity.issueEvents)) {
-                currentY = this.checkPageBreak(doc, currentY, 140);
-                currentY = this.drawSectionHeader(doc, 'Activity This Week', currentY);
+                    // Resolve rich object vs legacy string
+                    let insightHeadline = null;
+                    let insightBrief    = null;
+                    let insightNext     = null;
+                    if (insightRaw) {
+                        if (typeof insightRaw === 'object') {
+                            insightHeadline = insightRaw.headline || null;
+                            insightBrief    = insightRaw.brief    || null;
+                            insightNext     = insightRaw.nextStep || null;
+                        } else {
+                            insightBrief = String(insightRaw);
+                        }
+                    }
 
-                // Activity stats in a grid
-                const activityBoxWidth = (doc.page.width - 140) / 3;
+                    const hasInsight = !!(insightBrief);
 
-                this.drawStatBox(doc, 'Pushes', recentActivity.pushEvents || '0', 50, currentY, activityBoxWidth, this.colors.primary);
-                this.drawStatBox(doc, 'Pull Requests', recentActivity.prEvents || '0', 50 + activityBoxWidth + 20, currentY, activityBoxWidth, this.colors.secondary);
-                this.drawStatBox(doc, 'Issue Events', recentActivity.issueEvents || '0', 50 + (activityBoxWidth + 20) * 2, currentY, activityBoxWidth, this.colors.accent);
+                    // Calculate card height dynamically
+                    const briefTextH = hasInsight
+                        ? doc.heightOfString(insightBrief, { width: doc.page.width - 160, lineGap: 2 })
+                        : 0;
+                    const nextStepH = insightNext ? 18 : 0;
+                    const aiBlockH  = hasInsight ? (24 + briefTextH + nextStepH + 16) : 0;
+                    const cardH     = 75 + aiBlockH;
 
-                currentY += 90; // Increased spacing
+                    currentY = this.checkPageBreak(doc, currentY, cardH + 10);
 
-                // Active Repositories Section - Professional Design
-                if (recentActivity.reposWorkedOn && recentActivity.reposWorkedOn.length > 0) {
-                    // Use consistent section header styling
-                    currentY = this.drawSectionHeader(doc, 'Active Repositories This Week', currentY);
+                    // ── Card background ──────────────────────────────────
+                    doc.roundedRect(50, currentY, doc.page.width - 100, cardH, 10).fill('#ffffff');
+                    doc.roundedRect(50, currentY, doc.page.width - 100, cardH, 10)
+                        .strokeColor('#e2e8f0').lineWidth(1.5).stroke();
+                    // Left accent bar
+                    doc.roundedRect(50, currentY, 4, cardH, 2).fill(this.colors.primary);
 
-                    // Subtitle with count
-                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted)
-                        .text(`${recentActivity.reposWorkedOn.length} ${recentActivity.reposWorkedOn.length === 1 ? 'repository' : 'repositories'} with commits in the last 7 days`, 50, currentY);
+                    // ── Repo name ─────────────────────────────────────────
+                    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e293b')
+                        .text(repoName, 65, currentY + 14);
 
-                    currentY += 25;
+                    // ── Stats badges ──────────────────────────────────────
+                    let badgeX = 65;
+                    const drawBadge = (label, val, col) => {
+                        const txt = `${label}: ${val}`;
+                        const tw  = doc.widthOfString(txt) + 24; // Increased padding
+                        doc.roundedRect(badgeX, currentY + 34, tw, 22, 11).fill(col === '#000000' ? '#1e293b' : col + '18');
+                        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(col === '#000000' ? '#ffffff' : col)
+                            .text(txt, badgeX + 12, currentY + 41);
+                        badgeX += tw + 10;
+                    };
+                    drawBadge('Commits', commits, '#6366f1');
+                    drawBadge('⭐ Stars', stars, '#f59e0b');
+                    drawBadge('Clones 7d', clones, '#10b981');
 
-                    // Calculate widths for a grid of 2 (larger cards)
-                    const repoBoxWidth = (doc.page.width - 110) / 2;
-                    const cardHeight = 72;
-                    let repoX = 50;
+                    // ── AI Brief block ────────────────────────────────────
+                    if (hasInsight) {
+                        const aiTop = currentY + 62;
 
-                    // Color palette for accent bars - professional colors
-                    const accentColors = [this.colors.primary, this.colors.success, this.colors.accent, this.colors.warning];
+                        // AI Brief background
+                        doc.roundedRect(62, aiTop, doc.page.width - 124, aiBlockH - 8, 7).fill('#f8faff');
+                        doc.roundedRect(62, aiTop, doc.page.width - 124, aiBlockH - 8, 7)
+                            .strokeColor('#c7d2fe').lineWidth(0.8).stroke();
 
-                    recentActivity.reposWorkedOn.slice(0, 4).forEach((repoData, index) => {
-                        // Handle both old format (string) and new format (object with metadata)
-                        const repoName = typeof repoData === 'string' ? repoData : repoData.name;
-                        const shortName = typeof repoData === 'object' && repoData.shortName ? repoData.shortName : repoName.split('/')[1] || repoName;
-                        const isPrivate = typeof repoData === 'object' ? repoData.isPrivate : false;
-                        const isOwner = typeof repoData === 'object' ? repoData.isOwner : true;
-                        const language = typeof repoData === 'object' ? repoData.language : null;
-                        const stars = typeof repoData === 'object' ? repoData.stars : 0;
-                        const commits = typeof repoData === 'object' ? repoData.commitsThisWeek : 0;
-                        const repoUrl = `https://github.com/${repoName}`;
-                        const accentColor = accentColors[index % accentColors.length];
+                        // "AI Brief" label pill
+                        doc.roundedRect(70, aiTop + 7, 48, 14, 7).fill('#6366f1');
+                        doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff')
+                            .text('AI BRIEF', 74, aiTop + 11);
 
-                        // Position calculation for 2-column grid
-                        if (index > 0 && index % 2 === 0) {
-                            currentY += cardHeight + 15;
-                            repoX = 50;
+                        // Headline
+                        if (insightHeadline) {
+                            doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#3730a3')
+                                .text(insightHeadline, 124, aiTop + 7);
                         }
 
-                        // Card Background - clean white with subtle border
-                        doc.roundedRect(repoX, currentY, repoBoxWidth, cardHeight, 6).fill(this.colors.lighter);
-                        doc.roundedRect(repoX, currentY, repoBoxWidth, cardHeight, 6).strokeColor(this.colors.light).lineWidth(1).stroke();
+                        // Brief text
+                        doc.font('Helvetica').fontSize(9).fillColor('#334155')
+                            .text(insightBrief, 72, aiTop + (insightHeadline ? 22 : 10),
+                                { width: doc.page.width - 148, lineGap: 2 });
 
-                        // Left accent bar
-                        doc.save();
-                        doc.roundedRect(repoX, currentY, 4, cardHeight, 6).clip();
-                        doc.rect(repoX, currentY, 4, cardHeight).fill(accentColor);
-                        doc.restore();
-
-                        // Repo Name (larger, clickable, darker)
-                        doc.font('Helvetica-Bold').fontSize(11).fillColor(this.colors.text)
-                            .text(shortName, repoX + 14, currentY + 12, { width: repoBoxWidth - 28, align: 'left', lineBreak: false, ellipsis: true, link: repoUrl, underline: false });
-
-                        // Stats row - Language, Commits, Stars
-                        const statsY = currentY + 30;
-                        let statsX = repoX + 14;
-
-                        // Language badge (if available)
-                        if (language) {
-                            const langWidth = Math.min(language.length * 5.5 + 14, 65);
-                            doc.roundedRect(statsX, statsY, langWidth, 15, 3).fill(this.colors.darkGray);
-                            doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
-                                .text(language, statsX, statsY + 4, { width: langWidth, align: 'center' });
-                            statsX += langWidth + 8;
+                        // Next Step badge
+                        if (insightNext) {
+                            const nextY = aiTop + (insightHeadline ? 22 : 10) + briefTextH + 4;
+                            const nextLabel = `→ Next: ${insightNext}`;
+                            doc.font('Helvetica-Bold').fontSize(8).fillColor('#059669')
+                                .text(nextLabel, 72, nextY, { width: doc.page.width - 148 });
                         }
+                    }
 
-                        // Commits this week
-                        if (commits > 0) {
-                            const commitText = `${commits} commit${commits !== 1 ? 's' : ''}`;
-                            doc.font('Helvetica').fontSize(8).fillColor(this.colors.textLight)
-                                .text(commitText, statsX, statsY + 3);
-                            statsX += doc.widthOfString(commitText) + 12;
-                        }
-
-                        // Stars (if any)
-                        if (stars > 0) {
-                            doc.font('Helvetica').fontSize(8).fillColor(this.colors.warning)
-                                .text(`${stars} stars`, statsX, statsY + 3);
-                        }
-
-                        // Tags row - Private/Public and Owner/Contributor
-                        const tagY = currentY + 50;
-                        let tagX = repoX + 14;
-
-                        // Private/Public tag
-                        const visibilityLabel = isPrivate ? 'Private' : 'Public';
-                        const visibilityColor = isPrivate ? this.colors.warning : this.colors.success;
-                        const visibilityWidth = 42;
-                        doc.roundedRect(tagX, tagY, visibilityWidth, 15, 3).fill(visibilityColor);
-                        doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
-                            .text(visibilityLabel, tagX, tagY + 4, { width: visibilityWidth, align: 'center' });
-
-                        tagX += visibilityWidth + 6;
-
-                        // Owner/Contributor tag
-                        const roleLabel = isOwner ? 'Owner' : 'Contributor';
-                        const roleColor = isOwner ? this.colors.primary : this.colors.secondary;
-                        const roleWidth = isOwner ? 42 : 60;
-                        doc.roundedRect(tagX, tagY, roleWidth, 15, 3).fill(roleColor);
-                        doc.font('Helvetica-Bold').fontSize(7).fillColor(this.colors.white)
-                            .text(roleLabel, tagX, tagY + 4, { width: roleWidth, align: 'center' });
-
-                        repoX += repoBoxWidth + 10;
-                    });
-
-                    // Calculate space used based on number of rows
-                    const numRows = Math.ceil(Math.min(recentActivity.reposWorkedOn.length, 4) / 2);
-                    currentY += (cardHeight * numRows) + (15 * (numRows - 1)) + 30;
-                } else {
-                    currentY += 30;
+                    currentY += cardH + 8;
                 }
+
             }
 
-            // Projects Section
-            if (repos && repos.length > 0) {
-                const topRepos = repos.slice(0, 5);
-                const projectsHeight = (topRepos.length * 28) + 60; // Increased estimate
-                currentY = this.checkPageBreak(doc, currentY, projectsHeight);
-                currentY = this.drawSectionHeader(doc, 'Top Projects', currentY);
-
-                topRepos.forEach((repo, index) => {
-                    const yPos = currentY + (index * 28); // Increased line height
-                    doc.font('Helvetica-Bold').fontSize(10).fillColor(this.colors.text).text(repo.name, 60, yPos, { width: 200 });
-                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(`Issues: ${repo.open_issues_count || 0}`, 280, yPos);
-                    doc.font('Helvetica-Bold').fontSize(9).fillColor(this.colors.success).text(repo.language || '—', 370, yPos);
-                    doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted).text(`Stars: ${repo.stars || 0}`, 460, yPos);
-                });
-
-                currentY += (topRepos.length * 28) + 30; // Increased spacing
-            }
-
-            // Languages
-            if (insights.languages && insights.languages.length > 0) {
-                const langCount = Math.min(insights.languages.length, 4);
-                const langHeight = (langCount * 35) + 60;
-                currentY = this.checkPageBreak(doc, currentY, langHeight);
-                currentY = this.drawSectionHeader(doc, 'Language Proficiency', currentY);
-
-                currentY += 10; // Extra padding below header
-
+            // 5. Technology Stack Radar
+            if (insights.languages?.length > 0) {
+                currentY = this.checkPageBreak(doc, currentY, 120);
+                currentY = this.drawSectionHeader(doc, 'Technology Ecosystem', currentY);
+                currentY += 20;
                 insights.languages.slice(0, 4).forEach((lang) => {
-                    currentY = this.drawProgressBar(doc, lang.name, lang.percentage || 0, 60, currentY, 280);
+                    currentY = this.drawProgressBar(doc, lang.name, lang.percentage || 0, 60, currentY, 350);
                 });
-
-                currentY += 30; // Increased spacing
             }
-
-            // Badges/Achievements
-            if (insights.badges && insights.badges.length > 0) {
-                currentY = this.checkPageBreak(doc, currentY, 100);
-                currentY = this.drawSectionHeader(doc, 'Achievements', currentY);
-
-                let badgeX = 60;
-                insights.badges.slice(0, 4).forEach((badge) => {
-                    this.drawBadge(doc, badge.name, badgeX, currentY);
-                    badgeX += 125;
-                });
-
-                currentY += 60; // Increased spacing
-            }
-
-            // Professional Footer - positioned relative to content end
-            // This ensures footer stays with content and never creates an orphan page
-            const footerY = currentY + 30;
-
-            // Draw footer line
-            doc.moveTo(50, footerY - 10).lineTo(doc.page.width - 50, footerY - 10).strokeColor(this.colors.light).lineWidth(1).stroke();
-
-            // Draw footer text
-            doc.font('Helvetica').fontSize(9).fillColor(this.colors.muted);
-            doc.text('Generated by DevTrack • Your Developer Consistency Tracker', 50, footerY, { align: 'center', width: doc.page.width - 100 });
 
             doc.end();
         });
@@ -450,14 +506,33 @@ class ReportService {
                 return { success: false, error: 'GitHub not connected' };
             }
 
-            console.log(`Generating PDF report for ${user.email}...`);
-            const pdfBuffer = await this.generatePDFReport(userId);
+            console.log(`Generating PDF report and AI Insights for ${user.email}...`);
+            const reportData = await this.generatePDFReport(userId);
+            const { pdfBuffer, aiInsights, stats } = reportData;
+
+            const aiSummary = aiInsights ? aiInsights.executiveSummary || aiInsights.summary : '';
+
+            // Store the report data in Firestore for historical tracking
+            try {
+                const reportRef = collections.reports().doc();
+                await reportRef.set({
+                    userId: userId,
+                    createdAt: new Date().toISOString(),
+                    stats: stats,
+                    aiInsights: aiInsights || null
+                });
+                console.log(`Saved report history to Firestore for ${user.email}`);
+            } catch (dbError) {
+                console.error(`Failed to save report history to Firestore:`, dbError);
+                // Continue sending email even if db save fails
+            }
 
             console.log(`Sending report to ${user.email}...`);
             const result = await emailService.sendWeeklyReport(
                 user.email,
                 user.name || user.githubUsername,
-                pdfBuffer
+                pdfBuffer,
+                aiSummary
             );
 
             if (!result.success) {

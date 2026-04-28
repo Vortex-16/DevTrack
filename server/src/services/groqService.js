@@ -270,6 +270,49 @@ Assume the person is intelligent but may be unfamiliar with this specific techno
 
 ### What Changed and Why
 [Detailed explanation of each change]`;
+
+    this.weeklyReportPrompt = `You are a Principal Engineering Lead conducting a rigorous weekly code-intelligence review for a developer.
+
+**GOAL**: Deliver deep, executive-grade analysis of the developer's GitHub week: a strategic executive summary, high-signal improvement guidance backed by real reasoning, and a detailed brief for each project worked on.
+
+**INPUT DATA INCLUDES**:
+- Total events (pushes, PRs, issues opened/closed)
+- Repositories worked on: name, visibility, commit count, description, recent commit messages
+
+**STRICT OUTPUT FORMAT — return ONLY valid JSON, no markdown, no prose outside JSON**:
+{
+  "executiveSummary": "3-4 sentence paragraph. Open with the developer's most impactful achievement this week. Quantify where possible (e.g., X commits across Y repos). Identify the primary technical theme of the week (feature delivery, refactoring, debugging, infra work, etc.). Close with a forward-looking sentence about momentum or risk.",
+  "strategicInsights": [
+    {
+      "title": "Short title (4-6 words)",
+      "detail": "2-3 sentences. Explain WHY this insight matters for the developer's growth or codebase health. Reference specific signals from their activity (commit messages, repo names, PR patterns). Be concrete and actionable — include what to do AND why it will help."
+    }
+  ],
+  "growthScore": {
+    "score": 78,
+    "label": "Strong Momentum",
+    "rationale": "1 sentence explaining how the score was derived from the week's activity."
+  },
+  "riskFlags": [
+    "A concise risk or technical-debt signal observed from this week's activity (e.g., 'High commit frequency on a single file may signal tight coupling')."
+  ],
+  "projectInsights": {
+    "repo-name": {
+      "headline": "4-6 word headline for this project's week",
+      "brief": "3-5 sentences. Describe what was actually built or changed this week based on commit messages and context. Identify the technical complexity or novelty of the work. Call out any risks, architectural decisions, or patterns visible in the commits. Suggest one concrete next step specific to THIS project.",
+      "nextStep": "Single, specific, actionable task for this repo in the coming week."
+    }
+  },
+  "sentiment": "Excellent|Strong|Positive|Neutral|Needs Attention"
+}
+
+**RULES**:
+- strategicInsights must have exactly 4-5 items.
+- riskFlags must have 1-3 items. If none found, return ["No critical risks detected this week."].
+- projectInsights must have one entry per repository in the input.
+- Scores: 0-100. Base it on commit volume, PR activity, issue resolution, repo diversity, consistency.
+- Never be generic. Every sentence must be grounded in the actual data provided.
+- Output ONLY the JSON object. No code fences, no extra text.`;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -1993,6 +2036,117 @@ Return ONLY the JSON, no other text.`;
         searchTopics: [],
       };
     }
+  }
+
+  /**
+   * Generate AI insights for the weekly PDF report
+   * @param {object} activityData - The user's activity summary for the week
+   */
+  async generateWeeklyInsights(activityData) {
+    const pdfKeys = [
+      process.env.GROQ_PDF_API_KEY,
+      process.env.GROQ_PDF_API_KEY2,
+      process.env.GROQ_PDF_API_KEY3,
+      this.apiKey
+    ].filter(Boolean);
+
+    const repoList = Array.isArray(activityData.reposWorkedOn)
+      ? activityData.reposWorkedOn
+      : Array.from((activityData.reposWorkedOn || new Map()).values());
+
+    const context = `
+WEEKLY ACTIVITY SNAPSHOT:
+- Total Events: ${activityData.totalEvents || 0}
+- Push Events: ${activityData.pushEvents || 0}
+- Pull Request Events: ${activityData.prEvents || 0}
+- Issue Events: ${activityData.issueEvents || 0}
+
+REPOSITORIES WORKED ON THIS WEEK:
+${repoList.map(r =>
+  `REPO: ${r.name}
+  Visibility: ${r.isPrivate ? 'Private' : 'Public'}
+  Commits This Week: ${r.commitsThisWeek || 0}
+  Stars: ${r.stars || 0} | Clones (7d): ${r.clones || 0}
+  Description: ${r.description || 'No description provided'}
+  Recent Commit Messages: ${(r.recentCommits || []).slice(0, 5).join(' | ') || 'No commits recorded'}`
+).join('\n\n')}
+    `;
+
+    const messages = [
+      {
+        role: "system",
+        content: this.weeklyReportPrompt
+      },
+      {
+        role: "user",
+        content: `Perform a deep weekly code-intelligence review for this developer. Return strictly valid JSON.\n\n${context}`
+      }
+    ];
+
+    let lastError = null;
+    for (const key of pdfKeys) {
+      try {
+        const response = await this.makeRequestWithKey(messages, {
+          temperature: 0.35,
+          max_tokens: 4096,
+          jsonMode: true
+        }, key);
+
+        const parsed = JSON.parse(response);
+
+        // Normalize legacy field names for backward-compat with reportService
+        if (!parsed.summary && parsed.executiveSummary) {
+          parsed.summary = parsed.executiveSummary;
+        }
+        if (!parsed.recommendations && parsed.strategicInsights) {
+          parsed.recommendations = parsed.strategicInsights.map(i => `${i.title}: ${i.detail}`);
+        }
+        
+        // Normalize projectInsights: if values are objects, flatten to brief string for legacy callers
+        if (parsed.projectInsights) {
+          for (const k of Object.keys(parsed.projectInsights)) {
+            const val = parsed.projectInsights[k];
+            if (val && typeof val === 'object') {
+              // Keep the rich object; reportService will handle both shapes
+              parsed.projectInsights[k] = val;
+            }
+          }
+        }
+
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        if (error.message.includes('429')) {
+          console.warn(`⚠️ Rate limit hit for a PDF API key. Rotating to next key...`);
+          continue;
+        }
+        console.error(`Groq PDF Key Error: ${error.message}`);
+        // If it's not a 429, we still try the next key just in case
+        continue;
+      }
+    }
+
+    console.error("All PDF API keys failed. Returning fallback insights.", lastError);
+    return {
+      executiveSummary: "Solid activity this week across your repositories. Keep up the momentum and focus on code quality.",
+      summary: "Solid activity this week across your repositories. Keep up the momentum and focus on code quality.",
+      strategicInsights: [
+        { title: "Maintain Daily Commit Habit", detail: "Consistent daily commits signal steady progress and help avoid large, risky batches of changes." },
+        { title: "Document As You Build", detail: "Adding inline comments and README updates alongside feature work reduces future onboarding friction." },
+        { title: "Review Open Issues Weekly", detail: "Triaging open issues at the start of each week keeps technical debt visible and manageable." },
+        { title: "Increase PR Frequency", detail: "Smaller, more frequent PRs are easier to review, less likely to introduce regressions, and faster to merge." }
+      ],
+      recommendations: [
+        "Maintain Daily Commit Habit: Consistent daily commits signal steady progress.",
+        "Document As You Build: Add comments and README updates alongside feature work.",
+        "Review Open Issues Weekly: Triage open issues to keep technical debt visible.",
+        "Increase PR Frequency: Smaller PRs are easier to review and faster to merge."
+      ],
+      growthScore: { score: 65, label: "Steady Progress", rationale: "Baseline score due to unavailable AI analysis." },
+      riskFlags: ["AI analysis unavailable — manual review recommended."],
+      projectInsights: {},
+      sentiment: "Encouraging"
+    };
   }
 }
 
