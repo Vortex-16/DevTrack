@@ -14,16 +14,24 @@ Build the Native Dashboard screen. Show identical metrics to the web app.
 Build the Native Public/Private Profile screens.
 Offline Support: Enable Firestore offline persistence so the app remains readable without an internet connection, queuing writes for when the connection returns.
 Phase 3: Feature Parity & UI Overhaul (The Muscle)
-Goal: Implement all crucial web features natively.
+Goal: Implement all crucial web features natively with premium "Fluency."
 
-Projects & Showcase: Native list views for managing and showcasing projects. Implementing the custom swipe-to-delete or edit actions.
-GitHub Insights: Direct API calls to the DevTrack backend to fetch cached GitHub graph data, displayed using React Native charting libraries (e.g., react-native-chart-kit or react-native-gifted-charts).
-Learning & Roadmap: Native interactive timeline/progress displays.
-Chat: Real-time chat UI (likely using react-native-gifted-chat) connecting to the backend's AI.
+- **Projects & Showcase**: Native list views with Glassmorphism cards. Implementing custom swipe-to-delete or edit actions.
+- **GitHub Insights**: Native charting (Wagmi Charts) for heatmap and growth data.
+- **AI Growth Reports**: Integrated PDF viewer for the weekly AI-generated reports.
+- **Learning & Roadmap**: Native interactive timeline/progress displays.
+
 Phase 4: Push Notifications & Fine-Tuning (The Nerves)
 Goal: Keep users engaged and polish the User Experience.
 
-FCM Notifications: Implement Expo Push Notifications mapped to Firebase Cloud Messaging (building upon the web's recent FCM fixes). Register mobile device tokens to the user's DB profile.
-Micro-animations: Implement smooth transitions and dynamic interactions using react-native-reanimated.
-Dark Mode / Theming: Ensure robust theme switching matching the web app's aesthetics.
+- **FCM Notifications**: Implementation with deep-linking to AI Reports and project tasks.
+- **Micro-animations**: Use `react-native-reanimated` for shared element transitions and gesture-based navigation.
+- **Haptic Feedback**: Integrate `expo-haptics` for tactile confirmation of actions.
+
+Phase 5: AI Expert Mentor Mode
+Goal: Bridge the gap with the upcoming web Phase 5.
+
+- **Proactive Guidance**: Push-triggered AI suggestions based on inactivity.
+- **Interactive Mentorship**: Enhanced chat UI with markdown support and code highlighting.
+
 ain React Native stylesheets / Nativewind?

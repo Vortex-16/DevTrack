@@ -25,3 +25,13 @@
   - [x] Login Screen Logo Update
   - [x] Dashboard Stats Mapping
   - [x] Projects Render Error (KeyExtractor fix)
+
+# 🚀 Upcoming: The "Fluency" Sprint
+- [ ] **Visual Overhaul**
+  - [ ] Implement `expo-blur` for Nav/Header
+  - [ ] Shared Element Transitions for Project Detail
+  - [ ] Haptic Feedback Integration
+- [ ] **AI & Reports**
+  - [ ] Native PDF Viewer for Growth Reports
+  - [ ] Deep Linking for Notifications
+  - [ ] AI Mentor Chat Enhancements

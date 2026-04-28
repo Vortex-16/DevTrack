@@ -116,7 +116,28 @@ Projects and Dashboard updates are intentionally moved to a later phase.
 - [x] AI insights provide deep, actionable technical value beyond simple stats.
 - [x] PDF layout meets premium, professional standards.
 
-### Phase 4: Deferred (Work Later)
+### Phase 4: Premium AI Growth Reports (with secure history) (50% done) {With Phase 5}
+
+---
+
+### 🚀 Phase 5: AI Expert Mentor Mode (Upcoming)
+
+**Goal**: Transform DevTrack from a "tracker" into a proactive **Career Mentor & Guide**.
+
+1. **AI Mentorship Logic**
+- [ ] **Proactive Guidance**: If no contributions are detected for 7+ days, the AI shifts its tone from "Reviewer" to "Teacher/Guide" in the PDF.
+- [ ] **Restart Strategies**: Provide specific, low-friction tasks to help the developer regain momentum.
+
+2. **Advanced Profile Intelligence**
+- [ ] **Skill & Interest Mapping**: Analyze the user's GitHub profile README and commit themes to identify true technical interests.
+- [ ] **Career Path Prediction**: Suggest specific job roles or specialized paths (e.g., "Fullstack Performance Expert" or "Distributed Systems Specialist") based on deep repo analysis.
+
+3. **The "GitHub Health Checkup"**
+- [ ] **Comprehensive Audit**: Weekly reports designed as a "Medical Checkup" for your digital career—identifying "weak spots" in your stack and suggesting "remedies" (new projects/learning paths).
+
+---
+
+### Phase 6: Deferred (Work Later)
 
 #### Projects
 - Entire UI overhaul
