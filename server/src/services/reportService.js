@@ -254,30 +254,44 @@ class ReportService {
         return y + 14;
     }
 
-    async generatePDFReport(userId) {
+    async generatePDFReport(userId, preExistingData = null) {
         const userDoc = await collections.users().doc(userId).get();
         const user = userDoc.data();
         
         const githubService = new GitHubService(getActiveGithubToken(user));
-        const [insights, repos, contributions] = await Promise.all([
-            githubService.getGitHubInsights(user.githubUsername),
-            githubService.getRepos(user.githubUsername, 10),
-            githubService.getContributions(user.githubUsername)
-        ]);
+        
+        let insights, repos, contributions, streak, recentActivity, aiInsights;
 
-        const streak = contributions?.streak || 0;
+        if (preExistingData) {
+            // Reconstruct from stored data
+            insights = { stats: preExistingData.stats || {} };
+            repos = []; // Not stored, but we can live without it for old reports or refactor
+            contributions = { streak: preExistingData.stats?.streak || 0 };
+            streak = contributions.streak;
+            recentActivity = { totalEvents: (preExistingData.stats?.totalCommits || 0) + (preExistingData.stats?.totalPRs || 0) };
+            aiInsights = preExistingData.aiInsights;
+        } else {
+            // Fresh generation
+            [insights, repos, contributions] = await Promise.all([
+                githubService.getGitHubInsights(user.githubUsername),
+                githubService.getRepos(user.githubUsername, 10),
+                githubService.getContributions(user.githubUsername)
+            ]);
 
-        let recentActivity = null;
-        let aiInsights = null;
-        try {
-            recentActivity = await githubService.getActivitySummary(user.githubUsername);
-            const groqService = getGroqService();
-            aiInsights = await groqService.generateWeeklyInsights(recentActivity);
-        } catch (e) {
-            console.warn('Supplementary data failed:', e.message);
+            streak = contributions?.streak || 0;
+
+            try {
+                recentActivity = await githubService.getActivitySummary(user.githubUsername);
+                const groqService = getGroqService();
+                aiInsights = await groqService.generateWeeklyInsights(recentActivity);
+            } catch (e) {
+                console.warn('Supplementary data failed:', e.message);
+            }
         }
 
-        const subtitle = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+        const subtitle = preExistingData 
+            ? new Date(preExistingData.createdAt).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })
+            : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
 
         return new Promise((resolve, reject) => {
             const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });

@@ -805,7 +805,7 @@ const downloadReport = async (req, res, next) => {
         console.log(`📄 Generating PDF report for user ${userId}...`);
 
         const reportService = require('../services/reportService');
-        const pdfBuffer = await reportService.generatePDFReport(userId);
+        const { pdfBuffer } = await reportService.generatePDFReport(userId);
 
         // Set headers for PDF download
         res.setHeader('Content-Type', 'application/pdf');
