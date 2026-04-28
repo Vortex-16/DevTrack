@@ -152,7 +152,7 @@ export const notificationsApi = {
     // Status & FCM token
     getStatus: () => api.get('/notifications/status'),
     registerToken: (token) => api.post('/notifications/register', { token }),
-    unregisterToken: () => api.delete('/notifications/register'),
+    unregisterToken: (token) => api.delete('/notifications/register', { data: { token } }),
     sendTest: () => api.post('/notifications/test'),
 
     // In-app notification CRUD

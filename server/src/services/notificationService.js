@@ -56,21 +56,21 @@ class NotificationService {
                         vibrate: [200, 100, 200],
                     },
                     fcmOptions: {
-                        link: process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'https://devtrackweb.xyz',
+                        link: data.link || process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'https://devtrackweb.xyz',
                     },
                 },
             };
 
             const response = await this.messaging.send(message);
-            console.log('✅ Push sent:', response);
+            console.log('✅ Push sent to token:', fcmToken.substring(0, 10) + '...');
             return { success: true, messageId: response };
         } catch (error) {
-            console.error('❌ Push failed:', error.message);
+            console.error('❌ Push failed for token:', fcmToken.substring(0, 10) + '...', error.message);
             if (
                 error.code === 'messaging/invalid-registration-token' ||
                 error.code === 'messaging/registration-token-not-registered'
             ) {
-                return { success: false, error: 'invalid_token', shouldRemove: true };
+                return { success: false, error: 'invalid_token', shouldRemove: true, token: fcmToken };
             }
             return { success: false, error: error.message };
         }
@@ -119,7 +119,8 @@ class NotificationService {
      */
     async send(userId, type, aiGen, data = {}, fallback = {}) {
         try {
-            const userDoc = await collections.users().doc(userId).get();
+            const userRef = collections.users().doc(userId);
+            const userDoc = await userRef.get();
             if (!userDoc.exists) return { success: false, error: 'User not found' };
 
             const user = userDoc.data();
@@ -141,21 +142,34 @@ class NotificationService {
             // 1. Save in-app
             await this.saveInApp(userId, { ...notif, type, data });
 
-            // 2. FCM push (if token exists)
-            let pushResult = { success: false, error: 'No FCM token' };
-            if (user.fcmToken) {
-                pushResult = await this.sendPush(user.fcmToken, notif, { type, ...data });
+            // 2. FCM push to ALL registered tokens
+            const tokens = user.fcmTokens || (user.fcmToken ? [user.fcmToken] : []);
+            const pushResults = [];
+            const invalidTokens = [];
 
-                // Clean up invalid token automatically
-                if (pushResult.shouldRemove) {
-                    await collections.users().doc(userId).update({
-                        fcmToken: null,
-                        fcmTokenUpdatedAt: new Date().toISOString(),
+            if (tokens.length > 0) {
+                for (const token of tokens) {
+                    const res = await this.sendPush(token, notif, { type, ...data });
+                    pushResults.push(res);
+                    if (res.shouldRemove) invalidTokens.push(token);
+                }
+
+                // Cleanup invalid tokens
+                if (invalidTokens.length > 0) {
+                    await userRef.update({
+                        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+                        // Migration: clear legacy single token if it was one of the invalid ones
+                        ...(user.fcmToken && invalidTokens.includes(user.fcmToken) ? { fcmToken: null } : {})
                     });
                 }
             }
 
-            return { success: true, notification: notif, push: pushResult };
+            return {
+                success: true,
+                notification: notif,
+                pushCount: pushResults.filter(r => r.success).length,
+                totalDevices: tokens.length
+            };
         } catch (error) {
             console.error(`❌ send(${type}) failed for ${userId}:`, error.message);
             return { success: false, error: error.message };
@@ -182,7 +196,7 @@ class NotificationService {
                 reminderMode: prefs.reminderMode || 'adaptive',
                 lastActive: user.updatedAt,
             }),
-            { type: 'consistency_reminder', userGoal: user.userGoal || '' },
+            { type: 'consistency_reminder', userGoal: user.userGoal || '', link: '/dashboard' },
             { title: '🔥 Time to Code!', body: 'Keep your streak alive. Open your editor and ship something!' }
         );
     }
@@ -200,7 +214,7 @@ class NotificationService {
                 userGoal: user.userGoal || 'coding',
                 streak,
             }),
-            { type: 'streak_milestone', streak: String(streak) },
+            { type: 'streak_milestone', streak: String(streak), link: '/dashboard' },
             { title: `🏆 ${streak}-Day Streak!`, body: `You've been consistent for ${streak} days. Incredible!` }
         );
     }
@@ -211,7 +225,7 @@ class NotificationService {
             ownerId,
             'showcase_star',
             () => this.groq.generateShowcaseStar({ projectName, starredByName, totalStars }),
-            { type: 'showcase_star', showcaseId, projectName },
+            { type: 'showcase_star', showcaseId, projectName, link: `/showcase?id=${showcaseId}` },
             { title: `⭐ ${starredByName} starred ${projectName}!`, body: `Your project now has ${totalStars} star${totalStars !== 1 ? 's' : ''}.` }
         );
     }
@@ -222,7 +236,7 @@ class NotificationService {
             ownerId,
             'showcase_comment',
             () => this.groq.generateShowcaseComment({ projectName, commenterName, commentSnippet }),
-            { type: 'showcase_comment', showcaseId, projectName },
+            { type: 'showcase_comment', showcaseId, projectName, link: `/showcase?id=${showcaseId}` },
             { title: `💬 ${commenterName} commented on ${projectName}`, body: commentSnippet || 'New comment on your showcase.' }
         );
     }
@@ -241,7 +255,7 @@ class NotificationService {
                 streak: user.streak || 0,
                 githubUsername: user.githubUsername || '',
             }),
-            { type: 'github_no_commits' },
+            { type: 'github_no_commits', link: '/github-insights' },
             { title: '⚡ No Commits Yet Today', body: 'Push at least 1 commit to keep your streak alive!' }
         );
     }
@@ -256,7 +270,7 @@ class NotificationService {
             userId,
             'project_revival',
             () => this.groq.generateProjectRevival({ projectName, lastPushed, userGoal: user.userGoal || 'coding' }),
-            { type: 'project_revival', projectName, lastPushed: lastPushed || '' },
+            { type: 'project_revival', projectName, lastPushed: lastPushed || '', link: '/projects' },
             { title: `🚀 Remember ${projectName}?`, body: 'It\'s been a while. One commit could reignite the momentum!' }
         );
     }
@@ -267,7 +281,7 @@ class NotificationService {
             userId,
             'task_due',
             () => this.groq.generateTaskDue({ taskTitle: task.title, dueType, priority: task.priority }),
-            { type: 'task_due', taskId: task.id || '', taskTitle: task.title, dueType },
+            { type: 'task_due', taskId: task.id || '', taskTitle: task.title, dueType, link: '/roadmap' },
             {
                 title: dueType === 'today' ? '⚠️ Task Due Today!' : '📌 Task Due Tomorrow',
                 body: `"${task.title}" — ${dueType === 'today' ? 'complete it before the day ends' : 'wrap it up tomorrow'}.`,
@@ -289,7 +303,7 @@ class NotificationService {
             userId,
             'break_reminder',
             () => this.groq.generateBreakReminder({ inactiveMinutes }),
-            { type: 'break_reminder', inactiveMinutes: String(inactiveMinutes) },
+            { type: 'break_reminder', inactiveMinutes: String(inactiveMinutes), link: '/dashboard' },
             { title: '☕ Taking a Break?', body: `${inactiveMinutes} min of inactivity detected. Log a break!` }
         );
     }
@@ -300,7 +314,7 @@ class NotificationService {
             userId,
             'system_update',
             () => this.groq.generateSystemUpdate({ updateTitle, updateDesc }),
-            { type: 'system_update' },
+            { type: 'system_update', link: '/dashboard' },
             { title: `🆕 ${updateTitle}`, body: updateDesc || 'DevTrack has been updated. Check it out!' }
         );
     }
@@ -489,23 +503,40 @@ class NotificationService {
 
     async registerToken(userId, token) {
         try {
-            await collections.users().doc(userId).set(
-                { fcmToken: token, fcmTokenUpdatedAt: new Date().toISOString() },
-                { merge: true }
-            );
-            return { success: true, message: 'Token registered' };
+            await collections.users().doc(userId).update({
+                fcmTokens: admin.firestore.FieldValue.arrayUnion(token),
+                fcmTokenUpdatedAt: new Date().toISOString(),
+                // Keep fcmToken for backward compatibility/migration
+                fcmToken: token
+            });
+            return { success: true, message: 'Device registered for notifications' };
         } catch (error) {
             return { success: false, error: error.message };
         }
     }
 
-    async removeToken(userId) {
+    async removeToken(userId, token) {
         try {
-            await collections.users().doc(userId).set(
-                { fcmToken: null, fcmTokenUpdatedAt: new Date().toISOString() },
-                { merge: true }
-            );
-            return { success: true, message: 'Token removed' };
+            const userRef = collections.users().doc(userId);
+            const userDoc = await userRef.get();
+            const data = userDoc.data();
+
+            const updates = {
+                fcmTokenUpdatedAt: new Date().toISOString()
+            };
+
+            // If token provided, remove specific one
+            if (token) {
+                updates.fcmTokens = admin.firestore.FieldValue.arrayRemove(token);
+                if (data.fcmToken === token) updates.fcmToken = null;
+            } else {
+                // Legacy support: if no token provided, clear all (logout case)
+                updates.fcmTokens = [];
+                updates.fcmToken = null;
+            }
+
+            await userRef.update(updates);
+            return { success: true, message: 'Device unregistered' };
         } catch (error) {
             return { success: false, error: error.message };
         }

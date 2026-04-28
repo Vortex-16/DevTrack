@@ -5,6 +5,8 @@
 
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -21,8 +23,36 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 let app = null;
 let messaging = null;
+let db = null;
+let auth = null;
 let cachedFcmToken = null;
 let inFlightTokenPromise = null;
+
+/**
+ * Get Firebase Auth instance
+ */
+export const getFirebaseAuth = () => {
+    if (auth) return auth;
+    const firebaseApp = initializeFirebase();
+    if (!firebaseApp) return null;
+    auth = getAuth(firebaseApp);
+    return auth;
+};
+
+/**
+ * Sign in to Firebase with custom token
+ */
+export const signInToFirebase = async (customToken) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance || !customToken) return null;
+    try {
+        const userCredential = await signInWithCustomToken(authInstance, customToken);
+        return userCredential.user;
+    } catch (error) {
+        console.error('Firebase custom auth failed:', error);
+        return null;
+    }
+};
 
 /**
  * Initialize Firebase app
@@ -42,6 +72,24 @@ export const initializeFirebase = () => {
         return app;
     } catch (error) {
         console.error('Failed to initialize Firebase:', error);
+        return null;
+    }
+};
+
+/**
+ * Get Firebase Firestore instance
+ */
+export const getFirebaseDb = () => {
+    if (db) return db;
+
+    try {
+        const firebaseApp = initializeFirebase();
+        if (!firebaseApp) return null;
+
+        db = getFirestore(firebaseApp);
+        return db;
+    } catch (error) {
+        console.error('Failed to get Firebase Firestore:', error);
         return null;
     }
 };
@@ -176,7 +224,7 @@ export const onForegroundMessage = (callback) => {
     if (!messagingInstance) return null;
 
     return onMessage(messagingInstance, (payload) => {
-        console.log('Foreground message received:', payload);
+        // console.log('Foreground message received:', payload);
         callback(payload);
     });
 };
@@ -196,6 +244,9 @@ export const showNotification = (title, options = {}) => {
 
 export default {
     initializeFirebase,
+    getFirebaseDb,
+    getFirebaseAuth,
+    signInToFirebase,
     getFirebaseMessaging,
     requestNotificationPermission,
     onForegroundMessage,

@@ -5,6 +5,7 @@
  */
 
 const { getNotificationService } = require('../services/notificationService');
+const { buildSafeUserResponse } = require('./authController');
 const { APIError } = require('../middleware/errorHandler');
 
 // ─── FCM Token Management ────────────────────────────────────────────────────
@@ -38,9 +39,10 @@ const registerToken = async (req, res, next) => {
 const unregisterToken = async (req, res, next) => {
     try {
         const { userId } = req.auth;
+        const { token } = req.body; // Optional: specific token to remove
 
         const svc = getNotificationService();
-        const result = await svc.removeToken(userId);
+        const result = await svc.removeToken(userId, token);
 
         if (!result.success) throw new APIError(result.error, 500);
 
@@ -216,14 +218,17 @@ const getNotificationStatus = async (req, res, next) => {
 
         const user = userDoc.data();
 
+        const safeUser = await buildSafeUserResponse(user);
+
         res.status(200).json({
             success: true,
             data: {
-                enabled: !!user.fcmToken,
+                enabled: !!user.fcmToken || (user.fcmTokens && user.fcmTokens.length > 0),
                 lastStartTime: user.lastStartTime || null,
                 lastEndTime: user.lastEndTime || null,
                 tokenUpdatedAt: user.fcmTokenUpdatedAt || null,
-                unreadCount: (user.notifications || []).filter(n => !n.read).length,
+                unreadCount: user.notifications?.filter(n => !n.read).length || 0,
+                firebaseToken: safeUser.firebaseToken,
             },
         });
     } catch (error) {

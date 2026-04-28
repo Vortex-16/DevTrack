@@ -5,8 +5,11 @@ import {
     requestNotificationPermission,
     onForegroundMessage,
     showNotification,
-    initializeFirebase
+    initializeFirebase,
+    getFirebaseDb
 } from '../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 /**
  * Custom hook for managing both push and in-app notifications.
@@ -18,17 +21,17 @@ import {
  *  - Mark read / mark all read / delete actions
  */
 const useNotifications = () => {
-    const { isSignedIn } = useUser();
+    const { isSignedIn, user } = useUser();
 
     // ── FCM / Push state ──────────────────────────────────────────────────────
     const [permission, setPermission] = useState('default');
     const [isEnabled, setIsEnabled] = useState(false);
     const [fcmToken, setFcmToken] = useState(null);
 
-    // ── In-app notifications state ────────────────────────────────────────────
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const [isFirebaseAuthReady, setIsFirebaseAuthReady] = useState(false);
 
     // ── Shared state ──────────────────────────────────────────────────────────
     const [loading, setLoading] = useState(false);
@@ -36,12 +39,38 @@ const useNotifications = () => {
 
     const pollIntervalRef = useRef(null);
 
-    // ── Firebase init + permission check on mount ─────────────────────────────
+    // ── Firebase init + auth state listener ───────────────────────────────────
     useEffect(() => {
-        initializeFirebase();
+        const app = initializeFirebase();
+        if (!app) return;
+
+        const { getFirebaseAuth } = import('../config/firebase'); // Dynamic import to be safe
+        
+        // Track Firebase Auth state
+        const setupAuthListener = async () => {
+            const { getFirebaseAuth } = await import('../config/firebase');
+            const auth = getFirebaseAuth();
+            if (!auth) return;
+
+            return onAuthStateChanged(auth, (fbUser) => {
+                if (fbUser) {
+                    // console.log('🔥 Firebase Auth session active:', fbUser.uid);
+                    setIsFirebaseAuthReady(true);
+                } else {
+                    // console.log('🔥 No Firebase Auth session');
+                    setIsFirebaseAuthReady(false);
+                }
+            });
+        };
+
+        let unsubscribe;
+        setupAuthListener().then(unsub => { unsubscribe = unsub; });
+
         if ('Notification' in window) {
             setPermission(Notification.permission);
         }
+
+        return () => { if (unsubscribe) unsubscribe(); };
     }, []);
 
     // ── Fetch in-app notifications ────────────────────────────────────────────
@@ -60,18 +89,47 @@ const useNotifications = () => {
         }
     }, [isSignedIn]);
 
-    // ── Auto-poll every 60 seconds ────────────────────────────────────────────
+    // ── Real-time listener for notifications ──────────────────────────────────
     useEffect(() => {
-        if (!isSignedIn) return;
+        // Wait for BOTH Clerk and Firebase Auth to be ready
+        if (!isSignedIn || !user?.id || !isFirebaseAuthReady) {
+            if (isSignedIn && user?.id && !isFirebaseAuthReady) {
+                // console.log('⏳ Waiting for Firebase Auth before starting listener...');
+            }
+            return;
+        }
 
-        fetchNotifications();
+        const db = getFirebaseDb();
+        if (!db) return;
 
-        pollIntervalRef.current = setInterval(fetchNotifications, 60_000);
+        // console.log('📡 Starting real-time notification listener for:', user.id);
+        
+        const unsubscribe = onSnapshot(doc(db, 'users', user.id), (snapshot) => {
+            if (snapshot.exists()) {
+                const userData = snapshot.data();
+                const newNotifs = userData.notifications || [];
+                
+                // Update state
+                setNotifications(newNotifs);
+                
+                // Calculate unread count
+                const unread = newNotifs.filter(n => !n.read).length;
+                setUnreadCount(unread);
+                
+                setIsEnabled(!!userData.fcmToken || (userData.fcmTokens && userData.fcmTokens.length > 0));
+            }
+            setNotificationsLoading(false);
+        }, (err) => {
+            // If we get a permission error, it might be because the session expired
+            console.error('❌ Notification listener error:', err);
+            if (err.code === 'permission-denied') {
+                setIsFirebaseAuthReady(false); // Force re-auth
+            }
+            setNotificationsLoading(false);
+        });
 
-        return () => {
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-        };
-    }, [isSignedIn, fetchNotifications]);
+        return () => unsubscribe();
+    }, [isSignedIn, user?.id, isFirebaseAuthReady]);
 
     // ── FCM status check + token refresh on sign-in ───────────────────────────
     useEffect(() => {
@@ -79,8 +137,15 @@ const useNotifications = () => {
             if (!isSignedIn) return;
             try {
                 const response = await notificationsApi.getStatus();
-                const enabled = response.data.data?.enabled || false;
-                setIsEnabled(enabled);
+                const { enabled, firebaseToken } = response.data.data || {};
+                setIsEnabled(enabled || false);
+
+                // Sign in to Firebase Auth for onSnapshot permissions
+                if (firebaseToken) {
+                    const { signInToFirebase } = await import('../config/firebase');
+                    await signInToFirebase(firebaseToken);
+                    // console.log('✅ Signed into Firebase Auth');
+                }
 
                 if (enabled && Notification.permission === 'granted') {
                     const token = await requestNotificationPermission();
@@ -120,38 +185,44 @@ const useNotifications = () => {
     // ── Actions ───────────────────────────────────────────────────────────────
 
     const markRead = useCallback(async (id) => {
+        // Optimistic update
+        setNotifications(prev =>
+            prev.map(n => n.id === id ? { ...n, read: true } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+
         try {
             await notificationsApi.markRead(id);
-            setNotifications(prev =>
-                prev.map(n => n.id === id ? { ...n, read: true } : n)
-            );
-            setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (err) {
             console.error('Failed to mark notification read:', err);
+            // Revert state on failure (optional, listener will eventually sync anyway)
         }
     }, []);
 
     const markAllRead = useCallback(async () => {
+        // Optimistic update
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+
         try {
             await notificationsApi.markAllRead();
-            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-            setUnreadCount(0);
         } catch (err) {
             console.error('Failed to mark all read:', err);
         }
     }, []);
 
     const deleteNotification = useCallback(async (id) => {
+        // Optimistic update
+        setNotifications(prev => {
+            const removed = prev.find(n => n.id === id);
+            if (removed && !removed.read) {
+                setUnreadCount(c => Math.max(0, c - 1));
+            }
+            return prev.filter(n => n.id !== id);
+        });
+
         try {
             await notificationsApi.deleteOne(id);
-            setNotifications(prev => {
-                const removed = prev.find(n => n.id === id);
-                const updated = prev.filter(n => n.id !== id);
-                if (removed && !removed.read) {
-                    setUnreadCount(c => Math.max(0, c - 1));
-                }
-                return updated;
-            });
         } catch (err) {
             console.error('Failed to delete notification:', err);
         }
@@ -203,7 +274,7 @@ const useNotifications = () => {
         setLoading(true);
         setError(null);
         try {
-            await notificationsApi.unregisterToken();
+            await notificationsApi.unregisterToken(fcmToken);
             setIsEnabled(false);
             setFcmToken(null);
             return true;
@@ -213,7 +284,7 @@ const useNotifications = () => {
         } finally {
             setLoading(false);
         }
-    }, [isSignedIn]);
+    }, [isSignedIn, fcmToken]);
 
     const sendTestNotification = useCallback(async () => {
         if (!isSignedIn || !isEnabled) {

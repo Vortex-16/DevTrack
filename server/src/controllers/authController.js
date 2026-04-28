@@ -40,7 +40,7 @@ const getClerkGithubOauthToken = async (userId) => {
     return null;
 };
 
-const buildSafeUserResponse = (userData = {}) => {
+const buildSafeUserResponse = async (userData = {}) => {
     const activeGithubToken = getActiveGithubToken(userData);
     const {
         githubAccessToken,
@@ -52,10 +52,20 @@ const buildSafeUserResponse = (userData = {}) => {
         ...safeUser
     } = userData;
 
+    // Generate Firebase Custom Token for client-side onSnapshot sync
+    let firebaseToken = null;
+    try {
+        const { admin } = require('../config/firebase');
+        firebaseToken = await admin.auth().createCustomToken(userData.clerkId);
+    } catch (err) {
+        console.error('Failed to generate Firebase Custom Token:', err.message);
+    }
+
     return {
         ...safeUser,
         githubAccessToken: null,
         githubAccessActive: !!activeGithubToken,
+        firebaseToken,
     };
 };
 
@@ -226,7 +236,7 @@ const syncUser = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'User synced successfully',
-            user: buildSafeUserResponse(updatedUser.data()),
+            user: await buildSafeUserResponse(updatedUser.data()),
         });
     } catch (error) {
         next(error);
@@ -292,7 +302,7 @@ const getMe = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            user: buildSafeUserResponse(userDoc.data()),
+            user: await buildSafeUserResponse(userDoc.data()),
         });
     } catch (error) {
         next(error);
@@ -372,4 +382,5 @@ module.exports = {
     getMe,
     updateActivityTime,
     deleteAccount,
+    buildSafeUserResponse,
 };
