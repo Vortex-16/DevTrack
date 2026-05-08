@@ -62,6 +62,7 @@ const schemas = {
         projectIdea: Joi.string().max(2000).allow('').optional(), // Overall project idea/goal
         status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
         repositoryUrl: Joi.string().uri().allow('').optional(),
+        liveUrl: Joi.string().uri().allow('').optional(),
         technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
         progress: Joi.number().min(0).max(100).optional(),
         commits: Joi.number().min(0).optional(),
@@ -74,6 +75,7 @@ const schemas = {
         description: Joi.string().max(1000).allow('').optional(),
         status: Joi.string().valid('Planning', 'Active', 'On Hold', 'Completed').optional(),
         repositoryUrl: Joi.string().uri().allow('').optional(),
+        liveUrl: Joi.string().uri().allow('').optional(),
         technologies: Joi.array().items(Joi.string().max(50)).max(20).optional(),
         progress: Joi.number().min(0).max(100).optional(),
         commits: Joi.number().min(0).optional(),

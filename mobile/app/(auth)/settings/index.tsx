@@ -4,6 +4,7 @@ import {
   Image, Alert, Linking, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import {
@@ -14,7 +15,12 @@ import { preferencesApi, notificationsApi, authApi } from '../../../src/services
 import { useAuthStore } from '../../../src/store';
 import { ScreenHeader, Toast, Button } from '../../../src/components/ui';
 import { colors, spacing, radius, fontSize, fontWeight, globalStyles } from '../../../src/theme';
-import { registerForPushNotificationsAsync, sendLocalNotification } from '../../../src/services/notifications';
+
+const isExpoGo = Constants.appOwnership === 'expo';
+
+async function loadNotifications() {
+  return import('../../../src/services/notifications');
+}
 
 // ─── Row Components ───────────────────────────────────────────────
 interface SettingRowProps {
@@ -98,6 +104,14 @@ export default function SettingsScreen() {
   const handleNotifToggle = async (val: boolean) => {
     try {
       if (val) {
+        if (isExpoGo) {
+          showToast('Push notifications require a development build', 'info');
+          setNotifEnabled(false);
+          return;
+        }
+
+        const { registerForPushNotificationsAsync, sendLocalNotification } = await loadNotifications();
+
         // This will trigger the system permission popup
         const { token, error } = await registerForPushNotificationsAsync();
         if (token) {
@@ -130,6 +144,12 @@ export default function SettingsScreen() {
 
   const testNotif = async () => {
     try {
+      if (isExpoGo) {
+        showToast('Push notifications require a development build', 'info');
+        return;
+      }
+
+      const { sendLocalNotification } = await loadNotifications();
       await sendLocalNotification('Test Notification', 'Everything is working perfectly! ✅');
       showToast('Test sent!', 'success');
     } catch (e) {

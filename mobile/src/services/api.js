@@ -1,10 +1,17 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Live server URL
-const baseURL = 'https://devtrack-api.onrender.com/api';
+// Live server URL (configurable)
+const DEFAULT_BASE_URL = 'https://devtrack-api.onrender.com/api';
+const baseURL =
+    Constants?.expoConfig?.extra?.API_URL ||
+    process.env.API_URL ||
+    DEFAULT_BASE_URL;
 
 const CACHE_PREFIX = '@api_cache:';
+const DEFAULT_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
+const CACHE_TTL_MS = Constants?.expoConfig?.extra?.API_CACHE_TTL_MS || process.env.API_CACHE_TTL_MS || DEFAULT_CACHE_TTL_MS;
 
 const api = axios.create({
     baseURL,
@@ -29,7 +36,15 @@ const saveToCache = async (url, params, data) => {
 const getFromCache = async (url, params) => {
     try {
         const cached = await AsyncStorage.getItem(getCacheKey(url, params));
-        return cached ? JSON.parse(cached).data : null;
+        if (!cached) return null;
+        const parsed = JSON.parse(cached);
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (age > CACHE_TTL_MS) {
+            // Cache expired
+            try { await AsyncStorage.removeItem(getCacheKey(url, params)); } catch (e) { /* ignore */ }
+            return null;
+        }
+        return parsed.data;
     } catch (e) { return null; }
 };
 

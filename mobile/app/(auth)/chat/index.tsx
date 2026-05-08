@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { geminiApi } from '../../../src/services/api';
 import { Send, Bot, User, Trash2, Sparkles } from 'lucide-react-native';
 import { colors, spacing, radius, fontSize, fontWeight, globalStyles } from '../../../src/theme';
+import { GlassCard } from '../../../src/components/ui';
 
 interface Message {
   id: string;
@@ -139,7 +140,7 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={globalStyles.screen}>
       {/* ── Header ── */}
-      <View style={s.header}>
+      <GlassCard style={s.headerCard} contentStyle={s.header} intensity={28}>
         <View style={s.aiIndicator}>
           <Sparkles size={16} color={colors.accent.primary} />
         </View>
@@ -150,7 +151,7 @@ export default function ChatScreen() {
         <TouchableOpacity style={s.clearBtn} onPress={clearChat}>
           <Trash2 size={18} color={colors.text.muted} />
         </TouchableOpacity>
-      </View>
+      </GlassCard>
 
       {/* ── Messages ── */}
       <FlatList
@@ -175,9 +176,11 @@ export default function ChatScreen() {
       {showSuggestions && (
         <View style={s.suggestionsRow}>
           {SUGGESTIONS.map((s) => (
-            <TouchableOpacity key={s} style={s2.suggestionChip} onPress={() => sendMessage(s)}>
-              <Text style={s2.suggestionText}>{s}</Text>
-            </TouchableOpacity>
+            <GlassCard key={s} style={s2.suggestionCard} contentStyle={s2.suggestionCardContent} intensity={18} radiusSize={9999}>
+              <TouchableOpacity style={s2.suggestionChip} onPress={() => sendMessage(s)}>
+                <Text style={s2.suggestionText}>{s}</Text>
+              </TouchableOpacity>
+            </GlassCard>
           ))}
         </View>
       )}
@@ -187,7 +190,7 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={s.inputBar}>
+        <GlassCard style={s.inputCard} contentStyle={s.inputBar} intensity={32}>
           <TextInput
             style={s.textInput}
             placeholder="Ask anything about your projects..."
@@ -210,25 +213,29 @@ export default function ChatScreen() {
               <Send size={18} color={colors.white} />
             )}
           </TouchableOpacity>
-        </View>
+        </GlassCard>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
+  headerCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    borderRadius: 28,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.bg.border,
   },
   aiIndicator: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: colors.accent.glow,
     borderWidth: 1,
     borderColor: colors.accent.primary + '60',
@@ -248,12 +255,15 @@ const s = StyleSheet.create({
   },
   clearBtn: {
     padding: spacing.sm,
-    backgroundColor: colors.bg.elevated,
-    borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   listContent: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    paddingBottom: spacing.lg,
   },
   messageRow: {
     flexDirection: 'row',
@@ -308,26 +318,34 @@ const s = StyleSheet.create({
     paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
+  suggestionCard: {
+    borderRadius: 9999,
+  },
+  suggestionCardContent: {
+    borderRadius: 9999,
+  },
+  inputCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: 28,
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.bg.border,
-    backgroundColor: colors.bg.primary,
     gap: spacing.sm,
   },
   textInput: {
     flex: 1,
-    backgroundColor: colors.bg.secondary,
+    backgroundColor: 'rgba(15,23,42,0.7)',
     borderRadius: radius.xl,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     color: colors.text.primary,
     fontSize: fontSize.base,
     borderWidth: 1,
-    borderColor: colors.bg.border,
+    borderColor: 'rgba(255,255,255,0.08)',
     maxHeight: 120,
   },
   sendBtn: {
@@ -344,10 +362,6 @@ const s2 = StyleSheet.create({
   suggestionChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
-    backgroundColor: colors.accent.glow,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.accent.primary + '50',
   },
   suggestionText: {
     fontSize: fontSize.xs,

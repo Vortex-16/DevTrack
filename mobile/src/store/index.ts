@@ -52,7 +52,9 @@ export interface Project {
   language?: string;
   status: 'active' | 'paused' | 'completed' | 'planned';
   techStack?: string[];
+  technologies?: string[];
   githubUrl?: string;
+  repositoryUrl?: string;
   liveUrl?: string;
   commits?: number;
   lastActivity?: string;

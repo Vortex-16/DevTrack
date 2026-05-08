@@ -20,7 +20,7 @@ import {
   Folder, Plus, Search, Trash2, Edit3, ExternalLink, X,
   GitBranch, Clock, Zap, Code2, CheckCircle2, PauseCircle, Circle
 } from 'lucide-react-native';
-import { Button, SectionHeader, Badge, EmptyState, FullScreenLoader, Toast, ScreenHeader } from '../../../src/components/ui';
+import { Button, SectionHeader, Badge, EmptyState, FullScreenLoader, Toast, ScreenHeader, GlassCard } from '../../../src/components/ui';
 import { colors, spacing, radius, fontSize, fontWeight, globalStyles } from '../../../src/theme';
 import type { Project } from '../../../src/store';
 
@@ -126,7 +126,7 @@ function ProjectModal({ visible, project, onClose, onSave, saving }: ProjectModa
       setGithub(project.githubUrl ?? (project as any).repositoryUrl ?? '');
       setLive(project.liveUrl ?? '');
       setStack((project.techStack ?? (project as any).technologies ?? []).join(', '));
-      setStatus(getStatus(project.status).value as Project['status']);
+      setStatus(getStatus(project.status ?? 'active').value as Project['status']);
     } else {
       setName(''); setDesc(''); setLang(''); setGithub('');
       setLive(''); setStack(''); setStatus('active');
@@ -319,49 +319,51 @@ export default function ProjectsScreen() {
         title="Projects"
         subtitle={`${safeProjects.length} total`}
         right={
-          <TouchableOpacity style={s.addBtn} onPress={openCreate}>
+          <TouchableOpacity style={s.addBtn} onPress={openCreate} activeOpacity={0.85}>
             <Plus size={20} color={colors.white} />
           </TouchableOpacity>
         }
       />
 
-      {/* ── Search ── */}
-      <View style={s.searchRow}>
-        <View style={s.searchBox}>
-          <Search size={16} color={colors.text.muted} style={{ marginRight: spacing.sm }} />
-          <TextInput
-            style={s.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search projects..."
-            placeholderTextColor={colors.text.muted}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <X size={14} color={colors.text.muted} />
-            </TouchableOpacity>
-          )}
+      <GlassCard style={s.controlsShell} contentStyle={s.controlsContent} intensity={28} radiusSize={28}>
+        {/* ── Search ── */}
+        <View style={s.searchRow}>
+          <View style={s.searchBox}>
+            <Search size={16} color={colors.text.muted} style={{ marginRight: spacing.sm }} />
+            <TextInput
+              style={s.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search projects..."
+              placeholderTextColor={colors.text.muted}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={14} color={colors.text.muted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
 
-      {/* ── Filter tabs ── */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
-        {['all', ...STATUS_OPTIONS.map((s) => s.value)].map((f) => {
-          const opt = STATUS_OPTIONS.find((o) => o.value === f);
-          const active = filterStatus === f;
-          return (
-            <TouchableOpacity
-              key={f}
-              style={[s.filterTab, active && { backgroundColor: (opt?.color ?? colors.accent.primary) + '20', borderColor: opt?.color ?? colors.accent.primary }]}
-              onPress={() => setFilterStatus(f)}
-            >
-              <Text style={[s.filterTabText, active && { color: opt?.color ?? colors.accent.primary }]}>
-                {f === 'all' ? 'All' : (opt?.label ?? f)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        {/* ── Filter tabs ── */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+          {['all', ...STATUS_OPTIONS.map((s) => s.value)].map((f) => {
+            const opt = STATUS_OPTIONS.find((o) => o.value === f);
+            const active = filterStatus === f;
+            return (
+              <TouchableOpacity
+                key={f}
+                style={[s.filterTab, active && { backgroundColor: (opt?.color ?? colors.accent.primary) + '20', borderColor: opt?.color ?? colors.accent.primary }]}
+                onPress={() => setFilterStatus(f)}
+              >
+                <Text style={[s.filterTabText, active && { color: opt?.color ?? colors.accent.primary }]}>
+                  {f === 'all' ? 'All' : (opt?.label ?? f)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        </GlassCard>
 
       {/* ── List ── */}
       <FlatList
@@ -370,7 +372,7 @@ export default function ProjectsScreen() {
         renderItem={({ item }) => (
           <ProjectCard project={item} onEdit={openEdit} onDelete={handleDelete} />
         )}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.primary} />
         }
@@ -402,24 +404,35 @@ const s = StyleSheet.create({
   addBtn: {
     width: 40,
     height: 40,
-    backgroundColor: colors.accent.primary,
+    backgroundColor: 'rgba(99,102,241,0.95)',
     borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  controlsShell: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: 28,
+  },
+  controlsContent: {
+    borderRadius: 28,
   },
   searchRow: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bg.secondary,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(30,41,59,0.78)',
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
     borderWidth: 1,
-    borderColor: colors.bg.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   searchInput: {
     flex: 1,
@@ -427,8 +440,8 @@ const s = StyleSheet.create({
     fontSize: fontSize.base,
   },
   filterRow: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     gap: spacing.sm,
   },
   filterTab: {
@@ -436,8 +449,8 @@ const s = StyleSheet.create({
     paddingVertical: spacing.xs + 2,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.bg.border,
-    backgroundColor: colors.bg.secondary,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(30,41,59,0.64)',
   },
   filterTabText: {
     fontSize: fontSize.sm,

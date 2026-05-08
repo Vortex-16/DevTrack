@@ -1,4 +1,5 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { Home, Folder, BookOpen, Share2, Bot, Settings } from 'lucide-react-native';
 import { View } from 'react-native';
 import { colors, radius, spacing } from '../../src/theme';
@@ -7,6 +8,8 @@ import { FloatingAIChatButton } from '../../src/components/chat/FloatingAIChatBu
 
 export default function AuthLayout() {
     const insets = useSafeAreaInsets();
+    const segments = useSegments();
+    const isChatScreen = segments.join('/').includes('chat');
     const TAB_BAR_HEIGHT = 60 + insets.bottom;
 
     return (
@@ -14,16 +17,30 @@ export default function AuthLayout() {
             <Tabs
                 screenOptions={{
                     headerShown: false,
+                    tabBarBackground: () => (
+                        <BlurView intensity={58} tint="dark" style={{ flex: 1 }} />
+                    ),
                     tabBarStyle: {
-                        backgroundColor: colors.bg.secondary,
-                        borderTopColor: colors.bg.border,
-                        borderTopWidth: 1,
+                        display: isChatScreen ? 'none' : 'flex',
+                        position: 'absolute',
+                        left: spacing.lg,
+                        right: spacing.lg,
+                        bottom: insets.bottom > 0 ? insets.bottom : spacing.md,
+                        borderTopWidth: 0,
+                        backgroundColor: 'rgba(22,26,34,0.52)',
+                        borderRadius: 9999,
                         height: TAB_BAR_HEIGHT,
                         paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-                        paddingTop: 8,
-                        paddingHorizontal: spacing.md,
-                        elevation: 0,
-                        shadowOpacity: 0,
+                        paddingTop: 7,
+                        paddingHorizontal: spacing.sm,
+                        overflow: 'hidden',
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.16)',
+                        elevation: 16,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.3,
+                        shadowRadius: 24,
+                        shadowOffset: { width: 0, height: 12 },
                     },
                     tabBarActiveTintColor: colors.accent.primary,
                     tabBarInactiveTintColor: colors.text.muted,
@@ -32,6 +49,11 @@ export default function AuthLayout() {
                         fontSize: 11,
                         fontWeight: '500',
                         marginTop: 2,
+                    },
+                    tabBarItemStyle: {
+                        borderRadius: radius.md,
+                        marginHorizontal: 0,
+                        marginVertical: 2,
                     },
                 }}
             >

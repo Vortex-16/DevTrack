@@ -225,6 +225,8 @@ export function Toast({ message, type = 'info' }: ToastProps) {
   );
 }
 
+export { GlassCard } from './GlassCard';
+
 // =================== STYLES ===================
 
 const s = StyleSheet.create({

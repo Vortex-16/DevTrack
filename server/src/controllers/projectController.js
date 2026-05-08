@@ -103,7 +103,7 @@ const getProject = async (req, res, next) => {
 const createProject = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-        const { name, description, projectIdea, status, repositoryUrl, technologies, progress, commits, githubData, aiAnalysis } = req.body;
+        const { name, description, projectIdea, status, repositoryUrl, liveUrl, technologies, progress, commits, githubData, aiAnalysis } = req.body;
 
         const GitHubService = require('../services/githubService');
 
@@ -246,6 +246,7 @@ const createProject = async (req, res, next) => {
             projectIdea: projectIdea || '',
             status: status || 'Planning',
             repositoryUrl: repositoryUrl || '',
+            liveUrl: liveUrl || '',
             technologies: technologies || [],
             progress: aiAnalysis?.progressPercentage || progress || 0,
             commits: req.body.userCommits || githubData?.totalCommits || commits || 0,
