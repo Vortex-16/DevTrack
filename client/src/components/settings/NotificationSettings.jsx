@@ -36,6 +36,18 @@ const NotificationSettings = ({ isOpen, onClose }) => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [downloading, setDownloading] = useState(false);
+    const [triggering, setTriggering] = useState(false);
+    const [queueStatus, setQueueStatus] = useState(null);
+    const [hasReports, setHasReports] = useState(false);
+    const [autoDownload, setAutoDownload] = useState(false);
+    const autoDownloadRef = useRef(false);
+    
+    // Sync ref with state
+    useEffect(() => {
+        autoDownloadRef.current = autoDownload;
+    }, [autoDownload]);
+    
+    const pollingInterval = useRef(null);
     const contentRef = useRef(null);
 
     // Initialize Lenis for smooth scrolling
@@ -66,12 +78,71 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         };
     }, [isOpen, loading]);
 
-    // Load current preferences
+    // Load initial data and start polling
     useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const [statusRes, historyRes] = await Promise.all([
+                    reportsApi.getStatus(),
+                    reportsApi.getHistory({ limit: 1 })
+                ]);
+                
+                if (statusRes.data.success) {
+                    setQueueStatus(statusRes.data.data);
+                }
+
+                if (historyRes.data.success) {
+                    setHasReports(historyRes.data.data.length > 0);
+                }
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+            }
+        };
+
         if (isOpen) {
             loadPreferences();
+            fetchInitialData();
+            startPolling();
         }
+
+        return () => stopPolling();
     }, [isOpen]);
+
+    const startPolling = () => {
+        if (pollingInterval.current) return;
+        pollingInterval.current = setInterval(async () => {
+            try {
+                const res = await reportsApi.getStatus();
+                if (res.data.success) {
+                    const status = res.data.data;
+                    setQueueStatus(status);
+                    
+                    // If auto-download is active and job just finished
+                    if (autoDownloadRef.current && !status.pendingJob) {
+                        setAutoDownload(false);
+                        handleDownloadReport();
+                    }
+
+                    // If a job just finished, update reports status
+                    if (!status.pendingJob && hasReports === false) {
+                        const historyRes = await reportsApi.getHistory({ limit: 1 });
+                        if (historyRes.data.success && historyRes.data.data.length > 0) {
+                            setHasReports(true);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }, 5000);
+    };
+
+    const stopPolling = () => {
+        if (pollingInterval.current) {
+            clearInterval(pollingInterval.current);
+            pollingInterval.current = null;
+        }
+    };
 
     const loadPreferences = async () => {
         try {
@@ -141,21 +212,34 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             setDownloading(false);
         }
     };
-
-    const [triggering, setTriggering] = useState(false);
     const handleTriggerReport = async () => {
         setTriggering(true);
+        setAutoDownload(true); // Enable auto-download for this trigger
         setMessage({ type: '', text: '' });
         try {
             await reportsApi.trigger();
-            setMessage({ type: 'success', text: 'Report generation started! It will be ready in 1-2 minutes.' });
+            setMessage({ type: 'success', text: 'Report generation started! It will download automatically when ready.' });
+            // Start polling immediately to catch the new job
+            const res = await reportsApi.getStatus();
+            if (res.data.success) setQueueStatus(res.data.data);
         } catch (error) {
             console.error('Trigger error:', error);
             setMessage({ type: 'error', text: 'Failed to start report generation.' });
+            setAutoDownload(false);
         } finally {
             setTriggering(false);
         }
     };
+
+    const getProgressStatus = () => {
+        if (!queueStatus?.pendingJob) return null;
+        const status = queueStatus.pendingJob.status;
+        if (status === 'pending') return { label: 'In Queue', percent: 20 };
+        if (status === 'processing') return { label: 'AI Analyzing & Generating PDF...', percent: 60 };
+        return { label: status, percent: 50 };
+    };
+
+    const progress = getProgressStatus();
 
     const handleScheduleChange = (field, value) => {
         const schedule = preferences.reportSchedule || { dayOfWeek: 1, hour: 15 };
@@ -299,21 +383,41 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     <div className="flex flex-wrap gap-3">
                                         <button
                                             onClick={handleDownloadReport}
-                                            disabled={downloading}
-                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all disabled:opacity-50"
+                                            disabled={downloading || !hasReports}
+                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            title={!hasReports ? "No reports available yet" : ""}
                                         >
                                             <FileDown size={18} />
                                             {downloading ? 'Downloading...' : 'Download Latest Report'}
                                         </button>
                                         <button
                                             onClick={handleTriggerReport}
-                                            disabled={triggering}
+                                            disabled={triggering || !!progress}
                                             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white font-semibold rounded-lg border border-slate-700 hover:bg-slate-700 transition-all disabled:opacity-50"
                                         >
-                                            <Zap size={18} className="text-yellow-400" />
-                                            {triggering ? 'Queuing...' : 'Generate Fresh Report'}
+                                            <Zap size={18} className={progress ? "text-yellow-400 animate-pulse" : "text-yellow-400"} />
+                                            {progress ? 'Processing...' : 'Generate Fresh Report'}
                                         </button>
                                     </div>
+
+                                    {progress && (
+                                        <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-medium text-slate-300">{progress.label}</span>
+                                                <span className="text-xs font-bold text-purple-400">{progress.percent}%</span>
+                                            </div>
+                                            <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${progress.percent}%` }}
+                                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-2 italic">
+                                                This usually takes 30-60 seconds while our AI analyzes your GitHub activity.
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="mt-4 pt-4 border-t border-slate-700">
                                         <p className="text-sm font-semibold text-white mb-2">Automated Delivery</p>
                                         <div className="flex gap-2 mb-2">

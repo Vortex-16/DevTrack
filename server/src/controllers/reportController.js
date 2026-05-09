@@ -3,7 +3,7 @@
  * Manages PDF report history, per-user scheduling, and manual triggers.
  */
 
-const { db, collections } = require('../config/firebase');
+const { getFirestore, collections } = require('../config/firebase');
 const reportService = require('../services/reportService');
 const reportQueue = require('../services/reportQueueService');
 const { APIError } = require('../middleware/errorHandler');
@@ -199,12 +199,13 @@ exports.getQueueStatus = async (req, res, next) => {
 
         const userData = userDoc.exists ? userDoc.data() : {};
 
-        // Find any pending/processing job
-        const pendingJob = await db.collection('reportJobs')
+        // Fetch jobs and filter in-memory to avoid composite index requirements
+        const jobsSnapshot = await getFirestore().collection('reportJobs')
             .where('userId', '==', userId)
-            .where('status', 'in', ['pending', 'processing'])
-            .limit(1)
             .get();
+
+        const allUserJobs = jobsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const pendingJob = allUserJobs.find(job => ['pending', 'processing'].includes(job.status));
 
         res.status(200).json({
             success: true,
@@ -212,12 +213,9 @@ exports.getQueueStatus = async (req, res, next) => {
                 lastReportSentAt: userData.lastReportSentAt || null,
                 lastCompletedJob: lastJob,
                 recentJobs: jobHistory,
-                pendingJob: pendingJob.empty ? null : {
-                    id: pendingJob.docs[0].id,
-                    ...pendingJob.docs[0].data(),
-                },
+                pendingJob: pendingJob || null,
                 schedule: userData.reportPreferences || { dayOfWeek: 1, hour: 15, frequency: 'weekly', enabled: true },
-            },
+            }
         });
     } catch (error) {
         next(error);
@@ -258,6 +256,39 @@ exports.triggerReport = async (req, res, next) => {
             success: true,
             message: 'Report queued! You\'ll receive it via email within a few minutes.',
             data: { jobId: result.jobId, alreadyQueued: false },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// Get latest job status for polling
+exports.getLatestJobStatus = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+
+        // Get the most recent job for this user
+        const snapshot = await getFirestore().collection('reportJobs')
+            .where('userId', '==', userId)
+            .get();
+
+        if (snapshot.empty) {
+            return res.status(200).json({ success: true, status: 'none' });
+        }
+
+        // Sort in-memory to avoid index requirement
+        const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        const latestJob = jobs[0];
+
+        res.status(200).json({
+            success: true,
+            jobId: latestJob.id,
+            status: latestJob.status,
+            reportType: latestJob.reportType,
+            createdAt: latestJob.createdAt,
+            completedAt: latestJob.completedAt,
+            lastError: latestJob.lastError
         });
     } catch (error) {
         next(error);

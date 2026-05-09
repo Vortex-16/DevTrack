@@ -589,7 +589,7 @@ class ReportService {
         });
     }
 
-    async sendWeeklyReportEmail(userId) {
+    async sendWeeklyReportEmail(userId, options = {}) {
         try {
             const userDoc = await collections.users().doc(userId).get();
             if (!userDoc.exists) {
@@ -598,7 +598,9 @@ class ReportService {
             }
 
             const user = userDoc.data();
-            if (!user.email) {
+            const skipEmail = options.reportType === 'manual';
+
+            if (!user.email && !skipEmail) {
                 console.log(`User ${userId} has no email`);
                 return { success: false, error: 'No email' };
             }
@@ -608,11 +610,9 @@ class ReportService {
                 return { success: false, error: 'GitHub not connected' };
             }
 
-            console.log(`Generating PDF report and AI Insights for ${user.email}...`);
+            console.log(`Generating PDF report and AI Insights for ${user.githubUsername}...`);
             const reportData = await this.generatePDFReport(userId);
             const { pdfBuffer, aiInsights, stats } = reportData;
-
-            const aiSummary = aiInsights ? aiInsights.executiveSummary || aiInsights.summary : '';
 
             // Store the report data in Firestore for historical tracking
             try {
@@ -623,13 +623,19 @@ class ReportService {
                     stats: stats,
                     aiInsights: aiInsights || null
                 });
-                console.log(`Saved report history to Firestore for ${user.email}`);
+                console.log(`Saved report history to Firestore for ${user.githubUsername}`);
             } catch (dbError) {
                 console.error(`Failed to save report history to Firestore:`, dbError);
-                // Continue sending email even if db save fails
+            }
+
+            // Skip email if it's a manual trigger
+            if (skipEmail) {
+                console.log(`Skipping email for manual report trigger for user ${userId}`);
+                return { success: true, message: 'Report generated and saved' };
             }
 
             console.log(`Sending report to ${user.email}...`);
+            const aiSummary = aiInsights ? aiInsights.executiveSummary || aiInsights.summary : '';
             const result = await emailService.sendWeeklyReport(
                 user.email,
                 user.name || user.githubUsername,
@@ -645,7 +651,7 @@ class ReportService {
             console.log(`Report sent to ${user.email}!`);
             return { success: true, messageId: result.messageId };
         } catch (error) {
-            console.error(`Error sending report to user ${userId}:`, error.message);
+            console.error(`Error processing report for user ${userId}:`, error.message);
             return { success: false, error: error.message };
         }
     }
@@ -656,7 +662,7 @@ class ReportService {
      * @param {string} userId
      */
     async sendWeeklyReport(userId, options = {}) {
-        return this.sendWeeklyReportEmail(userId);
+        return this.sendWeeklyReportEmail(userId, options);
     }
 
     /**

@@ -232,8 +232,11 @@ const processQueue = async (batchSize = 5) => {
                 }
 
                 // Process the job — this may take 10-30 seconds
-                console.log(`📄 Processing report for user ${job.userId}...`);
-                await reportService.sendWeeklyReport(job.userId, { fromQueue: true });
+                console.log(`📄 Processing ${job.reportType || 'weekly'} report for user ${job.userId}...`);
+                await reportService.sendWeeklyReport(job.userId, { 
+                    fromQueue: true,
+                    reportType: job.reportType || 'weekly'
+                });
 
                 // Mark completed and record timestamp on user doc
                 const completedAt = new Date().toISOString();
@@ -292,14 +295,17 @@ const processQueue = async (batchSize = 5) => {
 const getJobHistory = async (userId, limit = 10) => {
     const snapshot = await getFirestore().collection('reportJobs')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .limit(limit)
         .get();
 
-    return snapshot.docs.map(doc => ({
+    const jobs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
     }));
+
+    // Sort by createdAt desc in-memory
+    jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return jobs.slice(0, limit);
 };
 
 /**
@@ -310,12 +316,16 @@ const getLastCompletedJob = async (userId) => {
     const snapshot = await getFirestore().collection('reportJobs')
         .where('userId', '==', userId)
         .where('status', '==', 'completed')
-        .orderBy('completedAt', 'desc')
-        .limit(1)
         .get();
 
     if (snapshot.empty) return null;
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+
+    const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Sort by completedAt desc in-memory
+    jobs.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+
+    return jobs[0];
 };
 
 /**
@@ -326,12 +336,18 @@ const getLastCompletedJob = async (userId) => {
  * @returns {Promise<{jobId: string}>}
  */
 const triggerManualReport = async (userId, email, username) => {
-    return enqueueJob(userId, {
+    const result = await enqueueJob(userId, {
         email,
         username,
         scheduledAt: new Date(),
         reportType: 'manual',
     });
+
+    // Kick off processing in the background immediately
+    // We don't await this so the API response remains fast
+    processQueue(3).catch(err => console.error('Error starting manual job processing:', err));
+
+    return result;
 };
 
 module.exports = {
