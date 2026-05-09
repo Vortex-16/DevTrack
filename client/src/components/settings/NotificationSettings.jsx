@@ -152,6 +152,12 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             const response = await preferencesApi.get();
             const data = response.data.data;
             
+            let finalPreferences = { ...preferences };
+
+            if (data.preferences) {
+                finalPreferences = { ...finalPreferences, ...data.preferences };
+            }
+
             if (data.reportPreferences) {
                 // Convert UTC (day + hour) from server to local for UI
                 const utcHour = data.reportPreferences.hour ?? 15;
@@ -160,15 +166,14 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                 // Use a reference date (May 4, 2026 was a Monday, day 1)
                 const date = new Date(Date.UTC(2026, 4, 3 + utcDay, utcHour));
                 
-                setPreferences(prev => ({
-                    ...prev,
-                    reportSchedule: {
-                        ...data.reportPreferences,
-                        dayOfWeek: date.getDay(),
-                        hour: date.getHours()
-                    }
-                }));
+                finalPreferences.reportSchedule = {
+                    ...data.reportPreferences,
+                    dayOfWeek: date.getDay(),
+                    hour: date.getHours()
+                };
             }
+
+            setPreferences(finalPreferences);
 
             if (data.userGoal) {
                 setUserGoal(data.userGoal);

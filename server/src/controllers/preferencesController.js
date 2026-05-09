@@ -118,6 +118,7 @@ const getPreferences = async (req, res, next) => {
             success: true,
             data: {
                 preferences: userData.preferences || DEFAULT_PREFERENCES,
+                reportPreferences: userData.reportPreferences || { dayOfWeek: 1, hour: 15, frequency: 'weekly', enabled: true },
                 userGoal: userData.userGoal || null,
                 onboardingCompleted: userData.onboardingCompleted || false,
             },
@@ -134,7 +135,7 @@ const getPreferences = async (req, res, next) => {
 const updatePreferences = async (req, res, next) => {
     try {
         const { userId } = req.auth;
-        const { preferences, userGoal } = req.body;
+        const { preferences, reportPreferences, userGoal } = req.body;
 
         const userRef = collections.users().doc(userId);
         const userDoc = await userRef.get();
@@ -202,6 +203,20 @@ const updatePreferences = async (req, res, next) => {
             updateData.userGoal = userGoal;
         }
 
+        if (reportPreferences !== undefined) {
+            // Basic validation for report preferences
+            const VALID_DAYS = [0, 1, 2, 3, 4, 5, 6];
+            const VALID_HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+            const schedule = {
+                dayOfWeek: VALID_DAYS.includes(Number(reportPreferences.dayOfWeek)) ? Number(reportPreferences.dayOfWeek) : 1,
+                hour: VALID_HOURS.includes(Number(reportPreferences.hour)) ? Number(reportPreferences.hour) : 15,
+                frequency: ['weekly', 'biweekly'].includes(reportPreferences.frequency) ? reportPreferences.frequency : 'weekly',
+                enabled: reportPreferences.enabled !== undefined ? Boolean(reportPreferences.enabled) : true,
+            };
+            updateData.reportPreferences = schedule;
+        }
+
         await userRef.update(updateData);
 
         const updatedUser = await userRef.get();
@@ -211,6 +226,7 @@ const updatePreferences = async (req, res, next) => {
             message: 'Preferences updated successfully',
             data: {
                 preferences: updatedUser.data().preferences,
+                reportPreferences: updatedUser.data().reportPreferences,
                 userGoal: updatedUser.data().userGoal,
             },
         });
