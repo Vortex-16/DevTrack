@@ -501,9 +501,11 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                             >
                                                 {[...Array(24)].map((_, i) => {
                                                     const d = new Date();
-                                                    d.setUTCHours(i, 0, 0, 0);
-                                                    const localTime = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                                                    return <option key={i} value={i}>{`${i}:00 UTC (${localTime})`}</option>
+                                                    d.setHours(i, 0, 0, 0);
+                                                    const ampm = i >= 12 ? 'PM' : 'AM';
+                                                    const displayHour = i % 12 || 12;
+                                                    const utcHour = d.getUTCHours();
+                                                    return <option key={i} value={i}>{`${displayHour}:00 ${ampm} (${utcHour}:00 UTC)`}</option>
                                                 })}
                                             </select>
                                         </div>
