@@ -110,7 +110,7 @@ const enqueueWeeklyJobs = async () => {
     try {
         // Fetch all users with email (required for sending)
         const usersSnapshot = await collections.users()
-            .select('email', 'githubUsername', 'preferences', 'lastReportSentAt')
+            .select('email', 'githubUsername', 'reportPreferences', 'lastReportSentAt')
             .get();
 
         const jobs = [];
@@ -119,8 +119,8 @@ const enqueueWeeklyJobs = async () => {
             const data = userDoc.data();
             if (!data.email) { skipped++; continue; }
 
-            // Default schedule: Monday 15:00 UTC (8:30 PM IST)
-            const schedule = data.preferences?.reportSchedule || { dayOfWeek: 1, hour: 15 };
+            // Use reportPreferences (matches reportController.js)
+            const schedule = data.reportPreferences || { dayOfWeek: 1, hour: 15 };
             const targetDay = typeof schedule.dayOfWeek === 'number' ? schedule.dayOfWeek : 1;
             const targetHour = typeof schedule.hour === 'number' ? schedule.hour : 15;
 
@@ -174,9 +174,10 @@ const enqueueWeeklyJobs = async () => {
  * before processing it, preventing race conditions if multiple instances run.
  *
  * @param {number} [batchSize=5] - max jobs to process per invocation
+ * @param {string} [targetUserId] - optional: process only jobs for this user
  * @returns {Promise<{processed: number, failed: number}>}
  */
-const processQueue = async (batchSize = 5) => {
+const processQueue = async (batchSize = 5, targetUserId = null) => {
     const now = new Date();
     let processed = 0;
     let failed = 0;
@@ -196,8 +197,15 @@ const processQueue = async (batchSize = 5) => {
         const nowStr = now.toISOString();
         
         // Filter in-memory for jobs that are due to avoid composite index error
-        const dueJobsDocs = pendingJobsSnapshot.docs
-            .filter(doc => doc.data().scheduledAt <= nowStr)
+        let dueJobsDocs = pendingJobsSnapshot.docs
+            .filter(doc => doc.data().scheduledAt <= nowStr);
+
+        // If targetUserId is provided, prioritize/limit to that user
+        if (targetUserId) {
+            dueJobsDocs = dueJobsDocs.filter(doc => doc.data().userId === targetUserId);
+        }
+
+        dueJobsDocs = dueJobsDocs
             .sort((a, b) => a.data().scheduledAt.localeCompare(b.data().scheduledAt))
             .slice(0, batchSize);
 
@@ -233,10 +241,14 @@ const processQueue = async (batchSize = 5) => {
 
                 // Process the job — this may take 10-30 seconds
                 console.log(`📄 Processing ${job.reportType || 'weekly'} report for user ${job.userId}...`);
-                await reportService.sendWeeklyReport(job.userId, { 
+                const result = await reportService.sendWeeklyReport(job.userId, { 
                     fromQueue: true,
                     reportType: job.reportType || 'weekly'
                 });
+
+                if (!result || result.success === false) {
+                    throw new Error(result?.error || 'Report generation failed without specific error');
+                }
 
                 // Mark completed and record timestamp on user doc
                 const completedAt = new Date().toISOString();
@@ -343,9 +355,9 @@ const triggerManualReport = async (userId, email, username) => {
         reportType: 'manual',
     });
 
-    // Kick off processing in the background immediately
+    // Kick off processing in the background immediately for THIS user
     // We don't await this so the API response remains fast
-    processQueue(3).catch(err => console.error('Error starting manual job processing:', err));
+    processQueue(1, userId).catch(err => console.error('Error starting manual job processing:', err));
 
     return result;
 };

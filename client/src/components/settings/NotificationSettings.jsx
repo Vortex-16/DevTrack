@@ -111,6 +111,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
     const startPolling = () => {
         if (pollingInterval.current) return;
         pollingInterval.current = setInterval(async () => {
+            // Safety check: Don't poll if Clerk isn't ready or user isn't logged in
+            if (!window.Clerk?.session) return;
+
             try {
                 const res = await reportsApi.getStatus();
                 if (res.data.success) {
@@ -148,9 +151,25 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         try {
             const response = await preferencesApi.get();
             const data = response.data.data;
-            if (data.preferences) {
-                setPreferences(data.preferences);
+            
+            if (data.reportPreferences) {
+                // Convert UTC (day + hour) from server to local for UI
+                const utcHour = data.reportPreferences.hour ?? 15;
+                const utcDay = data.reportPreferences.dayOfWeek ?? 1;
+                
+                // Use a reference date (May 4, 2026 was a Monday, day 1)
+                const date = new Date(Date.UTC(2026, 4, 3 + utcDay, utcHour));
+                
+                setPreferences(prev => ({
+                    ...prev,
+                    reportSchedule: {
+                        ...data.reportPreferences,
+                        dayOfWeek: date.getDay(),
+                        hour: date.getHours()
+                    }
+                }));
             }
+
             if (data.userGoal) {
                 setUserGoal(data.userGoal);
             }
@@ -166,7 +185,25 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         setMessage({ type: '', text: '' });
 
         try {
-            await preferencesApi.update({ preferences, userGoal });
+            const localHour = preferences.reportSchedule?.hour ?? 15;
+            const localDay = preferences.reportSchedule?.dayOfWeek ?? 1;
+            
+            // Use local date to get UTC equivalents
+            const date = new Date(2026, 4, 3 + localDay, localHour);
+            const utcHour = date.getUTCHours();
+            const utcDay = date.getUTCDay();
+
+            const scheduleToSave = {
+                ...preferences.reportSchedule,
+                dayOfWeek: utcDay,
+                hour: utcHour
+            };
+
+            await preferencesApi.update({ 
+                preferences, 
+                userGoal,
+                reportPreferences: scheduleToSave 
+            });
             setMessage({ type: 'success', text: 'Preferences saved successfully!' });
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (error) {
@@ -234,9 +271,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
     const getProgressStatus = () => {
         if (!queueStatus?.pendingJob) return null;
         const status = queueStatus.pendingJob.status;
-        if (status === 'pending') return { label: 'In Queue', percent: 20 };
-        if (status === 'processing') return { label: 'AI Analyzing & Generating PDF...', percent: 60 };
-        return { label: status, percent: 50 };
+        if (status === 'pending') return { label: 'In Queue: Waiting for processing...', percent: 15 };
+        if (status === 'processing') return { label: 'Deep Analysis: AI is scanning your GitHub activity...', percent: 65 };
+        return { label: `Current Status: ${status}...`, percent: 40 };
     };
 
     const progress = getProgressStatus();
@@ -253,17 +290,12 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         const schedule = preferences.reportSchedule || { dayOfWeek: 1, hour: 15 };
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         
-        const date = new Date();
-        date.setUTCHours(schedule.hour, 0, 0, 0);
-        const dayDiff = (schedule.dayOfWeek - date.getUTCDay() + 7) % 7;
-        date.setUTCDate(date.getUTCDate() + dayDiff);
-        
-        const localDay = days[date.getDay()];
-        let localHour = date.getHours();
+        const localDay = days[schedule.dayOfWeek];
+        let localHour = schedule.hour;
         const ampm = localHour >= 12 ? 'PM' : 'AM';
-        localHour = localHour % 12 || 12;
+        const displayHour = localHour % 12 || 12;
         
-        return `every ${localDay} at ${localHour} ${ampm}`;
+        return `every ${localDay} at ${displayHour}:00 ${ampm}`;
     };
 
     const goals = [
@@ -401,21 +433,44 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     </div>
 
                                     {progress && (
-                                        <div className="mt-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-medium text-slate-300">{progress.label}</span>
-                                                <span className="text-xs font-bold text-purple-400">{progress.percent}%</span>
+                                        <div className="mt-4 p-4 bg-slate-800/80 rounded-xl border border-purple-500/20 shadow-xl shadow-purple-500/5 relative overflow-hidden group">
+                                            {/* Background glow */}
+                                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+                                            
+                                            <div className="flex justify-between items-center mb-3 relative z-10">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                                                    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">{progress.label}</span>
+                                                </div>
+                                                <span className="text-xs font-black text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">{progress.percent}%</span>
                                             </div>
-                                            <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                            
+                                            <div className="w-full bg-slate-950/50 h-2 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
                                                 <motion.div 
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${progress.percent}%` }}
-                                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                                                />
+                                                    transition={{ duration: 1, ease: "easeOut" }}
+                                                    className="h-full bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 relative"
+                                                    style={{ backgroundSize: '200% 100%' }}
+                                                >
+                                                    {/* Shimmer Effect */}
+                                                    <div className="absolute inset-0 shimmer-gradient animate-shimmer" style={{ width: '200%' }} />
+                                                    
+                                                    {/* Glow tip */}
+                                                    <div className="absolute right-0 top-0 h-full w-4 bg-white/20 blur-sm rounded-full" />
+                                                </motion.div>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 mt-2 italic">
-                                                This usually takes 30-60 seconds while our AI analyzes your GitHub activity.
-                                            </p>
+                                            
+                                            <div className="flex items-center justify-between mt-3">
+                                                <p className="text-[10px] text-slate-500 italic">
+                                                    Our engine is processing 365 days of data...
+                                                </p>
+                                                <div className="flex gap-1">
+                                                    <div className="w-1 h-1 rounded-full bg-purple-500/30 animate-bounce [animation-delay:-0.3s]" />
+                                                    <div className="w-1 h-1 rounded-full bg-purple-500/30 animate-bounce [animation-delay:-0.15s]" />
+                                                    <div className="w-1 h-1 rounded-full bg-purple-500/30 animate-bounce" />
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     <div className="mt-4 pt-4 border-t border-slate-700">
