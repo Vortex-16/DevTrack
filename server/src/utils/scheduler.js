@@ -1,22 +1,24 @@
 // DevTrack Scheduler
 // ─────────────────────────────────────────────────────────────────────────
-// All node-cron scheduled jobs for automated notifications.
-// Times use UTC — server is hosted internationally.
+// All node-cron scheduled jobs for automated notifications and background tasks.
+// Times use UTC — server is hosted on Render (international).
 //
 // IST reference (UTC+5:30):
 //   7:00 AM IST  = 01:30 UTC
 //   9:00 AM IST  = 03:30 UTC
 //   8:00 PM IST  = 14:30 UTC
-//   Every 5 min  = "* /5 * * * *" (no space in actual cron string)
+//   Every 5 min  = "*/5 * * * *"
+//   Every 30 min = "*/30 * * * *"
 // ─────────────────────────────────────────────────────────────────────────
 
 const cron = require('node-cron');
 const { getNotificationService } = require('../services/notificationService');
 const { refreshProjectsBatch } = require('../services/projectRefreshService');
 const { refreshAllGitHubAvatars } = require('../services/profileSyncService');
+const reportQueue = require('../services/reportQueueService');
 
 const initializeScheduler = () => {
-    console.log('⏰ Initializing DevTrack Notification Scheduler...');
+    console.log('⏰ Initializing DevTrack Scheduler...');
     const svc = getNotificationService();
 
     // ── JOB 1: Consistency Reminders ─────────────────────────────────────────
@@ -24,10 +26,9 @@ const initializeScheduler = () => {
     // Low overhead: only fires FCM for users whose time matches ±5 min window.
     cron.schedule('*/5 * * * *', async () => {
         try {
-            console.log('🔔 [Cron] Consistency reminder check...');
             await svc.checkAndSendReminders();
         } catch (error) {
-            console.error('❌ [Cron] Consistency Reminders error:', error.message);
+            console.error('❌ [Cron] Consistency Reminders:', error.message);
         }
     });
 
@@ -38,7 +39,7 @@ const initializeScheduler = () => {
             console.log('🏆 [Cron] Streak milestone check...');
             await svc.checkStreakMilestones();
         } catch (error) {
-            console.error('❌ [Cron] Streak Milestones error:', error.message);
+            console.error('❌ [Cron] Streak Milestones:', error.message);
         }
     });
 
@@ -50,7 +51,7 @@ const initializeScheduler = () => {
             console.log('📋 [Cron] Task due date check...');
             await svc.checkTasksDue();
         } catch (error) {
-            console.error('❌ [Cron] Task Due check error:', error.message);
+            console.error('❌ [Cron] Task Due check:', error.message);
         }
     });
 
@@ -59,58 +60,81 @@ const initializeScheduler = () => {
     // project revival nudges for users who haven't been active.
     cron.schedule('30 14 * * *', async () => {
         try {
-            console.log('🔍 [Cron] Evening dynamic activity check (8 PM IST)...');
+            console.log('🔍 [Cron] Evening dynamic activity check...');
             await svc.checkDynamicNotifs();
         } catch (error) {
-            console.error('❌ [Cron] Dynamic Notifs error:', error.message);
+            console.error('❌ [Cron] Dynamic Notifs:', error.message);
         }
     });
 
-    // ── JOB 5: Weekly GitHub PDF Report ──────────────────────────────────────
-    // Every Monday at ~8:20 PM IST (14:50 UTC) — comprehensive activity report.
-    cron.schedule('50 14 * * 1', async () => {
+    // ── JOB 5: Report Queue Enqueuer (Per-User Scheduling) ───────────────────
+    // Runs every hour at :00 — checks which users are due for their weekly
+    // report (based on their reportPreferences.dayOfWeek + reportPreferences.hour)
+    // and enqueues a job for them.
+    //
+    // REPLACES the old "Monday 8:20 PM IST all-at-once" approach.
+    // Each user can now have an individualized schedule stored in their user doc.
+    // Default schedule: Monday 15:00 UTC (8:30 PM IST) if no preference set.
+    cron.schedule('0 * * * *', async () => {
         try {
-            console.log('📊 [Cron] Weekly PDF Report generation...');
-            const reportService = require('../services/reportService');
-            await reportService.sendAllWeeklyReports();
+            const { enqueued, skipped } = await reportQueue.enqueueWeeklyJobs();
+            if (enqueued > 0) {
+                console.log(`📬 [Cron] Enqueued ${enqueued} weekly report jobs (${skipped} skipped)`);
+            }
         } catch (error) {
-            console.error('❌ [Cron] Weekly Reports error:', error.message);
+            console.error('❌ [Cron] Report queue enqueue:', error.message);
         }
     });
 
-    // ── JOB 6: Auto Project Refresh (Randomized Weekly) ─────────────────────
+    // ── JOB 6: Report Queue Processor ────────────────────────────────────────
+    // Every 30 minutes — processes up to 5 pending report jobs from Firestore queue.
+    // Atomic job claiming via Firestore transactions prevents double-processing.
+    // Jobs retry up to 3 times with exponential backoff (15m → 30m → 60m).
+    cron.schedule('*/30 * * * *', async () => {
+        try {
+            const { processed, failed } = await reportQueue.processQueue(5);
+            if (processed > 0 || failed > 0) {
+                console.log(`⚙️ [Cron] Report queue: processed=${processed}, failed=${failed}`);
+            }
+        } catch (error) {
+            console.error('❌ [Cron] Report queue processor:', error.message);
+        }
+    });
+
+    // ── JOB 7: Auto Project Refresh (Randomized Weekly) ─────────────────────
     // Daily at 4:40 AM IST (23:10 UTC previous day) — picks a randomized due
     // subset so each project gets refreshed roughly once a week without bursts.
     cron.schedule('10 23 * * *', async () => {
         try {
             console.log('♻️ [Cron] Auto project refresh batch...');
             const summary = await refreshProjectsBatch();
-            console.log(`✅ [Cron] Project refresh done | scanned=${summary.scanned} due=${summary.due} selected=${summary.selected || 0} refreshed=${summary.refreshed} failed=${summary.failed}`);
+            console.log(`✅ [Cron] Project refresh | scanned=${summary.scanned} due=${summary.due} refreshed=${summary.refreshed} failed=${summary.failed}`);
         } catch (error) {
-            console.error('❌ [Cron] Auto project refresh error:', error.message);
+            console.error('❌ [Cron] Auto project refresh:', error.message);
         }
     });
 
-    // ── JOB 7: Weekly GitHub Avatar Refresh ─────────────────────────────────
+    // ── JOB 8: Weekly GitHub Avatar Refresh ─────────────────────────────────
     // Weekly at 2:10 AM UTC on Monday — refresh GitHub-linked profile photos.
     cron.schedule('10 2 * * 1', async () => {
         try {
             console.log('🖼️ [Cron] Weekly GitHub avatar refresh...');
             const summary = await refreshAllGitHubAvatars();
-            console.log(`✅ [Cron] Avatar refresh done | checked=${summary.checked} updated=${summary.updated} skipped=${summary.skipped}`);
+            console.log(`✅ [Cron] Avatar refresh | checked=${summary.checked} updated=${summary.updated} skipped=${summary.skipped}`);
         } catch (error) {
-            console.error('❌ [Cron] Avatar refresh error:', error.message);
+            console.error('❌ [Cron] Avatar refresh:', error.message);
         }
     });
 
-    console.log('✅ Scheduler initialized — 7 cron jobs active');
-    console.log('   • Every 5 min  → Consistency reminders');
-    console.log('   • 7:00 AM IST  → Streak milestone check');
-    console.log('   • 9:00 AM IST  → Task due reminders');
-    console.log('   • 8:00 PM IST  → Dynamic activity check');
-    console.log('   • Mon 8:20 PM  → Weekly PDF reports');
-    console.log('   • 4:40 AM IST  → Auto project refresh batch');
-    console.log('   • Mon 2:10 AM  → Weekly GitHub avatar refresh');
+    console.log('✅ Scheduler initialized — 8 cron jobs active');
+    console.log('   • Every 5 min    → Consistency reminders');
+    console.log('   • Every 30 min   → Report queue processor (Firestore-native)');
+    console.log('   • Every hour     → Report queue enqueuer (per-user schedule)');
+    console.log('   • 7:00 AM IST    → Streak milestone check');
+    console.log('   • 9:00 AM IST    → Task due reminders');
+    console.log('   • 8:00 PM IST    → Dynamic activity check');
+    console.log('   • 4:40 AM IST    → Auto project refresh batch');
+    console.log('   • Mon 2:10 AM    → Weekly GitHub avatar refresh');
 };
 
 module.exports = { initializeScheduler };

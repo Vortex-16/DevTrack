@@ -6,7 +6,6 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const { validate } = require('../middleware/validation');
 const authController = require('../controllers/authController');
 
 // Sync user from Clerk to Firestore
@@ -21,7 +20,11 @@ router.get('/me', requireAuth, authController.getMe);
 // Update activity times (for notification logic)
 router.put('/activity', requireAuth, authController.updateActivityTime);
 
-// Delete account
+// GitHub scope status — returns what GitHub scopes the user has granted
+// Frontend uses this to show "Enable private repo access" toggle without hitting Clerk
+router.get('/github-scope-status', requireAuth, authController.getGithubScopeStatus);
+
+// Delete account (cascades all user data)
 router.delete('/me', requireAuth, authController.deleteAccount);
 
 module.exports = router;

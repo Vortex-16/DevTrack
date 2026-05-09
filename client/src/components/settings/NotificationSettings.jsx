@@ -29,6 +29,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         fixedTime: null,
         breakDetection: true,
         githubAccessRetentionDays: 7,
+        reportSchedule: { dayOfWeek: 1, hour: 15 }
     });
     const [userGoal, setUserGoal] = useState('');
     const [loading, setLoading] = useState(true);
@@ -135,6 +136,31 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         } finally {
             setDownloading(false);
         }
+    };
+
+    const handleScheduleChange = (field, value) => {
+        const schedule = preferences.reportSchedule || { dayOfWeek: 1, hour: 15 };
+        setPreferences({
+            ...preferences,
+            reportSchedule: { ...schedule, [field]: Number(value) }
+        });
+    };
+
+    const getScheduleText = () => {
+        const schedule = preferences.reportSchedule || { dayOfWeek: 1, hour: 15 };
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
+        const date = new Date();
+        date.setUTCHours(schedule.hour, 0, 0, 0);
+        const dayDiff = (schedule.dayOfWeek - date.getUTCDay() + 7) % 7;
+        date.setUTCDate(date.getUTCDate() + dayDiff);
+        
+        const localDay = days[date.getDay()];
+        let localHour = date.getHours();
+        const ampm = localHour >= 12 ? 'PM' : 'AM';
+        localHour = localHour % 12 || 12;
+        
+        return `every ${localDay} at ${localHour} ${ampm}`;
     };
 
     const goals = [
@@ -259,9 +285,39 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <FileDown size={18} />
                                         {downloading ? 'Generating...' : 'Download Weekly Report'}
                                     </button>
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        Reports are also sent automatically every Sunday at 9 AM.
-                                    </p>
+                                    <div className="mt-4 pt-4 border-t border-slate-700">
+                                        <p className="text-sm font-semibold text-white mb-2">Automated Delivery</p>
+                                        <div className="flex gap-2 mb-2">
+                                            <select
+                                                value={preferences.reportSchedule?.dayOfWeek ?? 1}
+                                                onChange={(e) => handleScheduleChange('dayOfWeek', e.target.value)}
+                                                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                                            >
+                                                <option value={0}>Sunday</option>
+                                                <option value={1}>Monday</option>
+                                                <option value={2}>Tuesday</option>
+                                                <option value={3}>Wednesday</option>
+                                                <option value={4}>Thursday</option>
+                                                <option value={5}>Friday</option>
+                                                <option value={6}>Saturday</option>
+                                            </select>
+                                            <select
+                                                value={preferences.reportSchedule?.hour ?? 15}
+                                                onChange={(e) => handleScheduleChange('hour', e.target.value)}
+                                                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                                            >
+                                                {[...Array(24)].map((_, i) => {
+                                                    const d = new Date();
+                                                    d.setUTCHours(i, 0, 0, 0);
+                                                    const localTime = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                                                    return <option key={i} value={i}>{`${i}:00 UTC (${localTime})`}</option>
+                                                })}
+                                            </select>
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            Reports are currently scheduled to be sent automatically {getScheduleText()} your local time.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* GitHub Private Access Retention */}

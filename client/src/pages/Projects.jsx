@@ -181,6 +181,7 @@ function ProjectCard({
   onToggle,
   onGenerateReadme,
   onCopySuggestion,
+  onRequiresAuth,
 }) {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
@@ -523,8 +524,8 @@ function ProjectCard({
               )}
 
               {/* Detailed Stats Row */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                <div className="flex gap-6 text-[11px]">
+              <div className="flex flex-wrap items-center justify-between gap-4 p-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="flex flex-wrap gap-4 md:gap-6 text-[11px]">
                   <div className="flex flex-col">
                     <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
                       Stars
@@ -557,14 +558,14 @@ function ProjectCard({
                   </div>
                   <div className="flex flex-col">
                     <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
-                      Clones {project.githubData?.allTimeClones > (project.githubData?.clones || 0) ? '(All-Time)' : '(14d)'}
+                      Clones {!project.githubData?.trafficRestricted && (project.githubData?.allTimeClones > (project.githubData?.clones || 0) ? '(All-Time)' : '(14d)')}
                     </span>
                     <span className="text-white font-medium flex items-center gap-1 group/stat relative">
                       {project.githubData?.trafficRestricted ? (
-                        <div className="flex items-center gap-1 opacity-60 cursor-help" title="Push access or 'repo' scope required for traffic stats">
+                        <button onClick={onRequiresAuth} className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer" title="Click to upgrade GitHub scopes to view traffic stats">
                           <Lock size={10} className="text-yellow-500" />
-                          <span className="text-slate-500">Locked</span>
-                        </div>
+                          <span className="text-slate-500 hover:text-yellow-500 transition-colors">Locked</span>
+                        </button>
                       ) : (
                         <>
                           <Download size={12} className="text-emerald-400" />{" "}
@@ -575,14 +576,14 @@ function ProjectCard({
                   </div>
                   <div className="flex flex-col">
                     <span className="text-slate-500 uppercase text-[9px] tracking-tight mb-0.5">
-                      Views {project.githubData?.allTimeViews > (project.githubData?.views || 0) ? '(All-Time)' : '(14d)'}
+                      Views {!project.githubData?.trafficRestricted && (project.githubData?.allTimeViews > (project.githubData?.views || 0) ? '(All-Time)' : '(14d)')}
                     </span>
                     <span className="text-white font-medium flex items-center gap-1">
                       {project.githubData?.trafficRestricted ? (
-                        <div className="flex items-center gap-1 opacity-60 cursor-help" title="Push access or 'repo' scope required for traffic stats">
+                        <button onClick={onRequiresAuth} className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer" title="Click to upgrade GitHub scopes to view traffic stats">
                           <Lock size={10} className="text-yellow-500" />
-                          <span className="text-slate-500">Locked</span>
-                        </div>
+                          <span className="text-slate-500 hover:text-yellow-500 transition-colors">Locked</span>
+                        </button>
                       ) : (
                         <>
                           <Globe size={12} className="text-cyan-400" />{" "}
@@ -2317,7 +2318,7 @@ export default function Projects() {
           <div
             ref={projectsContainerRef}
             id="projects-scroll-container"
-            className="flex-1 overflow-y-auto min-h-0 pr-6 -mr-2 relative"
+            className="flex-1 overflow-y-auto min-h-0 relative"
           >
             <div ref={projectsContentRef} className="pb-4">
               {/* Error State */}
@@ -2369,7 +2370,7 @@ export default function Projects() {
 
               {/* Skeletons */}
               {loading && projects.length === 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
                   {[1, 2, 3, 4].map((i) => (
                     <SkeletonCard key={i} />
                   ))}
@@ -2378,7 +2379,7 @@ export default function Projects() {
 
               {/* Projects Grid */}
               {projects.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
                   {projects.map((project, index) => (
                     <ProjectCard
                       key={project.id}
@@ -2397,6 +2398,7 @@ export default function Projects() {
                       onComplete={handleComplete}
                       onGenerateReadme={handleGenerateReadme}
                       onCopySuggestion={handleCopySuggestion}
+                      onRequiresAuth={() => setShowGitHubModal(true)}
                       analyzing={analyzingId === project.id}
                       delay={index * 0.1}
                     />

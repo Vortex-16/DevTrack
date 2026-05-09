@@ -30,7 +30,8 @@ const getClerkGithubOauthToken = async (userId) => {
     for (const providerKey of providerKeys) {
         try {
             const oauthTokens = await clerkClient.users.getUserOauthAccessToken(userId, providerKey);
-            const token = oauthTokens?.data?.[0]?.token || null;
+            const tokenObj = oauthTokens?.data ? oauthTokens.data[0] : oauthTokens?.[0];
+            const token = tokenObj?.token || null;
             if (token) return token;
         } catch {
             // Try next provider key.
@@ -138,7 +139,11 @@ const syncUser = async (req, res, next) => {
         }
 
         const approvedScopes = githubAccount?.approvedScopes || '';
-        const hasRepoScope = parseScopeList(approvedScopes).includes('repo');
+        const scopeList = parseScopeList(approvedScopes);
+        const hasRepoScope = scopeList.includes('repo');
+
+        // Track granted scopes on user doc for frontend scope checks (avoids Clerk round-trips)
+        const grantedGithubScopes = scopeList.length > 0 ? scopeList : null;
 
         const existingWindow = existingData ? getGithubAccessWindow(existingData) : null;
         const expiresAtDate = existingWindow?.expiresAt ? new Date(existingWindow.expiresAt) : null;
@@ -188,6 +193,7 @@ const syncUser = async (req, res, next) => {
             githubUsername: githubUsername,
             githubId: githubId,
             githubAccessToken: null,
+            grantedGithubScopes: grantedGithubScopes || null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             lastStartTime: null,
@@ -376,11 +382,52 @@ const deleteAccount = async (req, res, next) => {
     }
 };
 
+/**
+ * Get GitHub scope status for the current user
+ * GET /api/auth/github-scope-status
+ *
+ * Returns which GitHub scopes the user has granted, read from Firestore
+ * (populated during /sync). This avoids a Clerk round-trip on every page.
+ */
+const getGithubScopeStatus = async (req, res, next) => {
+    try {
+        const { userId } = req.auth;
+
+        const userDoc = await collections.users().doc(userId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+
+        const grantedScopes = userData.grantedGithubScopes || [];
+        const hasRepoScope = grantedScopes.includes('repo');
+        const hasReadUserScope = grantedScopes.includes('read:user');
+        const hasUserEmailScope = grantedScopes.includes('user:email');
+
+        const accessWindow = getGithubAccessWindow(userData);
+        const accessExpired = hasGithubAccessExpired(userData);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                grantedScopes,
+                hasRepoScope,
+                hasReadUserScope,
+                hasUserEmailScope,
+                githubConnected: !!userData.githubUsername,
+                githubUsername: userData.githubUsername || null,
+                privateAccessActive: !accessExpired && !!accessWindow?.expiresAt,
+                accessWindow: accessWindow || null,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     syncUser,
     renewGithubAccess,
     getMe,
     updateActivityTime,
     deleteAccount,
+    getGithubScopeStatus,
     buildSafeUserResponse,
 };

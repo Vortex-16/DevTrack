@@ -139,6 +139,7 @@ export const authApi = {
     sync: () => api.post('/auth/sync'),
     renewGithubAccess: () => api.post('/auth/renew-github-access'),
     getMe: () => api.get('/auth/me'),
+    getGithubScopeStatus: () => api.get('/auth/github-scope-status'),
 };
 
 export const preferencesApi = {
@@ -238,6 +239,22 @@ export const socialApi = {
     vouch: (data) => api.post('/social/vouch', data),
     getEndorsements: (userId) => api.get(`/social/endorsements/${userId}`),
     updateCollaboration: (data) => api.post('/social/collaboration', data),
+};
+
+export const reportsApi = {
+    getHistory: (limit = 10) => api.get('/reports/history', { params: { limit } }),
+    download: (reportId) => api.get(`/reports/download/${reportId}`, { responseType: 'arraybuffer' }),
+    getSchedule: () => api.get('/reports/schedule'),
+    saveSchedule: (schedule) => api.post('/reports/schedule', schedule),
+    getStatus: () => api.get('/reports/status'),
+    trigger: () => api.post('/reports/trigger'),
+};
+
+export const insightsApi = {
+    getProductivity: (days = 90) => api.get('/insights/productivity', { params: { days } }),
+    getRecommendations: () => api.get('/insights/recommendations'),
+    getRisk: () => api.get('/insights/risk'),
+    getMomentum: () => api.get('/insights/momentum'),
 };
 
 export default api;

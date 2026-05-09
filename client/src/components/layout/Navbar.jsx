@@ -13,7 +13,9 @@ import {
     Grid,
     Users,
     Globe,
-    ShieldCheck
+    ShieldCheck,
+    HelpCircle,
+    Shield
 } from 'lucide-react'
 
 // SVG Icon Components
@@ -97,6 +99,16 @@ const navGroups = [
         items: [
             { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
             { name: 'Resume', path: '/resume', icon: FileText },
+        ]
+    },
+    {
+        id: 'docs',
+        name: 'Docs',
+        type: 'group',
+        icon: HelpCircle,
+        items: [
+            { name: 'User Guide', path: '/guide', icon: BookOpen },
+            { name: 'Privacy', path: '/privacy', icon: Shield },
         ]
     }
 ]

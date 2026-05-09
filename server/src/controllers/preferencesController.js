@@ -173,6 +173,9 @@ const updatePreferences = async (req, res, next) => {
             if (preferences.githubAccessRetentionDays !== undefined) {
                 updatedPreferences.githubAccessRetentionDays = resolveGithubAccessDays(preferences.githubAccessRetentionDays);
             }
+            if (preferences.reportSchedule !== undefined) {
+                updatedPreferences.reportSchedule = preferences.reportSchedule;
+            }
 
             // Public Profile Customization
             if (preferences.publicProfile) {

@@ -594,11 +594,113 @@ class GitHubService {
   }
 
   /**
+   * Get accurate 7-day weekly stats for the PDF report.
+   * Uses GraphQL contributionsCollection with strict date window — same API GitHub uses.
+   * Also derives behavioral analytics: day distribution, consistency, etc.
+   */
+  async getWeeklyStats(username) {
+    try {
+      const to = new Date();
+      const from = new Date();
+      from.setDate(from.getDate() - 7);
+      from.setHours(0, 0, 0, 0);
+
+      const query = `
+        query($username: String!, $from: DateTime!, $to: DateTime!) {
+          user(login: $username) {
+            contributionsCollection(from: $from, to: $to) {
+              totalCommitContributions
+              totalPullRequestContributions
+              totalIssueContributions
+              totalRepositoriesWithContributedCommits
+              contributionCalendar {
+                totalContributions
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                    weekday
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await this.octokit.graphql(query, {
+        username,
+        from: from.toISOString(),
+        to: to.toISOString(),
+      });
+
+      const collection = response.user?.contributionsCollection;
+      if (!collection) return null;
+
+      const allDays = collection.contributionCalendar.weeks.flatMap(w => w.contributionDays);
+      const activeDays = allDays.filter(d => d.contributionCount > 0);
+      const totalWeeklyCommits = collection.totalCommitContributions;
+
+      // Day-of-week distribution (0=Sun, 1=Mon, ..., 6=Sat)
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayDistribution = allDays.map(d => ({
+        date: d.date,
+        count: d.contributionCount,
+        dayName: dayNames[d.weekday] || `D${d.weekday}`,
+        weekday: d.weekday,
+      }));
+
+      // Behavioral signals
+      const peakDay = dayDistribution.reduce((max, d) => d.count > max.count ? d : max, dayDistribution[0] || { count: 0 });
+      const consistencyScore = activeDays.length > 0
+        ? Math.round((activeDays.length / Math.min(allDays.length, 7)) * 100)
+        : 0;
+
+      // Longest active run (consecutive days)
+      let longestRun = 0, currentRun = 0;
+      for (const d of dayDistribution) {
+        if (d.count > 0) { currentRun++; longestRun = Math.max(longestRun, currentRun); }
+        else { currentRun = 0; }
+      }
+
+      const result = {
+        weekly: {
+          commits: totalWeeklyCommits,
+          prs: collection.totalPullRequestContributions,
+          issues: collection.totalIssueContributions,
+          totalContributions: collection.contributionCalendar.totalContributions,
+          reposActive: collection.totalRepositoriesWithContributedCommits,
+          activeDays: activeDays.length,
+          totalDays: allDays.length,
+        },
+        behavioral: {
+          consistencyScore,
+          longestActiveRun: longestRun,
+          peakDay: peakDay.dayName || 'N/A',
+          peakDayCount: peakDay.count || 0,
+          activeDayPercent: Math.round((activeDays.length / Math.max(allDays.length, 1)) * 100),
+          dayDistribution,
+        },
+        dateRange: {
+          from: from.toISOString().split('T')[0],
+          to: to.toISOString().split('T')[0],
+        }
+      };
+
+      console.log(`✅ Weekly stats for ${username}: ${totalWeeklyCommits} commits / ${activeDays.length} active days`);
+      return result;
+    } catch (error) {
+      console.error('Error fetching weekly stats:', error.message);
+      return null;
+    }
+  }
+
+  /**
    * Get comprehensive GitHub insights for bento grid
    */
   async getGitHubInsights(username) {
     try {
-        const query = `
+      const query = `
             query {
               viewer {
                         name
@@ -658,8 +760,8 @@ class GitHubService {
                 }
             `;
 
-          const response = await this.octokit.graphql(query);
-          const user = response.viewer;
+      const response = await this.octokit.graphql(query);
+      const user = response.viewer;
 
       if (!user) return null;
 
@@ -977,7 +1079,7 @@ class GitHubService {
               // Increment commit count
               const existing = summary.reposWorkedOn.get(repoFullName);
               existing.commitsThisWeek += event.payload?.commits?.length || 1;
-              
+
               // Append unique commit messages
               const newCommits = (event.payload?.commits || []).map(c => c.message);
               existing.recentCommits = [...new Set([...(existing.recentCommits || []), ...newCommits])].slice(0, 5);
@@ -994,32 +1096,33 @@ class GitHubService {
 
       // Fetch accurate repo details from GitHub API for each repo
       const repoNames = Array.from(summary.reposWorkedOn.keys());
-      const reposWithDetails = [];
 
-      for (const repoFullName of repoNames.slice(0, 6)) {
+      // Parallelized repo detail fetches for performance (was sequential)
+      const repoFetchPromises = repoNames.slice(0, 6).map(async (repoFullName) => {
         try {
           const [owner, repo] = repoFullName.split('/');
-          const { data: repoData } = await this.octokit.rest.repos.get({
-            owner,
-            repo,
-          });
+          const { data: repoData } = await this.octokit.rest.repos.get({ owner, repo });
 
-          // Fetch Traffic (Clones) if possible
-          let cloneCount = 0;
+          // Fetch Traffic (Clones) — requires push/admin access
+          // Return null (not 0) on 403 so frontend can distinguish "no access" from "zero clones"
+          let cloneCount = null;
+          let clonesAvailable = false;
           try {
             const { data: traffic } = await this.octokit.rest.repos.getClones({
               owner,
               repo,
-              per: 'week'
+              per: 'week',
             });
-            // Get the last week's clones
-            cloneCount = traffic.count || 0;
+            cloneCount = typeof traffic.count === 'number' ? traffic.count : null;
+            clonesAvailable = cloneCount !== null;
           } catch (trafficError) {
-            // Likely no push access, default to 0
+            // 403 = no push access, 404 = private/no access — leave as null
+            cloneCount = null;
+            clonesAvailable = false;
           }
 
           const repoInfo = summary.reposWorkedOn.get(repoFullName);
-          reposWithDetails.push({
+          return {
             name: repoFullName,
             shortName: repo,
             isPrivate: repoData.private,
@@ -1028,26 +1131,28 @@ class GitHubService {
             stars: repoData.stargazers_count || 0,
             commitsThisWeek: repoInfo.commitsThisWeek,
             description: repoData.description || null,
-            clones: cloneCount
-          });
+            clones: cloneCount,
+            clonesAvailable,
+          };
         } catch (repoError) {
-          // If we can't fetch repo details, use basic info from event
-          console.warn(`Could not fetch details for ${repoFullName}:`, repoError.message);
           const [repoOwner, repoName] = repoFullName.split('/');
           const repoInfo = summary.reposWorkedOn.get(repoFullName);
-          reposWithDetails.push({
+          return {
             name: repoFullName,
             shortName: repoName,
             isPrivate: false,
             isOwner: repoOwner.toLowerCase() === username.toLowerCase(),
             language: null,
             stars: 0,
-            commitsThisWeek: repoInfo.commitsThisWeek,
+            commitsThisWeek: repoInfo?.commitsThisWeek || 0,
             description: null,
-            clones: 0
-          });
+            clones: null,
+            clonesAvailable: false,
+          };
         }
-      }
+      });
+
+      const reposWithDetails = await Promise.all(repoFetchPromises);
 
       return {
         totalEvents: summary.totalEvents,

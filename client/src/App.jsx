@@ -17,6 +17,8 @@ import PublicProfile from './pages/PublicProfile'
 import ResumeBuilder from './pages/ResumeBuilder'
 import Roadmap from './pages/Roadmap'
 import NotFound from './pages/NotFound'
+import UserGuide from './pages/UserGuide'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -203,6 +205,10 @@ function App() {
 
                     {/* Mobile Auth Page - for Flutter app authentication */}
                     <Route path="/mobile-auth" element={<MobileAuth />} />
+
+                    {/* Documentation Pages */}
+                    <Route path="/guide" element={<UserGuide />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
 
                     {/* Catch all - 404 Not Found */}
                     <Route path="*" element={<NotFound />} />

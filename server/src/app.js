@@ -30,15 +30,17 @@ const resumeRoutes = require('./routes/resumeRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const insightsRoutes = require('./routes/insightsRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
 const modernApiUI = require('./middleware/modernApiUI');
+const { sanitizeRequest } = require('./middleware/sanitize');
 
 const app = express();
 
 // Trust proxy for Render and other reverse proxies
-// Required for express-rate-limit to work correctly
+// Required for express-rate-limit to work correctly behind Render's load balancer
 app.set('trust proxy', 1);
 
 // Mount Modern UI Middleware early so it captures JSON responses for all subsequent handlers
@@ -48,92 +50,106 @@ app.use(modernApiUI);
 // SECURITY MIDDLEWARE
 // ======================
 
-// Helmet - Security headers
+// Helmet — Security headers (tightened CSP — no unsafe-inline on scripts)
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],      // needed for modernApiUI inline styles
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrcAttr: ["'none'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
   },
 }));
 
-// CORS Configuration - Support multiple origins
-const allowedOrigins = [
+// CORS Configuration — strict allowlist (no wildcard in production)
+const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
-  process.env.CORS_ORIGIN,
-  'https://devtrack-pwkj.onrender.com',
+  'https://devtrackweb.xyz',
+  'https://www.devtrackweb.xyz',
+  'https://devtrak-pwkj.onrender.com',
   'https://devtrack.onrender.com',
+  process.env.CORS_ORIGIN,
+  process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Allow anyway for now, log for debugging
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
     }
+
+    // In development: warn but allow unknown origins for easier local debugging
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[CORS] Unknown origin in dev (allowed): ${origin}`);
+      return callback(null, true);
+    }
+
+    // In production: reject unauthorized origins
+    console.warn(`[CORS] Blocked unauthorized origin: ${origin}`);
+    return callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+  exposedHeaders: ['X-Request-ID'],
 }));
 
-// Rate Limiting - 500 requests per 15 minutes (increased for dev with React StrictMode)
+// ======================
+// RATE LIMITING
+// ======================
+
+// General API — 2000 req/15min per IP
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Limit each IP to 2000 requests per window
-  message: {
-    success: false,
-    error: 'Too many requests, please try again later.',
-  },
+  windowMs: 15 * 60 * 1000,
+  max: 2000,
+  message: { success: false, error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limit in dev
+  skip: (req) => process.env.NODE_ENV === 'development',
 });
 app.use('/api/', limiter);
 
-// Stricter rate limit for AI endpoints
+// AI endpoints — 100 req/15min (expensive Groq/Gemini calls)
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100, // 100 AI requests per 15 minutes
-  message: {
-    success: false,
-    error: 'AI rate limit exceeded. Please wait before making more requests.',
-  },
-  skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limit in dev
+  max: 100,
+  message: { success: false, error: 'AI rate limit exceeded. Please wait before making more requests.' },
+  skip: (req) => process.env.NODE_ENV === 'development',
 });
 app.use('/api/gemini/', aiLimiter);
+app.use('/api/insights/', aiLimiter);
 
-// Auth sync/renew limiter to reduce abuse on token-related endpoints
+// Auth sync/renew — 120 req/15min (prevent token-refresh abuse)
 const authSyncLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 120,
-  message: {
-    success: false,
-    error: 'Too many authentication sync requests. Please wait and try again.',
-  },
+  message: { success: false, error: 'Too many authentication sync requests. Please wait and try again.' },
   skip: (req) => process.env.NODE_ENV === 'development',
 });
 app.use('/api/auth/sync', authSyncLimiter);
 app.use('/api/auth/renew-github-access', authSyncLimiter);
 
-// GitHub endpoint limiter for expensive/private-repo operations
+// GitHub expensive operations — 240 req/15min
 const githubLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 240,
-  message: {
-    success: false,
-    error: 'GitHub API rate limit reached for this session. Please retry shortly.',
-  },
+  message: { success: false, error: 'GitHub API rate limit reached for this session. Please retry shortly.' },
   skip: (req) => process.env.NODE_ENV === 'development',
 });
 app.use('/api/github/repo', githubLimiter);
@@ -142,8 +158,14 @@ app.use('/api/github/repos', githubLimiter);
 // ======================
 // BODY PARSING
 // ======================
-app.use(express.json({ limit: '5mb' })); // Increased for large GitHub repo data
+app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// ======================
+// INPUT SANITIZATION
+// ======================
+// Strips XSS payloads and dangerous HTML from all incoming request body/query/params
+app.use(sanitizeRequest);
 
 // ======================
 // LOGGING
@@ -163,6 +185,7 @@ app.get('/api/health', (req, res) => {
     message: 'DevTrack API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
+    version: process.env.npm_package_version || '1.0.0',
   });
 });
 
@@ -188,6 +211,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // ======================
 // 404 HANDLER

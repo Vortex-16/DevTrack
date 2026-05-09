@@ -38,8 +38,5 @@ router.post('/repo', requireAuth, githubController.createRepo);
 // Search for similar open-source projects
 router.get('/similar-projects', requireAuth, githubController.getSimilarProjects);
 
-// Download weekly PDF report
-router.get('/report', requireAuth, githubController.downloadReport);
-
 module.exports = router;
 

@@ -271,48 +271,121 @@ Assume the person is intelligent but may be unfamiliar with this specific techno
 ### What Changed and Why
 [Detailed explanation of each change]`;
 
-    this.weeklyReportPrompt = `You are a Principal Engineering Lead conducting a rigorous weekly code-intelligence review for a developer.
+    this.weeklyReportPrompt = `You are a Principal Engineering Intelligence System — think Linear, Vercel Analytics, and GitHub Enterprise Insights combined.
 
-**GOAL**: Deliver deep, executive-grade analysis of the developer's GitHub week: a strategic executive summary, high-signal improvement guidance backed by real reasoning, and a detailed brief for each project worked on.
+Your task: analyze the developer's GitHub week and output a PREMIUM, enterprise-grade JSON intelligence payload.
 
-**INPUT DATA INCLUDES**:
-- Total events (pushes, PRs, issues opened/closed)
-- Repositories worked on: name, visibility, commit count, description, recent commit messages
+**TONE**: Executive. Analytical. Concise. Data-driven. Every sentence must contain a measurable signal.
+**BANNED PHRASES**: "The developer has demonstrated", "Routine maintenance", "Continue current trajectory", "Minor updates", "Good work", "Keep it up"
 
-**STRICT OUTPUT FORMAT — return ONLY valid JSON, no markdown, no prose outside JSON**:
+---
+
+**REPOSITORY STATE ENGINE**
+Each repository MUST be classified into ONE of these states based on signals in the data:
+- RAPID_GROWTH: high commit velocity + star/clone uptick
+- FEATURE_EXPANDING: mostly new features this week (feat/add/implement commits)
+- MAINTENANCE_HEAVY: majority are fix/refactor/update commits, low new features
+- DOCUMENTATION_WEAK: no docs commits, high code activity
+- UNSTABLE: mix of fixes and reverts, potential churn
+- DORMANT: 0 commits this week but repo exists
+- DECLINING: reduced velocity from prior pattern
+- HIGH_VISIBILITY: low commits but high stars/clones — public attention risk
+- COLLABORATION_ACTIVE: multiple contributors, PR activity
+- SECURITY_SENSITIVE: auth/env/token/database/crypto keywords in commits
+
+Each repo insight must be UNIQUE and directly reference its actual commit messages and metrics.
+
+---
+
+**STRICT OUTPUT FORMAT — return ONLY valid JSON, no markdown**:
 {
-  "executiveSummary": "3-4 sentence paragraph. Open with the developer's most impactful achievement this week. Quantify where possible (e.g., X commits across Y repos). Identify the primary technical theme of the week (feature delivery, refactoring, debugging, infra work, etc.). Close with a forward-looking sentence about momentum or risk.",
-  "strategicInsights": [
+  "dashboard": {
+    "momentum": "HIGH ↑ | STABLE → | DECLINING ↓",
+    "kpis": {
+      "weeklyCommits": <number>,
+      "weeklyPRs": <number>,
+      "commitsDelta": "+X% vs est. last week | first report",
+      "focusScore": <0-100 integer based on single-repo vs multi-repo distribution>,
+      "collaborationScore": <0-100 integer based on PR/review signals>,
+      "consistencyScore": <0-100 integer — percent of days with activity>
+    },
+    "biggestWin": "1 evidence-based sentence referencing actual repo/metric. E.g. 'legal-tech exceeded 1.2K weekly clones while maintaining 89% commit velocity.'",
+    "biggestRisk": "1 evidence-based sentence. E.g. 'DevTrack backend has 23 open issues with no PR activity — compounding technical debt.'",
+    "strategicFocus": "1 actionable directive for next week."
+  },
+  "behavioral": {
+    "peakDay": "Day of week with highest activity",
+    "peakDayCount": <number>,
+    "consistencyPattern": "Concise pattern description. E.g. 'Front-loaded: 78% of commits occurred Mon-Wed.'",
+    "focusFragmentation": "Concise analysis of multi-repo vs single-repo focus.",
+    "commitTypeBreakdown": {
+      "features": <percent 0-100>,
+      "fixes": <percent 0-100>,
+      "docs": <percent 0-100>,
+      "refactors": <percent 0-100>,
+      "other": <percent 0-100>
+    },
+    "behaviorSummary": "2 concise sentences of behavioral intelligence. Reference actual patterns."
+  },
+  "intelligence": {
+    "workConsistency": { "status": "Excellent|Stable|Warning|Critical", "interpretation": "Evidence-backed. Reference days/commits.", "trend": "↑|→|↓", "score": <0-100> },
+    "focusAnalysis": { "status": "...", "interpretation": "Reference specific repos and distribution.", "trend": "...", "score": <0-100> },
+    "collaboration": { "status": "...", "interpretation": "Reference PR/review count.", "trend": "...", "score": <0-100> },
+    "codeQuality": { "status": "...", "interpretation": "Infer from commit patterns — fix ratio, churn signals.", "trend": "...", "score": <0-100> }
+  },
+  "repositories": {
+    "<repo-name-exactly-as-given>": {
+      "state": "<ONE of the state codes above>",
+      "metrics": {
+        "momentum": "HIGH|MEDIUM|LOW",
+        "commitVelocity": <commits this week as integer>,
+        "visibilityRisk": <0-100 integer — high stars + low commits = high risk>,
+        "estimatedMaintenanceRatio": <percent 0-100>
+      },
+      "insight": "1-2 sentences referencing actual commit messages. Must be unique to this repo. Never generic.",
+      "suggestedAction": "1 specific, actionable recommendation. Reference the state."
+    }
+  },
+  "security": [
     {
-      "title": "Short title (4-6 words)",
-      "detail": "2-3 sentences. Explain WHY this insight matters for the developer's growth or codebase health. Reference specific signals from their activity (commit messages, repo names, PR patterns). Be concrete and actionable — include what to do AND why it will help."
+      "issue": "Specific vulnerability or risk name",
+      "severity": "High|Medium|Low",
+      "confidence": "High|Medium|Low",
+      "evidence": "What in the commits/context triggered this finding",
+      "affectedArea": "Module, file, or pattern area",
+      "suggestion": "Specific remediation step"
     }
   ],
-  "growthScore": {
-    "score": 78,
-    "label": "Strong Momentum",
-    "rationale": "1 sentence explaining how the score was derived from the week's activity."
+  "weeklyDelta": {
+    "note": "Comparison estimated from patterns. First report if no prior data.",
+    "metrics": [
+      { "label": "Commits", "current": <number>, "estimated": "~X or N/A", "delta": "+X or N/A", "signal": "↑|→|↓" },
+      { "label": "PRs Merged", "current": <number>, "estimated": "~X or N/A", "delta": "...", "signal": "..." },
+      { "label": "Active Repos", "current": <number>, "estimated": "...", "delta": "...", "signal": "..." },
+      { "label": "Focus Score", "current": <number>, "estimated": "...", "delta": "...", "signal": "..." }
+    ],
+    "interpretation": "1-2 sentences analyzing the week-over-week trend narrative."
   },
-  "riskFlags": [
-    "A concise risk or technical-debt signal observed from this week's activity (e.g., 'High commit frequency on a single file may signal tight coupling')."
-  ],
-  "projectInsights": {
-    "repo-name": {
-      "headline": "4-6 word headline for this project's week",
-      "brief": "3-5 sentences. Describe what was actually built or changed this week based on commit messages and context. Identify the technical complexity or novelty of the work. Call out any risks, architectural decisions, or patterns visible in the commits. Suggest one concrete next step specific to THIS project.",
-      "nextStep": "Single, specific, actionable task for this repo in the coming week."
-    }
+  "globalScore": {
+    "total": <weighted average of subscores 0-100>,
+    "breakdown": {
+      "consistency": <0-100>,
+      "velocity": <0-100>,
+      "collaboration": <0-100>,
+      "codeQuality": <0-100>,
+      "security": <0-100>
+    },
+    "scoringNote": "Brief explanation of what drove the score up or down."
   },
-  "sentiment": "Excellent|Strong|Positive|Neutral|Needs Attention"
+  "narrative": "120-word executive summary. Tone: concise, analytical, premium. Reference specific repos, metrics, and patterns. No filler. No motivational language."
 }
 
 **RULES**:
-- strategicInsights must have exactly 4-5 items.
-- riskFlags must have 1-3 items. If none found, return ["No critical risks detected this week."].
-- projectInsights must have one entry per repository in the input.
-- Scores: 0-100. Base it on commit volume, PR activity, issue resolution, repo diversity, consistency.
-- Never be generic. Every sentence must be grounded in the actual data provided.
-- Output ONLY the JSON object. No code fences, no extra text.`;
+1. Security: 1-3 items minimum. Base on commit keywords (auth, env, token, db, password, secret, api_key, crypto). If no clear signals, provide ONE low-confidence best-practice finding with explicit confidence=Low.
+2. Every repository in the input MUST have an entry in repositories. State must be accurate.
+3. Repository insights must reference actual commit messages provided. Never write the same insight for two repos.
+4. Scores must be internally consistent — breakdown average must equal total ±5.
+5. Output ONLY valid JSON. No markdown, no comments, no extra text.`;
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -900,6 +973,7 @@ Identify **Security Vulnerabilities**:
 - Scan for OWASP Top 10 issues (Injection, Broken Auth, Data Exposure, etc.).
 - Highlight insecure patterns (hardcoded secrets, weak regex, dangerous functions).
 - Provide a severity level and a specific fix recommendation.
+- IMPORTANT: Assume the project uses a secure hosted authentication provider (like Clerk/Firebase) unless you explicitly see insecure local auth code being written. DO NOT report "Insecure password storage" if there is no local password hashing implementation. Do not hallucinate files like 'auth.js' if they are not provided in the key files context.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -2042,7 +2116,13 @@ Return ONLY the JSON, no other text.`;
    * Generate AI insights for the weekly PDF report
    * @param {object} activityData - The user's activity summary for the week
    */
-  async generateWeeklyInsights(activityData) {
+  /**
+   * Generate AI insights for the weekly PDF report
+   * @param {object} activityData - The user's activity summary for the week
+   * @param {object} weeklyStats - Accurate 7-day stats from getWeeklyStats()
+   * @param {object} previousReport - Prior week stored report data for delta
+   */
+  async generateWeeklyInsights(activityData, weeklyStats = null, previousReport = null) {
     const pdfKeys = [
       process.env.GROQ_PDF_API_KEY,
       process.env.GROQ_PDF_API_KEY2,
@@ -2054,99 +2134,313 @@ Return ONLY the JSON, no other text.`;
       ? activityData.reposWorkedOn
       : Array.from((activityData.reposWorkedOn || new Map()).values());
 
-    const context = `
-WEEKLY ACTIVITY SNAPSHOT:
-- Total Events: ${activityData.totalEvents || 0}
-- Push Events: ${activityData.pushEvents || 0}
-- Pull Request Events: ${activityData.prEvents || 0}
-- Issue Events: ${activityData.issueEvents || 0}
+    const allMessages = repoList.flatMap(r => r.recentCommits || []).map(m => m.toLowerCase());
+    const totalMsgs = allMessages.length || 1;
+    const typeBreakdown = {
+      features: Math.round((allMessages.filter(m => /feat|add|implement|new|creat/.test(m)).length / totalMsgs) * 100),
+      fixes: Math.round((allMessages.filter(m => /fix|bug|patch|hotfix|resolve|error/.test(m)).length / totalMsgs) * 100),
+      docs: Math.round((allMessages.filter(m => /doc|readme|comment/.test(m)).length / totalMsgs) * 100),
+      refactors: Math.round((allMessages.filter(m => /refactor|clean|rewrite|improve|optimiz/.test(m)).length / totalMsgs) * 100),
+    };
+    typeBreakdown.other = Math.max(0, 100 - typeBreakdown.features - typeBreakdown.fixes - typeBreakdown.docs - typeBreakdown.refactors);
 
-REPOSITORIES WORKED ON THIS WEEK:
-${repoList.map(r =>
-  `REPO: ${r.name}
+    const repoStateHints = repoList.map(r => {
+      const msgs = (r.recentCommits || []).join(' ').toLowerCase();
+      const commits = r.commitsThisWeek || 0;
+      const stars = r.stars || 0;
+      const clones = r.clones || 0;
+      let stateHint = 'UNKNOWN';
+      if (commits === 0) stateHint = 'DORMANT';
+      else if (/auth|token|password|secret|env|api_key|crypto|jwt|session/.test(msgs)) stateHint = 'SECURITY_SENSITIVE';
+      else if (clones > 100 && commits < 3) stateHint = 'HIGH_VISIBILITY';
+      else if (commits > 8) stateHint = 'RAPID_GROWTH';
+      else if (typeBreakdown.fixes > 50) stateHint = 'MAINTENANCE_HEAVY';
+      else if (typeBreakdown.features > 50) stateHint = 'FEATURE_EXPANDING';
+      else if (/revert|undo|broke|broken/.test(msgs)) stateHint = 'UNSTABLE';
+      else stateHint = 'MAINTENANCE_HEAVY';
+      return { name: r.name, stateHint, commits, stars, clones };
+    });
+
+    const prevCommits = previousReport?.stats?.totalCommits || null;
+    const prevPRs = previousReport?.stats?.totalPRs || null;
+    const weeklyCommits = weeklyStats?.weekly?.commits ?? activityData.pushEvents ?? 0;
+    const weeklyPRs = weeklyStats?.weekly?.prs ?? activityData.prEvents ?? 0;
+
+    const deltaContext = prevCommits
+      ? `PREVIOUS WEEK (stored): ${prevCommits} commits, ${prevPRs} PRs`
+      : 'PREVIOUS WEEK: No prior data (first report)';
+
+    const repoLines = repoList.map((r, i) => {
+      const hint = repoStateHints[i];
+      return `REPO: ${r.name}
+  State Hint: ${hint?.stateHint}
   Visibility: ${r.isPrivate ? 'Private' : 'Public'}
-  Commits This Week: ${r.commitsThisWeek || 0}
-  Stars: ${r.stars || 0} | Clones (7d): ${r.clones || 0}
-  Description: ${r.description || 'No description provided'}
-  Recent Commit Messages: ${(r.recentCommits || []).slice(0, 5).join(' | ') || 'No commits recorded'}`
-).join('\n\n')}
-    `;
+  Commits: ${r.commitsThisWeek || 0}
+  Stars: ${r.stars || 0} | Clones (7d): ${r.clones !== null ? r.clones : 'N/A'}
+  Language: ${r.language || 'Unknown'}
+  Description: ${r.description || 'No description'}
+  Recent Commits: ${(r.recentCommits || []).slice(0, 6).join(' | ') || 'No commits'}`;
+    }).join('\n\n');
+
+    const context = `WEEKLY ACTIVITY SNAPSHOT (7-day accurate GraphQL window):
+- Commits This Week (verified): ${weeklyCommits}
+- Pull Requests: ${weeklyPRs}
+- Issues: ${weeklyStats?.weekly?.issues ?? activityData.issueEvents ?? 0}
+- Active Repositories: ${weeklyStats?.weekly?.reposActive ?? repoList.length}
+- Active Days: ${weeklyStats?.weekly?.activeDays ?? 'N/A'} / 7
+- Consistency Score: ${weeklyStats?.behavioral?.consistencyScore ?? 'N/A'}%
+- Peak Day: ${weeklyStats?.behavioral?.peakDay ?? 'N/A'} (${weeklyStats?.behavioral?.peakDayCount ?? 0} contributions)
+
+BEHAVIORAL ANALYSIS:
+- Commit Types: ${typeBreakdown.features}% Features | ${typeBreakdown.fixes}% Fixes | ${typeBreakdown.docs}% Docs | ${typeBreakdown.refactors}% Refactors | ${typeBreakdown.other}% Other
+${deltaContext}
+
+REPOSITORIES THIS WEEK:
+${repoLines}`;
 
     const messages = [
-      {
-        role: "system",
-        content: this.weeklyReportPrompt
-      },
-      {
-        role: "user",
-        content: `Perform a deep weekly code-intelligence review for this developer. Return strictly valid JSON.\n\n${context}`
-      }
+      { role: "system", content: this.weeklyReportPrompt },
+      { role: "user", content: `Perform a deep weekly code-intelligence review. Override state hints with evidence from commits. Return strictly valid JSON.\n\n${context}` }
     ];
 
     let lastError = null;
     for (const key of pdfKeys) {
       try {
         const response = await this.makeRequestWithKey(messages, {
-          temperature: 0.35,
+          temperature: 0.3,
           max_tokens: 4096,
           jsonMode: true
         }, key);
-
-        const parsed = JSON.parse(response);
-
-        // Normalize legacy field names for backward-compat with reportService
-        if (!parsed.summary && parsed.executiveSummary) {
-          parsed.summary = parsed.executiveSummary;
-        }
-        if (!parsed.recommendations && parsed.strategicInsights) {
-          parsed.recommendations = parsed.strategicInsights.map(i => `${i.title}: ${i.detail}`);
-        }
-        
-        // Normalize projectInsights: if values are objects, flatten to brief string for legacy callers
-        if (parsed.projectInsights) {
-          for (const k of Object.keys(parsed.projectInsights)) {
-            const val = parsed.projectInsights[k];
-            if (val && typeof val === 'object') {
-              // Keep the rich object; reportService will handle both shapes
-              parsed.projectInsights[k] = val;
-            }
-          }
-        }
-
-        return parsed;
+        return JSON.parse(response);
       } catch (error) {
         lastError = error;
-        if (error.message.includes('429')) {
-          console.warn(`⚠️ Rate limit hit for a PDF API key. Rotating to next key...`);
-          continue;
-        }
+        if (error.message?.includes('429')) { console.warn('Rate limit, rotating key...'); continue; }
         console.error(`Groq PDF Key Error: ${error.message}`);
-        // If it's not a 429, we still try the next key just in case
         continue;
       }
     }
 
-    console.error("All PDF API keys failed. Returning fallback insights.", lastError);
+    console.error('All PDF API keys failed. Returning fallback insights.', lastError?.message);
+    const focusScore = repoList.length === 1 ? 90 : Math.max(40, 90 - (repoList.length * 10));
     return {
-      executiveSummary: "Solid activity this week across your repositories. Keep up the momentum and focus on code quality.",
-      summary: "Solid activity this week across your repositories. Keep up the momentum and focus on code quality.",
-      strategicInsights: [
-        { title: "Maintain Daily Commit Habit", detail: "Consistent daily commits signal steady progress and help avoid large, risky batches of changes." },
-        { title: "Document As You Build", detail: "Adding inline comments and README updates alongside feature work reduces future onboarding friction." },
-        { title: "Review Open Issues Weekly", detail: "Triaging open issues at the start of each week keeps technical debt visible and manageable." },
-        { title: "Increase PR Frequency", detail: "Smaller, more frequent PRs are easier to review, less likely to introduce regressions, and faster to merge." }
-      ],
-      recommendations: [
-        "Maintain Daily Commit Habit: Consistent daily commits signal steady progress.",
-        "Document As You Build: Add comments and README updates alongside feature work.",
-        "Review Open Issues Weekly: Triage open issues to keep technical debt visible.",
-        "Increase PR Frequency: Smaller PRs are easier to review and faster to merge."
-      ],
-      growthScore: { score: 65, label: "Steady Progress", rationale: "Baseline score due to unavailable AI analysis." },
-      riskFlags: ["AI analysis unavailable — manual review recommended."],
-      projectInsights: {},
-      sentiment: "Encouraging"
+      dashboard: {
+        momentum: 'STABLE →',
+        kpis: { weeklyCommits, weeklyPRs, commitsDelta: prevCommits ? `${weeklyCommits - prevCommits >= 0 ? '+' : ''}${weeklyCommits - prevCommits}` : 'First report', focusScore, collaborationScore: weeklyPRs > 0 ? 70 : 40, consistencyScore: weeklyStats?.behavioral?.consistencyScore ?? 50 },
+        biggestWin: `${weeklyCommits} verified commits across ${repoList.length} repositories this week.`,
+        biggestRisk: 'AI intelligence pipeline offline — insights require manual review.',
+        strategicFocus: 'Restore API connectivity for deeper intelligence analysis.'
+      },
+      behavioral: {
+        peakDay: weeklyStats?.behavioral?.peakDay ?? 'N/A', peakDayCount: weeklyStats?.behavioral?.peakDayCount ?? 0,
+        consistencyPattern: `${weeklyStats?.weekly?.activeDays ?? 0} of 7 days active.`,
+        focusFragmentation: repoList.length > 3 ? 'Multi-repo fragmentation detected.' : 'Focus concentrated.',
+        commitTypeBreakdown: typeBreakdown,
+        behaviorSummary: `${weeklyCommits} commits across ${weeklyStats?.weekly?.activeDays ?? 0} active days. Behavioral intelligence pending API restoration.`
+      },
+      intelligence: {
+        workConsistency: { status: 'Stable', interpretation: `${weeklyStats?.weekly?.activeDays ?? 0}/7 active days.`, trend: '→', score: weeklyStats?.behavioral?.consistencyScore ?? 50 },
+        focusAnalysis: { status: 'Stable', interpretation: 'Focus metrics unavailable in fallback mode.', trend: '→', score: 50 },
+        collaboration: { status: weeklyPRs > 0 ? 'Stable' : 'Warning', interpretation: `${weeklyPRs} PRs this week.`, trend: weeklyPRs > 0 ? '→' : '↓', score: weeklyPRs > 0 ? 65 : 30 },
+        codeQuality: { status: 'Stable', interpretation: `${typeBreakdown.fixes}% fix commits, ${typeBreakdown.features}% feature commits.`, trend: '→', score: 60 }
+      },
+      repositories: Object.fromEntries(repoList.map((r, i) => [r.name, {
+        state: repoStateHints[i]?.stateHint ?? 'UNKNOWN',
+        metrics: { momentum: r.commitsThisWeek > 5 ? 'HIGH' : r.commitsThisWeek > 1 ? 'MEDIUM' : 'LOW', commitVelocity: r.commitsThisWeek || 0, visibilityRisk: Math.round(((r.stars || 0) / Math.max(r.commitsThisWeek, 1)) * 10), estimatedMaintenanceRatio: typeBreakdown.fixes },
+        insight: `${r.commitsThisWeek || 0} commits recorded. State: ${repoStateHints[i]?.stateHint}. Intelligence analysis pending.`,
+        suggestedAction: 'Review commit patterns manually and run dependency audits.'
+      }])),
+      security: [{ issue: 'Dependency Audit Required', severity: 'Low', confidence: 'Low', evidence: 'API failure prevented deep analysis', affectedArea: 'All repositories', suggestion: 'Run npm audit or pip check.' }],
+      weeklyDelta: {
+        note: prevCommits ? 'Comparison vs stored previous week.' : 'First report.',
+        metrics: [
+          { label: 'Commits', current: weeklyCommits, estimated: prevCommits ? `~${prevCommits}` : 'N/A', delta: prevCommits ? `${weeklyCommits >= prevCommits ? '+' : ''}${weeklyCommits - prevCommits}` : 'N/A', signal: prevCommits ? (weeklyCommits >= prevCommits ? '↑' : '↓') : '→' },
+          { label: 'PRs Merged', current: weeklyPRs, estimated: prevPRs ? `~${prevPRs}` : 'N/A', delta: 'N/A', signal: '→' },
+          { label: 'Active Repos', current: repoList.length, estimated: 'N/A', delta: 'N/A', signal: '→' },
+          { label: 'Focus Score', current: focusScore, estimated: 'N/A', delta: 'N/A', signal: '→' }
+        ],
+        interpretation: 'Fallback mode — delta analysis unavailable. Stored metrics provide baseline for next week.'
+      },
+      globalScore: {
+        total: Math.min(100, Math.round(((weeklyStats?.behavioral?.consistencyScore ?? 50) + Math.min(100, weeklyCommits * 3) + (weeklyPRs * 5)) / 3)),
+        breakdown: { consistency: weeklyStats?.behavioral?.consistencyScore ?? 50, velocity: Math.min(100, weeklyCommits * 5), collaboration: weeklyPRs > 0 ? 65 : 35, codeQuality: 60, security: 60 },
+        scoringNote: 'Scores computed from raw metrics in fallback mode. AI-enhanced scoring unavailable.'
+      },
+      narrative: `Fallback mode active. ${weeklyCommits} commits recorded across ${repoList.length} repositories over ${weeklyStats?.weekly?.activeDays ?? 0} active days. Manual review recommended.`
     };
+
+
+    console.error("All PDF API keys failed. Returning fallback elite insights.", lastError);
+    return {
+      dashboard: {
+        momentum: "STABLE →",
+        kpis: { commitsDelta: "+0%", prsDelta: "+0%", focusScore: 75, collaborationScore: 70 },
+        biggestWin: "Maintained baseline contribution velocity despite API failure.",
+        biggestRisk: "AI intelligence pipeline offline, manual review required.",
+        strategicFocus: "Restore API connectivity for deeper analytics."
+      },
+      intelligence: {
+        workConsistency: { status: "Stable", interpretation: "Standard operating capacity.", trend: "→" },
+        focusAnalysis: { status: "Stable", interpretation: "Focus metrics unavailable.", trend: "→" },
+        collaboration: { status: "Warning", interpretation: "Collaboration signals could not be parsed.", trend: "↓" },
+        documentation: { status: "Stable", interpretation: "Documentation analysis skipped.", trend: "→" }
+      },
+      repositories: {},
+      security: [
+        { issue: "Fallback Security Mode", severity: "Low", confidence: "Low", suggestion: "Manually run dependency audits." }
+      ],
+      narrative: "This week's intelligence report was generated in fallback mode due to AI connectivity issues. Base metrics indicate stable progression, but deep strategic insights and repository-level tracking are temporarily suspended. Focus on core deliverables and manual code reviews until full telemetry is restored.",
+      globalScore: {
+        total: 75,
+        breakdown: { consistency: 75, velocity: 75, security: 75, oss: 75 }
+      }
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INSIGHTS ENGINE — Productivity, Recommendations, Risk
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Analyze developer productivity trends over a time period.
+   * Returns JSON with trend summary, peak periods, and consistency insights.
+   * @param {object} data - { username, days, totalCommits, streak, activeDays, inactiveDays, projects }
+   */
+  async analyzeProductivityTrends(data) {
+    const prompt = `Analyze this developer's GitHub activity and return ONLY valid JSON (no markdown, no extra text):
+
+DATA:
+- Username: ${data.username}
+- Period: ${data.days} days
+- Total commits: ${data.totalCommits}
+- Total contributions: ${data.totalContributions}
+- PRs opened: ${data.totalPRs}
+- Issues closed: ${data.totalIssues}
+- Current streak: ${data.streak} days
+- Active days: ${data.activeDays} / ${data.days}
+- Inactive days: ${data.inactiveDays}
+- Projects: ${data.projectCount}
+
+Return this exact JSON structure:
+{
+  "trendDirection": "improving|stable|declining",
+  "consistencyScore": 0-100,
+  "summary": "2-3 sentences describing overall productivity pattern",
+  "peakPeriods": ["description of when they're most active"],
+  "insights": [
+    { "title": "short title", "detail": "1-2 sentences of actionable insight" }
+  ],
+  "recommendation": "Single most impactful thing they can do this week"
+}`;
+
+    try {
+      const messages = [
+        { role: "system", content: "You are a senior engineering productivity coach. Return ONLY valid JSON." },
+        { role: "user", content: prompt },
+      ];
+      const raw = await this.makeRequest(messages, { temperature: 0.4, max_tokens: 1024, jsonMode: true });
+      return typeof raw === "object" ? raw : JSON.parse(raw);
+    } catch {
+      return {
+        trendDirection: "stable",
+        consistencyScore: 60,
+        summary: "Analysis unavailable. Keep tracking your commits for trend data.",
+        peakPeriods: ["Data pending"],
+        insights: [{ title: "Stay Consistent", detail: "Daily commits compound into major progress over time." }],
+        recommendation: "Aim for at least one commit per day this week.",
+      };
+    }
+  }
+
+  /**
+   * Generate personalized strategic recommendations based on GitHub activity + project health.
+   * @param {object} data - { username, totalEvents, pushEvents, projects, role, experienceLevel, goals }
+   */
+  async generateStrategicRecommendations(data) {
+    const projectSummary = data.projects.slice(0, 5).map(p =>
+      `${p.name} (health: ${p.healthScore ?? 'N/A'}, issues: ${p.openIssues ?? 0}, lang: ${p.primaryLanguage || '?'})`
+    ).join('; ');
+
+    const prompt = `Generate strategic developer recommendations and return ONLY valid JSON:
+
+CONTEXT:
+- Developer role: ${data.role}, level: ${data.experienceLevel}
+- This week: ${data.pushEvents} pushes, ${data.totalEvents} total events
+- Active repos: ${data.reposThisWeek}
+- Projects: ${projectSummary}
+- Goals: ${data.goals?.join(', ') || 'Not specified'}
+
+Return this exact JSON:
+{
+  "priorityActions": [
+    { "title": "4-6 word title", "detail": "Why and how — 2 sentences", "urgency": "high|medium|low", "estimatedTime": "e.g. 30 min" }
+  ],
+  "skillGaps": ["gap 1", "gap 2"],
+  "weeklyFocus": "Single sentence: the #1 thing to focus on this week",
+  "longTermAdvice": "2 sentences of strategic career/codebase advice"
+}
+
+priorityActions must have exactly 3-4 items. Be specific to the data.`;
+
+    try {
+      const messages = [
+        { role: "system", content: "You are a senior staff engineer coach. Return ONLY valid JSON." },
+        { role: "user", content: prompt },
+      ];
+      const raw = await this.makeRequest(messages, { temperature: 0.5, max_tokens: 1024, jsonMode: true });
+      return typeof raw === "object" ? raw : JSON.parse(raw);
+    } catch {
+      return {
+        priorityActions: [
+          { title: "Address Open Issues", detail: "High open issue counts signal technical debt. Spend 30 min triaging.", urgency: "high", estimatedTime: "30 min" },
+          { title: "Write Tests for Core Logic", detail: "Test coverage prevents regressions as your codebase grows.", urgency: "medium", estimatedTime: "1 hr" },
+        ],
+        skillGaps: ["Testing practices", "Documentation"],
+        weeklyFocus: "Reduce open issues and improve test coverage in your highest-risk project.",
+        longTermAdvice: "Invest in code quality now to prevent compound technical debt. Consistent small improvements beat periodic rewrites.",
+      };
+    }
+  }
+
+  /**
+   * Analyze code risk signals from high-risk projects.
+   * Token-efficient: only called when high-risk projects exist.
+   * @param {object} data - { highRiskProjects: [...] }
+   */
+  async analyzeCodeRisk(data) {
+    const projectList = data.highRiskProjects.map(p =>
+      `${p.name}: health=${p.healthScore}, issues=${p.openIssues}, stale=${p.daysSinceUpdate}d, flags=[${p.riskFlags.join(', ')}]`
+    ).join('\n');
+
+    const prompt = `Analyze these high-risk projects and return ONLY valid JSON:
+
+PROJECTS:
+${projectList}
+
+Return:
+{
+  "overallRisk": "critical|high|medium",
+  "topRisk": "The single most critical risk in 1 sentence",
+  "projectAnalysis": {
+    "projectName": { "action": "Most important action for this project in 1 sentence", "timeEstimate": "e.g. 2 hrs" }
+  },
+  "immediateActions": ["action 1", "action 2", "action 3"]
+}`;
+
+    try {
+      const messages = [
+        { role: "system", content: "You are a technical risk analyst. Return ONLY valid JSON." },
+        { role: "user", content: prompt },
+      ];
+      const raw = await this.makeRequest(messages, { temperature: 0.3, max_tokens: 800, jsonMode: true });
+      return typeof raw === "object" ? raw : JSON.parse(raw);
+    } catch {
+      return {
+        overallRisk: "high",
+        topRisk: "Multiple projects showing signs of neglect — prioritize health score improvements.",
+        projectAnalysis: {},
+        immediateActions: ["Triage open issues", "Update dependencies", "Add CI pipeline"],
+      };
+    }
   }
 }
 
