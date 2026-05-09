@@ -291,10 +291,7 @@ const getStats = async (req, res, next) => {
     // Sort dates in descending order (newest first)
     const sortedDates = [...uniqueDates].sort().reverse();
 
-    // Debug logging
-    console.log("=== Streak Calculation Debug ===");
-    console.log("Today (local):", todayStr);
-    console.log("All log dates:", sortedDates);
+    // Streak calculation debug logs removed for production cleanliness
 
     // Check if we have an entry for today or yesterday
     const yesterdayDate = new Date(now);
@@ -303,9 +300,7 @@ const getStats = async (req, res, next) => {
       yesterdayDate.getMonth() + 1
     ).padStart(2, "0")}-${String(yesterdayDate.getDate()).padStart(2, "0")}`;
 
-    console.log("Yesterday:", yesterdayStr);
-    console.log("Has today entry:", sortedDates.includes(todayStr));
-    console.log("Has yesterday entry:", sortedDates.includes(yesterdayStr));
+    // Check if we have an entry for today or yesterday
 
     // Start counting from today or yesterday
     let checkDate = new Date(now);
@@ -326,7 +321,8 @@ const getStats = async (req, res, next) => {
       } else {
         // No recent entries, streak is 0
         streak = 0;
-        console.log("No entry today or yesterday, streak = 0");
+        // No recent entries, streak is 0
+        streak = 0;
       }
     }
 
@@ -337,22 +333,16 @@ const getStats = async (req, res, next) => {
         const checkStr = getLocalDateStr(checkDate);
         if (sortedDates.includes(checkStr)) {
           streak++;
-          console.log(
-            "Counting streak day:",
-            checkStr,
-            "-> streak now:",
-            streak
-          );
+          streak++;
           checkDate.setDate(checkDate.getDate() - 1);
         } else {
-          console.log("Break at:", checkStr, "(not found)");
+          // Break found
           break;
         }
       }
     }
 
-    console.log("Final streak:", streak);
-    console.log("=================================");
+    // Final streak calculated
 
     // Count tags
     const tagCounts = {};

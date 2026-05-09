@@ -139,6 +139,10 @@ const enqueueWeeklyJobs = async () => {
                 username: data.githubUsername || null,
             });
         }
+        
+        if (jobs.length > 0) {
+            console.log(`📊 [Queue Service] Found ${jobs.length} reports due for processing at ${currentHour}:00 UTC.`);
+        }
 
         // Enqueue all due jobs (in parallel, up to 10 at a time)
         const CHUNK_SIZE = 10;

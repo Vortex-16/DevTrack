@@ -216,6 +216,12 @@ const updatePreferences = async (req, res, next) => {
                 localDay: reportPreferences.localDay !== undefined ? Number(reportPreferences.localDay) : null,
                 localHour: reportPreferences.localHour !== undefined ? Number(reportPreferences.localHour) : null,
             };
+            
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const displayDay = schedule.localDay !== null ? days[schedule.localDay] : `Day ${schedule.dayOfWeek} (UTC)`;
+            const displayHour = schedule.localHour !== null ? `${schedule.localHour % 12 || 12}:00 ${schedule.localHour >= 12 ? 'PM' : 'AM'}` : `${schedule.hour}:00 (UTC)`;
+            
+            console.log(`📅 [Schedule Update] User ${userId} updated report schedule to: ${displayDay} at ${displayHour}`);
             updateData.reportPreferences = schedule;
         }
 
