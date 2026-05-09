@@ -490,6 +490,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         <p className="text-sm font-semibold text-white mb-2">Automated Delivery</p>
                                         <div className="flex gap-2 mb-2">
                                             <select
+                                                id="reportDay"
+                                                name="reportDay"
                                                 value={preferences.reportSchedule?.dayOfWeek ?? 1}
                                                 onChange={(e) => handleScheduleChange('dayOfWeek', e.target.value)}
                                                 className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
@@ -503,6 +505,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                                 <option value={6}>Saturday</option>
                                             </select>
                                             <select
+                                                id="reportHour"
+                                                name="reportHour"
                                                 value={preferences.reportSchedule?.hour ?? 15}
                                                 onChange={(e) => handleScheduleChange('hour', e.target.value)}
                                                 className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
@@ -530,6 +534,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         Control how long DevTrack keeps your private-repo OAuth access active before requiring reauthorization.
                                     </p>
                                     <select
+                                        id="githubAccessRetention"
+                                        name="githubAccessRetention"
                                         value={preferences.githubAccessRetentionDays || 7}
                                         onChange={(e) => setPreferences({ ...preferences, githubAccessRetentionDays: Number(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-purple-500 focus:outline-none"
@@ -580,6 +586,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         >
                                             <label className="block text-sm text-slate-400 mb-2">Daily reminder time</label>
                                             <input
+                                                id="fixedReminderTime"
+                                                name="fixedReminderTime"
                                                 type="time"
                                                 value={preferences.fixedTime || '09:00'}
                                                 onChange={(e) => setPreferences({ ...preferences, fixedTime: e.target.value })}
@@ -643,6 +651,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                 <div>
                                     <h3 className="text-lg font-semibold text-white mb-3">Auto-End Session</h3>
                                     <select
+                                        id="autoEndDuration"
+                                        name="autoEndDuration"
                                         value={preferences.autoEndDuration}
                                         onChange={(e) => setPreferences({ ...preferences, autoEndDuration: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-purple-500 focus:outline-none"
@@ -658,6 +668,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                 <div>
                                     <h3 className="text-lg font-semibold text-white mb-3">Current Focus</h3>
                                     <select
+                                        id="userGoal"
+                                        name="userGoal"
                                         value={userGoal}
                                         onChange={(e) => setUserGoal(e.target.value)}
                                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-purple-500 focus:outline-none"
@@ -668,6 +680,8 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                         ))}
                                     </select>
                                     <input
+                                        id="customUserGoal"
+                                        name="customUserGoal"
                                         type="text"
                                         value={!goals.includes(userGoal) ? userGoal : ''}
                                         onChange={(e) => setUserGoal(e.target.value)}
