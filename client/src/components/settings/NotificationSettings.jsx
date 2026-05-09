@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Lenis from 'lenis';
 import { motion, AnimatePresence } from 'framer-motion';
-import { preferencesApi, notificationsApi, githubApi } from '../../services/api';
+import { preferencesApi, notificationsApi, githubApi, reportsApi } from '../../services/api';
 import useNotifications from '../../hooks/useNotifications';
 import NotificationBell from '../notifications/NotificationBell';
 import { Target, Clock, Zap, Package, FileDown } from 'lucide-react';
@@ -117,6 +117,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
 
     const handleDownloadReport = async () => {
         setDownloading(true);
+        setMessage({ type: '', text: '' });
         try {
             const response = await githubApi.downloadReport();
             const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -132,9 +133,27 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (error) {
             console.error('Download error:', error);
-            setMessage({ type: 'error', text: 'Failed to download report. Make sure GitHub is connected.' });
+            const errorMsg = error.response?.status === 404 
+                ? 'No reports found. Please click "Generate Fresh Report" first.' 
+                : 'Failed to download report. Make sure GitHub is connected.';
+            setMessage({ type: 'error', text: errorMsg });
         } finally {
             setDownloading(false);
+        }
+    };
+
+    const [triggering, setTriggering] = useState(false);
+    const handleTriggerReport = async () => {
+        setTriggering(true);
+        setMessage({ type: '', text: '' });
+        try {
+            await reportsApi.trigger();
+            setMessage({ type: 'success', text: 'Report generation started! It will be ready in 1-2 minutes.' });
+        } catch (error) {
+            console.error('Trigger error:', error);
+            setMessage({ type: 'error', text: 'Failed to start report generation.' });
+        } finally {
+            setTriggering(false);
         }
     };
 
@@ -277,14 +296,24 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                                     <p className="text-sm text-slate-400 mb-4">
                                         Download a comprehensive PDF report of your GitHub activity, including commits, issues, PRs, and more.
                                     </p>
-                                    <button
-                                        onClick={handleDownloadReport}
-                                        disabled={downloading}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all disabled:opacity-50"
-                                    >
-                                        <FileDown size={18} />
-                                        {downloading ? 'Generating...' : 'Download Weekly Report'}
-                                    </button>
+                                    <div className="flex flex-wrap gap-3">
+                                        <button
+                                            onClick={handleDownloadReport}
+                                            disabled={downloading}
+                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all disabled:opacity-50"
+                                        >
+                                            <FileDown size={18} />
+                                            {downloading ? 'Downloading...' : 'Download Latest Report'}
+                                        </button>
+                                        <button
+                                            onClick={handleTriggerReport}
+                                            disabled={triggering}
+                                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white font-semibold rounded-lg border border-slate-700 hover:bg-slate-700 transition-all disabled:opacity-50"
+                                        >
+                                            <Zap size={18} className="text-yellow-400" />
+                                            {triggering ? 'Queuing...' : 'Generate Fresh Report'}
+                                        </button>
+                                    </div>
                                     <div className="mt-4 pt-4 border-t border-slate-700">
                                         <p className="text-sm font-semibold text-white mb-2">Automated Delivery</p>
                                         <div className="flex gap-2 mb-2">
