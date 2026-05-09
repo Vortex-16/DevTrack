@@ -19,20 +19,25 @@ exports.getUserReports = async (req, res, next) => {
         const userId = req.auth.userId;
         const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
+        // Fetch all user reports and sort in-memory to avoid index requirements
         const reportsSnapshot = await collections.reports()
             .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(limit)
             .get();
 
-        const reports = reportsSnapshot.docs.map(doc => ({
+        let reports = reportsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
         }));
 
+        // Sort by createdAt desc
+        reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Apply limit
+        const limitedReports = reports.slice(0, limit);
+
         res.status(200).json({
             success: true,
-            data: reports,
+            data: limitedReports,
             total: reports.length,
         });
     } catch (error) {
@@ -78,28 +83,32 @@ exports.downloadLatestReport = async (req, res, next) => {
     try {
         const userId = req.auth.userId;
 
-        // Find the latest report for this user
-        const latestReportSnapshot = await collections.reports()
+        // Get all reports for this user and sort in-memory to avoid needing a Firestore composite index
+        const reportsSnapshot = await collections.reports()
             .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(1)
             .get();
 
-        if (latestReportSnapshot.empty) {
+        if (reportsSnapshot.empty) {
             return res.status(404).json({
                 success: false,
                 error: 'No reports found. Please generate a report first.'
             });
         }
 
-        const reportData = latestReportSnapshot.docs[0].data();
-        const reportId = latestReportSnapshot.docs[0].id;
+        // Sort by createdAt descending
+        const allReports = reportsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const latestReport = allReports[0];
 
-        console.log(`📥 Downloading LATEST report ${reportId} for user ${userId}`);
-        const { pdfBuffer } = await reportService.generatePDFReport(userId, reportData);
+        console.log(`📥 Downloading LATEST report ${latestReport.id} for user ${userId}`);
+        const { pdfBuffer } = await reportService.generatePDFReport(userId, latestReport);
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=DevTrack-Latest-Report-${(reportData.createdAt || '').split('T')[0] || 'download'}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=DevTrack-Latest-Report-${(latestReport.createdAt || '').split('T')[0] || 'download'}.pdf`);
         res.send(pdfBuffer);
     } catch (error) {
         next(error);
