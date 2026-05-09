@@ -6,6 +6,16 @@ import useNotifications from '../../hooks/useNotifications';
 import NotificationBell from '../notifications/NotificationBell';
 import { Target, Clock, Zap, Package, FileDown } from 'lucide-react';
 
+const DEFAULT_PREFERENCES = {
+    commitPattern: 'frequent',
+    autoEndDuration: 'midnight',
+    reminderMode: 'adaptive',
+    fixedTime: null,
+    breakDetection: true,
+    githubAccessRetentionDays: 7,
+    reportSchedule: { dayOfWeek: 1, hour: 15 }
+};
+
 /**
  * Notification Settings Modal/Panel
  * Allows users to update their notification preferences
@@ -22,15 +32,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
         sendTestNotification,
     } = useNotifications();
 
-    const [preferences, setPreferences] = useState({
-        commitPattern: 'frequent',
-        autoEndDuration: 'midnight',
-        reminderMode: 'adaptive',
-        fixedTime: null,
-        breakDetection: true,
-        githubAccessRetentionDays: 7,
-        reportSchedule: { dayOfWeek: 1, hour: 15 }
-    });
+    const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
     const [userGoal, setUserGoal] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -152,7 +154,7 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             const response = await preferencesApi.get();
             const data = response.data.data;
             
-            let finalPreferences = { ...preferences };
+            let finalPreferences = { ...DEFAULT_PREFERENCES };
 
             if (data.preferences) {
                 finalPreferences = { ...finalPreferences, ...data.preferences };
@@ -166,10 +168,14 @@ const NotificationSettings = ({ isOpen, onClose }) => {
                 // Use a reference date (May 4, 2026 was a Monday, day 1)
                 const date = new Date(Date.UTC(2026, 4, 3 + utcDay, utcHour));
                 
+                // Prioritize explicit local fields to avoid timezone "drift" in half-hour zones (like IST)
+                const localDay = data.reportPreferences.localDay !== undefined ? data.reportPreferences.localDay : date.getDay();
+                const localHour = data.reportPreferences.localHour !== undefined ? data.reportPreferences.localHour : date.getHours();
+
                 finalPreferences.reportSchedule = {
                     ...data.reportPreferences,
-                    dayOfWeek: date.getDay(),
-                    hour: date.getHours()
+                    dayOfWeek: localDay,
+                    hour: localHour
                 };
             }
 
@@ -201,7 +207,9 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             const scheduleToSave = {
                 ...preferences.reportSchedule,
                 dayOfWeek: utcDay,
-                hour: utcHour
+                hour: utcHour,
+                localDay: localDay,
+                localHour: localHour
             };
 
             await preferencesApi.update({ 

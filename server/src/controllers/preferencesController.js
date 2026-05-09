@@ -213,6 +213,8 @@ const updatePreferences = async (req, res, next) => {
                 hour: VALID_HOURS.includes(Number(reportPreferences.hour)) ? Number(reportPreferences.hour) : 15,
                 frequency: ['weekly', 'biweekly'].includes(reportPreferences.frequency) ? reportPreferences.frequency : 'weekly',
                 enabled: reportPreferences.enabled !== undefined ? Boolean(reportPreferences.enabled) : true,
+                localDay: reportPreferences.localDay !== undefined ? Number(reportPreferences.localDay) : null,
+                localHour: reportPreferences.localHour !== undefined ? Number(reportPreferences.localHour) : null,
             };
             updateData.reportPreferences = schedule;
         }

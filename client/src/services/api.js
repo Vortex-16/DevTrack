@@ -143,7 +143,7 @@ export const authApi = {
 };
 
 export const preferencesApi = {
-    get: () => api.get('/preferences'),
+    get: () => api.get('/preferences', { params: { _t: Date.now() } }),
     save: (data) => api.post('/preferences', data),
     update: (data) => api.put('/preferences', data),
     skip: () => api.post('/preferences/skip'),
@@ -244,7 +244,7 @@ export const socialApi = {
 export const reportsApi = {
     getHistory: (limit = 10) => api.get('/reports/history', { params: { limit } }),
     download: (reportId) => api.get(`/reports/download/${reportId}`, { responseType: 'arraybuffer' }),
-    getSchedule: () => api.get('/reports/schedule'),
+    getSchedule: () => api.get('/reports/schedule', { params: { _t: Date.now() } }),
     saveSchedule: (schedule) => api.post('/reports/schedule', schedule),
     getStatus: () => api.get('/reports/status'),
     trigger: () => api.post('/reports/trigger'),
