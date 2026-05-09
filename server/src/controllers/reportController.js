@@ -70,6 +70,42 @@ exports.downloadReport = async (req, res, next) => {
     }
 };
 
+/**
+ * GET /api/reports/latest
+ * Finds and downloads the user's most recent report PDF.
+ */
+exports.downloadLatestReport = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+
+        // Find the latest report for this user
+        const latestReportSnapshot = await collections.reports()
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (latestReportSnapshot.empty) {
+            return res.status(404).json({
+                success: false,
+                error: 'No reports found. Please generate a report first.'
+            });
+        }
+
+        const reportData = latestReportSnapshot.docs[0].data();
+        const reportId = latestReportSnapshot.docs[0].id;
+
+        console.log(`📥 Downloading LATEST report ${reportId} for user ${userId}`);
+        const { pdfBuffer } = await reportService.generatePDFReport(userId, reportData);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=DevTrack-Latest-Report-${(reportData.createdAt || '').split('T')[0] || 'download'}.pdf`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ─── Schedule Management ──────────────────────────────────────────────────────
 
 /**

@@ -6,6 +6,9 @@ const { requireAuth } = require('../middleware/auth');
 // Report history (paginated)
 router.get('/history', requireAuth, reportController.getUserReports);
 
+// Download the most recent report PDF
+router.get('/latest', requireAuth, reportController.downloadLatestReport);
+
 // Download a specific past report PDF
 router.get('/download/:reportId', requireAuth, reportController.downloadReport);
 
