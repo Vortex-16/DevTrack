@@ -161,14 +161,18 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             }
 
             if (data.reportPreferences) {
-                // Convert UTC (day + hour) from server to local for UI
+                // Use stored local fields if available, otherwise calculate from UTC
                 const utcHour = data.reportPreferences.hour ?? 15;
                 const utcDay = data.reportPreferences.dayOfWeek ?? 1;
                 
-                // Use a reference date (May 4, 2026 was a Monday, day 1)
-                const date = new Date(Date.UTC(2026, 4, 3 + utcDay, utcHour));
+                // Use current date as reference to get correct local time (handles DST correctly)
+                const now = new Date();
+                const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), utcHour));
                 
-                // Prioritize explicit local fields to avoid timezone "drift" in half-hour zones (like IST)
+                // Adjust date to match target day of week
+                const dayDiff = utcDay - date.getUTCDay();
+                date.setUTCDate(date.getUTCDate() + dayDiff);
+                
                 const localDay = data.reportPreferences.localDay !== undefined ? data.reportPreferences.localDay : date.getDay();
                 const localHour = data.reportPreferences.localHour !== undefined ? data.reportPreferences.localHour : date.getHours();
 
@@ -199,8 +203,14 @@ const NotificationSettings = ({ isOpen, onClose }) => {
             const localHour = preferences.reportSchedule?.hour ?? 15;
             const localDay = preferences.reportSchedule?.dayOfWeek ?? 1;
             
-            // Use local date to get UTC equivalents
-            const date = new Date(2026, 4, 3 + localDay, localHour);
+            // Use current date as reference to get UTC equivalents
+            const now = new Date();
+            const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), localHour);
+            
+            // Adjust date to match target local day of week
+            const dayDiff = localDay - date.getDay();
+            date.setDate(date.getDate() + dayDiff);
+            
             const utcHour = date.getUTCHours();
             const utcDay = date.getUTCDay();
 

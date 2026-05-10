@@ -103,38 +103,94 @@ const enqueueWeeklyJobs = async () => {
 
     const sixDaysAgo = new Date(now);
     sixDaysAgo.setUTCDate(sixDaysAgo.getUTCDate() - 6);
+    
+    const thirteenDaysAgo = new Date(now);
+    thirteenDaysAgo.setUTCDate(thirteenDaysAgo.getUTCDate() - 13);
 
     let enqueued = 0;
     let skipped = 0;
+    let stats = {
+        dayMismatch: 0,
+        hourMismatch: 0,
+        disabled: 0,
+        noEmail: 0,
+        recentlySent: 0,
+        biweeklySkip: 0,
+        alreadyQueued: 0
+    };
 
     try {
         // Fetch all users with email (required for sending)
         const usersSnapshot = await collections.users()
-            .select('email', 'githubUsername', 'reportPreferences', 'lastReportSentAt')
+            .select('email', 'githubUsername', 'reportPreferences', 'lastReportSentAt', 'name')
             .get();
 
         const jobs = [];
 
         for (const userDoc of usersSnapshot.docs) {
             const data = userDoc.data();
-            if (!data.email) { skipped++; continue; }
+            const userId = userDoc.id;
+            const userName = data.name || data.githubUsername || userId;
+
+            if (!data.email) { 
+                stats.noEmail++;
+                skipped++; 
+                continue; 
+            }
 
             // Use reportPreferences (matches reportController.js)
-            const schedule = data.reportPreferences || { dayOfWeek: 1, hour: 15 };
-            const targetDay = typeof schedule.dayOfWeek === 'number' ? schedule.dayOfWeek : 1;
-            const targetHour = typeof schedule.hour === 'number' ? schedule.hour : 15;
+            const schedule = data.reportPreferences || { dayOfWeek: 1, hour: 15, frequency: 'weekly', enabled: true };
+            
+            // Ensure enabled (defaults to true if preferences exist but flag is missing)
+            if (schedule.enabled === false) {
+                stats.disabled++;
+                skipped++;
+                continue;
+            }
 
-            if (currentDay !== targetDay) { skipped++; continue; }
-            if (currentHour !== targetHour) { skipped++; continue; }
+            const targetDay = typeof schedule.dayOfWeek !== 'undefined' ? Number(schedule.dayOfWeek) : 1;
+            const targetHour = typeof schedule.hour !== 'undefined' ? Number(schedule.hour) : 15;
+            const frequency = schedule.frequency || 'weekly';
 
-            // Don't send if already sent in the last 6 days
-            if (data.lastReportSentAt) {
-                const lastSent = new Date(data.lastReportSentAt);
-                if (lastSent > sixDaysAgo) { skipped++; continue; }
+            // 1. Check Day
+            if (currentDay !== targetDay) { 
+                stats.dayMismatch++;
+                skipped++; 
+                continue; 
+            }
+
+            // 2. Check Hour
+            if (currentHour !== targetHour) { 
+                stats.hourMismatch++;
+                skipped++; 
+                continue; 
+            }
+
+            // 3. Check Last Sent (Frequency Logic)
+            // Use lastWeeklyReportSentAt to avoid manual reports blocking automated ones
+            const lastWeekly = data.lastWeeklyReportSentAt || data.lastReportSentAt;
+            if (lastWeekly) {
+                const lastSent = new Date(lastWeekly);
+                
+                if (frequency === 'biweekly') {
+                    if (lastSent > thirteenDaysAgo) {
+                        stats.biweeklySkip++;
+                        skipped++;
+                        continue;
+                    }
+                } else {
+                    // Weekly: skip if sent within the last 6 days
+                    if (lastSent > sixDaysAgo) {
+                        stats.recentlySent++;
+                        skipped++;
+                        continue;
+                    }
+                }
             }
 
             jobs.push({
-                userId: userDoc.id,
+                userId,
+                userName,
                 email: data.email,
                 username: data.githubUsername || null,
             });
@@ -151,16 +207,27 @@ const enqueueWeeklyJobs = async () => {
             const results = await Promise.allSettled(
                 chunk.map(job => enqueueJob(job.userId, job))
             );
-            results.forEach(result => {
-                if (result.status === 'fulfilled' && !result.value.alreadyQueued) {
-                    enqueued++;
+            results.forEach((result, idx) => {
+                if (result.status === 'fulfilled') {
+                    if (result.value.alreadyQueued) {
+                        stats.alreadyQueued++;
+                        skipped++;
+                    } else {
+                        enqueued++;
+                    }
                 } else {
+                    console.error(`❌ Failed to enqueue job for ${chunk[idx].userId}:`, result.reason);
                     skipped++;
                 }
             });
         }
 
-        console.log(`📊 Weekly report queue: enqueued=${enqueued}, skipped=${skipped}`);
+        console.log(`📊 Weekly report queue summary:
+   - Total Users Checked: ${usersSnapshot.size}
+   - Enqueued: ${enqueued}
+   - Skipped: ${skipped}
+   - Reasons: Day mismatch (${stats.dayMismatch}), Hour mismatch (${stats.hourMismatch}), Recently sent (${stats.recentlySent}), Biweekly skip (${stats.biweeklySkip}), Disabled (${stats.disabled}), No email (${stats.noEmail}), Already in queue (${stats.alreadyQueued})`);
+
         return { enqueued, skipped };
     } catch (err) {
         console.error('❌ Error in enqueueWeeklyJobs:', err.message);
@@ -262,9 +329,16 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
                     updatedAt: completedAt,
                 });
 
-                await collections.users().doc(job.userId).update({
+                const userUpdate = {
                     lastReportSentAt: completedAt,
-                });
+                };
+
+                // Track weekly reports separately so manual ones don't block them
+                if (job.reportType === 'weekly') {
+                    userUpdate.lastWeeklyReportSentAt = completedAt;
+                }
+
+                await collections.users().doc(job.userId).update(userUpdate);
 
                 processed++;
                 console.log(`✅ Report job ${jobDoc.id} completed for user ${job.userId}`);
