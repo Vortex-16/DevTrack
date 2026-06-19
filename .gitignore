@@ -3,6 +3,9 @@ node_modules/
 .pnp/
 .pnp.js
 
+# Security review (local only — do not commit)
+risk.md
+
 # Environment files
 .env
 .env.local
@@ -14,6 +17,11 @@ node_modules/
 dist/
 build/
 .next/
+
+# Generated report previews (local only)
+server/report-preview.pdf
+server/test_report.pdf
+server/test-report-debug.pdf
 
 # Logs
 logs/

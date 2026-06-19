@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "preview:report": "node scripts/preview-report.js --mock",
+    "preview:report:empty": "node scripts/preview-report.js --mock --empty",
+    "preview:report:real": "node scripts/preview-report.js --user"
   },
   "keywords": [
     "devtrack",
