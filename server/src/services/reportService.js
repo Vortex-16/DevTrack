@@ -671,11 +671,49 @@ class ReportService {
             doc.font('Helvetica').fontSize(8).fillColor(this.colors.muted)
                 .text(`${repo.commitsThisWeek || metrics.commitVelocity || 0} commits  ·  ${repo.stars || 0} stars  ·  momentum: ${metrics.momentum || 'N/A'}`, M + 16, y + 34);
 
+            // Calculate Visibility Risk accurately using Security Intelligence findings, repo visibility, & state
+            const secList = aiInsights?.security || [];
+            const globalVulnerabilities = aiInsights?.securityVulnerabilities || [];
+            const repoSecIssues = secList.filter(s =>
+                (s.affectedArea && String(s.affectedArea).toLowerCase().includes(name.toLowerCase())) ||
+                s.severity === 'High' || s.severity === 'Medium'
+            );
+
+            let calculatedVisRisk = this._num(metrics.visibilityRisk);
+            if (calculatedVisRisk === 0 || secList.length > 0 || state === 'SECURITY_SENSITIVE' || globalVulnerabilities.length > 0) {
+                let riskScore = (repo.isPrivate || repo.private) ? 10 : 20;
+                if (state === 'SECURITY_SENSITIVE') riskScore += 25;
+                if (state === 'UNSTABLE') riskScore += 15;
+
+                // Add risk for every security finding
+                const allSec = [...secList, ...globalVulnerabilities];
+                allSec.forEach(s => {
+                    const sev = String(s.severity || 'Medium').toLowerCase();
+                    if (sev === 'critical' || sev === 'high') riskScore += 25;
+                    else if (sev === 'medium') riskScore += 15;
+                    else riskScore += 8;
+                });
+
+                if (allSec.length > 0 || state === 'SECURITY_SENSITIVE') {
+                    riskScore = Math.max(riskScore, Math.min(100, (allSec.length || 1) * 20));
+                }
+
+                calculatedVisRisk = Math.min(100, Math.max(calculatedVisRisk, riskScore));
+            }
+
+            // Velocity score calculation
+            const rawVelocity = (this._num(metrics.commitVelocity) || repo.commitsThisWeek || 0);
+            const calcVelocity = Math.min(100, Math.max(20, rawVelocity * 10 + (metrics.momentum === 'HIGH' ? 30 : metrics.momentum === 'MEDIUM' ? 15 : 5)));
+
+            // Maintenance score calculation
+            const rawMaint = this._num(metrics.estimatedMaintenanceRatio);
+            const calcMaintenance = rawMaint > 0 ? Math.min(100, Math.max(15, rawMaint * 1.5)) : Math.max(30, 85 - (repoSecIssues.length * 15));
+
             // mini meters: velocity / maintenance / visibility risk
             const meters = [
-                { label: 'Velocity', score: Math.min(100, (this._num(metrics.commitVelocity) || repo.commitsThisWeek || 0) * 8), color: this.colors.teal },
-                { label: 'Maintenance', score: this._num(metrics.estimatedMaintenanceRatio), color: this.colors.warning },
-                { label: 'Visibility Risk', score: this._num(metrics.visibilityRisk), color: this.colors.danger },
+                { label: 'Velocity', score: calcVelocity, color: this.colors.teal },
+                { label: 'Maintenance', score: calcMaintenance, color: this.colors.warning },
+                { label: 'Visibility Risk', score: calculatedVisRisk, color: calculatedVisRisk > 30 ? this.colors.danger : (calculatedVisRisk > 0 ? this.colors.warning : this.colors.success) },
             ];
             this.drawHBars(doc, M + 16, y + 50, (CW) * 0.5, meters, { labelW: 84, rowH: 14, max: 100 });
 
@@ -1096,9 +1134,18 @@ class ReportService {
             let sent = 0;
             let failed = 0;
 
+            const processedEmails = new Set();
+
             for (const doc of usersSnapshot.docs) {
                 const user = doc.data();
                 if (user.email && user.githubUsername) {
+                    const normalizedEmail = user.email.toLowerCase().trim();
+                    if (processedEmails.has(normalizedEmail)) {
+                        console.log(`Skipping duplicate email: ${normalizedEmail} (doc ID: ${doc.id})`);
+                        continue;
+                    }
+                    processedEmails.add(normalizedEmail);
+
                     const result = await this.sendWeeklyReportEmail(doc.id);
                     if (result.success) { sent++; } else { failed++; }
                     await new Promise(resolve => setTimeout(resolve, 1000));
