@@ -18,7 +18,7 @@ const { refreshAllGitHubAvatars } = require('../services/profileSyncService');
 const reportQueue = require('../services/reportQueueService');
 
 const initializeScheduler = () => {
-    console.log('⏰ Initializing DevTrack Scheduler...');
+    console.log('Initializing DevTrack Scheduler...');
     const svc = getNotificationService();
 
     // ── JOB 1: Consistency Reminders ─────────────────────────────────────────
@@ -28,7 +28,7 @@ const initializeScheduler = () => {
         try {
             await svc.checkAndSendReminders();
         } catch (error) {
-            console.error('❌ [Cron] Consistency Reminders:', error.message);
+            console.error('[Cron] Consistency Reminders:', error.message);
         }
     });
 
@@ -36,10 +36,10 @@ const initializeScheduler = () => {
     // Daily at 7:00 AM IST (01:30 UTC) — celebrate 7/14/30/50/100-day streaks.
     cron.schedule('30 1 * * *', async () => {
         try {
-            console.log('🏆 [Cron] Streak milestone check...');
+            console.log('[Cron] Streak milestone check...');
             await svc.checkStreakMilestones();
         } catch (error) {
-            console.error('❌ [Cron] Streak Milestones:', error.message);
+            console.error('[Cron] Streak Milestones:', error.message);
         }
     });
 
@@ -48,10 +48,10 @@ const initializeScheduler = () => {
     // due today or tomorrow.
     cron.schedule('30 3 * * *', async () => {
         try {
-            console.log('📋 [Cron] Task due date check...');
+            console.log('[Cron] Task due date check...');
             await svc.checkTasksDue();
         } catch (error) {
-            console.error('❌ [Cron] Task Due check:', error.message);
+            console.error('[Cron] Task Due check:', error.message);
         }
     });
 
@@ -60,10 +60,10 @@ const initializeScheduler = () => {
     // project revival nudges for users who haven't been active.
     cron.schedule('30 14 * * *', async () => {
         try {
-            console.log('🔍 [Cron] Evening dynamic activity check...');
+            console.log('[Cron] Evening dynamic activity check...');
             await svc.checkDynamicNotifs();
         } catch (error) {
-            console.error('❌ [Cron] Dynamic Notifs:', error.message);
+            console.error('[Cron] Dynamic Notifs:', error.message);
         }
     });
 
@@ -79,10 +79,10 @@ const initializeScheduler = () => {
         try {
             const { enqueued, skipped } = await reportQueue.enqueueWeeklyJobs();
             if (enqueued > 0) {
-                console.log(`📬 [Cron] Enqueued ${enqueued} weekly report jobs (${skipped} skipped)`);
+                console.log(`[Cron] Enqueued ${enqueued} weekly report jobs (${skipped} skipped)`);
             }
         } catch (error) {
-            console.error('❌ [Cron] Report queue enqueue:', error.message);
+            console.error('[Cron] Report queue enqueue:', error.message);
         }
     });
 
@@ -94,10 +94,10 @@ const initializeScheduler = () => {
         try {
             const { processed, failed } = await reportQueue.processQueue(5);
             if (processed > 0 || failed > 0) {
-                console.log(`⚙️ [Cron] Report queue: processed=${processed}, failed=${failed}`);
+                console.log(`[Cron] Report queue: processed=${processed}, failed=${failed}`);
             }
         } catch (error) {
-            console.error('❌ [Cron] Report queue processor:', error.message);
+            console.error('[Cron] Report queue processor:', error.message);
         }
     });
 
@@ -106,11 +106,11 @@ const initializeScheduler = () => {
     // subset so each project gets refreshed roughly once a week without bursts.
     cron.schedule('10 23 * * *', async () => {
         try {
-            console.log('♻️ [Cron] Auto project refresh batch...');
+            console.log('[Cron] Auto project refresh batch...');
             const summary = await refreshProjectsBatch();
-            console.log(`✅ [Cron] Project refresh | scanned=${summary.scanned} due=${summary.due} refreshed=${summary.refreshed} failed=${summary.failed}`);
+            console.log(`[Cron] Project refresh | scanned=${summary.scanned} due=${summary.due} refreshed=${summary.refreshed} failed=${summary.failed}`);
         } catch (error) {
-            console.error('❌ [Cron] Auto project refresh:', error.message);
+            console.error('[Cron] Auto project refresh:', error.message);
         }
     });
 
@@ -118,15 +118,41 @@ const initializeScheduler = () => {
     // Weekly at 2:10 AM UTC on Monday — refresh GitHub-linked profile photos.
     cron.schedule('10 2 * * 1', async () => {
         try {
-            console.log('🖼️ [Cron] Weekly GitHub avatar refresh...');
+            console.log('[Cron] Weekly GitHub avatar refresh...');
             const summary = await refreshAllGitHubAvatars();
-            console.log(`✅ [Cron] Avatar refresh | checked=${summary.checked} updated=${summary.updated} skipped=${summary.skipped}`);
+            console.log(`[Cron] Avatar refresh | checked=${summary.checked} updated=${summary.updated} skipped=${summary.skipped}`);
         } catch (error) {
             console.error('❌ [Cron] Avatar refresh:', error.message);
         }
     });
 
-    console.log('✅ Scheduler initialized — 8 cron jobs active');
+    // ── JOB 9: Daily Quota Reset ──────────────────────────────────────────────
+    // Daily at 00:00 UTC — flushes daily quota counters & logs reset metrics.
+    cron.schedule('0 0 * * *', async () => {
+        try {
+            console.log('[Cron] Daily quota reset starting...');
+            const cache = require('../config/cache');
+            cache.delByPrefix('quota:');
+            console.log('[Cron] Daily quota reset completed');
+        } catch (error) {
+            console.error('[Cron] Daily quota reset:', error.message);
+        }
+    });
+
+    // ── JOB 10: Monthly Quota Reset & Grandfathering Check ───────────────────
+    // 1st of every month at 00:05 UTC — monthly quota reset & trial check.
+    cron.schedule('5 0 1 * *', async () => {
+        try {
+            console.log('[Cron] Monthly quota reset starting...');
+            const cache = require('../config/cache');
+            cache.delByPrefix('quota:');
+            console.log('[Cron] Monthly quota reset completed');
+        } catch (error) {
+            console.error('[Cron] Monthly quota reset:', error.message);
+        }
+    });
+
+    console.log('✅ Scheduler initialized — 10 cron jobs active');
     console.log('   • Every 5 min    → Consistency reminders');
     console.log('   • Every 30 min   → Report queue processor (Firestore-native)');
     console.log('   • Every hour     → Report queue enqueuer (per-user schedule)');
@@ -135,6 +161,8 @@ const initializeScheduler = () => {
     console.log('   • 8:00 PM IST    → Dynamic activity check');
     console.log('   • 4:40 AM IST    → Auto project refresh batch');
     console.log('   • Mon 2:10 AM    → Weekly GitHub avatar refresh');
+    console.log('   • 00:00 UTC Daily → Daily quota reset');
+    console.log('   • 1st of month    → Monthly quota reset');
 };
 
 module.exports = { initializeScheduler };

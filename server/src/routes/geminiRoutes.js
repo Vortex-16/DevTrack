@@ -7,22 +7,23 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
+const { quotaGuard } = require('../middleware/quotaGuard');
 const geminiController = require('../controllers/geminiController');
 
-// Chat with AI (requires auth for rate limiting per user)
-router.post('/chat', requireAuth, validate('geminiChat'), geminiController.chat);
+// Chat with AI (quota protected)
+router.post('/chat', requireAuth, quotaGuard('ai_chat'), validate('geminiChat'), geminiController.chat);
 
 // Get motivational message based on stats
 router.post('/motivation', requireAuth, geminiController.getMotivation);
 
-// Get code review
-router.post('/review', requireAuth, geminiController.reviewCode);
+// Get code review (quota protected)
+router.post('/review', requireAuth, quotaGuard('ai_code_review'), geminiController.reviewCode);
 
-// Health check for Gemini service
+// Health check for AI service
 router.get('/health', geminiController.healthCheck);
 
-// Analyze project progress
-router.post('/analyze-project', requireAuth, geminiController.analyzeProject);
+// Analyze project progress (quota protected)
+router.post('/analyze-project', requireAuth, quotaGuard('ai_project_analysis'), geminiController.analyzeProject);
 
 // Get chat history
 router.get('/history', requireAuth, geminiController.getChatHistory);

@@ -19,6 +19,11 @@ import Roadmap from './pages/Roadmap'
 import NotFound from './pages/NotFound'
 import UserGuide from './pages/UserGuide'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import Pricing from './pages/Pricing'
+import UpgradePrompt from './components/common/UpgradePrompt'
+import CommandPalette from './components/common/CommandPalette'
+import OnboardingTour from './components/common/OnboardingTour'
+import { SubscriptionProvider } from './hooks/useSubscription'
 import { preferencesApi } from './services/api'
 import useHeartbeat from './hooks/useHeartbeat'
 import Lenis from 'lenis'
@@ -144,8 +149,9 @@ function App() {
     return (
         <ReactLenis root>
             <CacheProvider>
-                <BackgroundSync />
-                <Routes>
+                <SubscriptionProvider>
+                    <BackgroundSync />
+                    <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={
                         <>
@@ -197,6 +203,7 @@ function App() {
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/github-insights" element={<GitHubInsights />} />
                         <Route path="/showcase" element={<Showcase />} />
+                        <Route path="/pricing" element={<Pricing />} />
                         <Route path="/system-info" element={<SystemInfo />} />
                     </Route>
 
@@ -213,6 +220,12 @@ function App() {
                     {/* Catch all - 404 Not Found */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
+                <UpgradePrompt />
+                <CommandPalette />
+                <SignedIn>
+                    <OnboardingTour />
+                </SignedIn>
+            </SubscriptionProvider>
             </CacheProvider>
         </ReactLenis>
     )

@@ -6,6 +6,7 @@
 const { collections } = require('../config/firebase');
 const { clerkClient } = require('@clerk/clerk-sdk-node');
 const { APIError } = require('../middleware/errorHandler');
+const { TIERS } = require('../config/constants');
 const { fetchGitHubAvatar } = require('../services/profileSyncService');
 const {
     getActiveGithubToken,
@@ -209,9 +210,20 @@ const syncUser = async (req, res, next) => {
                 githubAvatarUrl = await fetchGitHubAvatar(githubUsername, githubAccessToken);
             }
 
+            // Initialize tier and 30-day Pro trial grandfathering if not present
+            const isVortexAdmin = (githubUsername || '').toLowerCase() === 'vortex-16' ||
+                (clerkUser.emailAddresses?.[0]?.emailAddress || '').toLowerCase().includes('alpha4coders');
+
+            const proTrialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            const currentTier = isVortexAdmin ? TIERS.PRO : (existing.tier || TIERS.PRO);
+            const currentTierExpiresAt = isVortexAdmin ? null : (existing.tierExpiresAt !== undefined ? existing.tierExpiresAt : proTrialExpiry);
+
             await userRef.update({
                 ...userData,
                 ...(githubAccessUpdate || {}),
+                tier: currentTier,
+                tierExpiresAt: currentTierExpiresAt,
+                isExemptFromDowngrade: isVortexAdmin || existing.isExemptFromDowngrade || false,
                 avatarUrl: githubAvatarUrl || userData.avatarUrl || existing.avatarUrl || null,
                 githubAvatarUrl: githubAvatarUrl || existing.githubAvatarUrl || null,
                 createdAt: existing.createdAt, // Keep original creation date
@@ -219,13 +231,26 @@ const syncUser = async (req, res, next) => {
                 lastEndTime: existing.lastEndTime,
             });
         } else {
-            // Create new user
+            // Create new user with 30-day Pro trial grandfathering
+            const isVortexAdmin = (githubUsername || '').toLowerCase() === 'vortex-16' ||
+                (githubUsername || '').toLowerCase() === 'vortex-16' ||
+                (clerkUser.emailAddresses?.[0]?.emailAddress || '').toLowerCase().includes('alpha4coders');
+
+            const proTrialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             let githubAvatarUrl = null;
             if (githubUsername) {
                 githubAvatarUrl = await fetchGitHubAvatar(githubUsername, githubAccessToken);
             }
 
-            await userRef.set(userData);
+            const newUserData = {
+                ...userData,
+                tier: TIERS.PRO,
+                tierExpiresAt: isVortexAdmin ? null : proTrialExpiry,
+                isExemptFromDowngrade: isVortexAdmin,
+                tierTrialStartedAt: new Date().toISOString(),
+            };
+
+            await userRef.set(newUserData);
             if (githubAvatarUrl) {
                 await userRef.update({
                     avatarUrl: githubAvatarUrl,

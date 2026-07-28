@@ -34,6 +34,16 @@ export default {
                     950: '#020617',
                 },
                 border: '#1e293b',
+                tier: {
+                    free: '#94a3b8',
+                    pro: '#a855f7',
+                    enterprise: '#f59e0b',
+                },
+                quota: {
+                    safe: '#10b981',
+                    warning: '#f59e0b',
+                    danger: '#ef4444',
+                },
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],

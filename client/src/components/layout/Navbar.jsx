@@ -15,7 +15,8 @@ import {
     Globe,
     ShieldCheck,
     HelpCircle,
-    Shield
+    Shield,
+    Sparkles
 } from 'lucide-react'
 
 // SVG Icon Components
@@ -99,6 +100,7 @@ const navGroups = [
         items: [
             { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
             { name: 'Resume', path: '/resume', icon: FileText },
+            { name: 'Pricing & Pro', path: '/pricing', icon: Sparkles },
         ]
     },
     {

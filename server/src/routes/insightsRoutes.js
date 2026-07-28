@@ -7,18 +7,19 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
+const { quotaGuard } = require('../middleware/quotaGuard');
 const insights = require('../controllers/insightsController');
 
-// Productivity trend analysis (commit/activity patterns over 30-90 days)
-router.get('/productivity', requireAuth, insights.getProductivityTrends);
+// Productivity trend analysis (quota protected)
+router.get('/productivity', requireAuth, quotaGuard('ai_insights'), insights.getProductivityTrends);
 
-// Personalized strategic recommendations
-router.get('/recommendations', requireAuth, insights.getRecommendations);
+// Personalized strategic recommendations (quota protected)
+router.get('/recommendations', requireAuth, quotaGuard('ai_insights'), insights.getRecommendations);
 
-// Project risk analysis (health, staleness, security alerts)
-router.get('/risk', requireAuth, insights.getRiskAnalysis);
+// Project risk analysis (quota protected)
+router.get('/risk', requireAuth, quotaGuard('ai_insights'), insights.getRiskAnalysis);
 
-// Weekly momentum score + 12-week history
-router.get('/momentum', requireAuth, insights.getMomentum);
+// Weekly momentum score + 12-week history (quota protected)
+router.get('/momentum', requireAuth, quotaGuard('ai_insights'), insights.getMomentum);
 
 module.exports = router;

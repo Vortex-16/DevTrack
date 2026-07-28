@@ -31,17 +31,23 @@ const goalRoutes = require('./routes/goalRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const insightsRoutes = require('./routes/insightsRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
-// Import middleware
+// Import middleware & controllers
 const errorHandler = require('./middleware/errorHandler');
 const modernApiUI = require('./middleware/modernApiUI');
+const correlationId = require('./middleware/correlationId');
 const { sanitizeRequest } = require('./middleware/sanitize');
+const paymentController = require('./controllers/paymentController');
 
 const app = express();
 
 // Trust proxy for Render and other reverse proxies
 // Required for express-rate-limit to work correctly behind Render's load balancer
 app.set('trust proxy', 1);
+
+// Attach unique request ID for log & response tracing
+app.use(correlationId);
 
 // Mount Modern UI Middleware early so it captures JSON responses for all subsequent handlers
 app.use(modernApiUI);
@@ -156,6 +162,11 @@ app.use('/api/github/repo', githubLimiter);
 app.use('/api/github/repos', githubLimiter);
 
 // ======================
+// STRIPE WEBHOOK (Must be before express.json parsing)
+// ======================
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentController.handleWebhook);
+
+// ======================
 // BODY PARSING
 // ======================
 app.use(express.json({ limit: '5mb' }));
@@ -212,6 +223,7 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ======================
 // 404 HANDLER

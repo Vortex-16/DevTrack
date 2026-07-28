@@ -1,0 +1,67 @@
+name: DevTrack CI Quality Gate
+
+on:
+  pull_request:
+    branches: [main, develop, Mine-ThunderClient, V2]
+  push:
+    branches: [main, develop, Mine-ThunderClient, V2]
+
+jobs:
+  lint-and-build-client:
+    name: Build & Verify Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install Client Dependencies
+        run: npm ci
+
+      - name: Verify Client Build
+        run: npm run build
+
+  verify-server:
+    name: Verify Server API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install Server Dependencies
+        run: npm ci
+
+      - name: Check Server Syntax
+        run: node --check server.js
+
+  security-audit:
+    name: Security Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Audit Server Dependencies
+        run: cd server && npm audit --audit-level=high || true
+
+      - name: Audit Client Dependencies
+        run: cd client && npm audit --audit-level=high || true

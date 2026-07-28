@@ -268,9 +268,19 @@ const deleteChatHistory = async (req, res, next) => {
                     newSummary = summaryResult.summary;
                     console.log('✅ Summary created:', newSummary.substring(0, 100) + '...');
 
-                    // Store the updated memory summary
+                    // Basic structured memory extraction (skills, preferred tech stack)
+                    const userText = messages.map(m => m.content || m.text || '').join(' ').toLowerCase();
+                    const knownSkills = ['react', 'node', 'express', 'python', 'java', 'go', 'rust', 'typescript', 'docker', 'redis', 'firebase', 'stripe', 'tailwind', 'next.js', 'mongodb'];
+                    const detectedSkills = knownSkills.filter(skill => userText.includes(skill));
+
+                    // Store the updated memory summary and structured key-value memory
                     await collections.users().doc(userId).set({
                         memorySummary: newSummary,
+                        memoryStructured: {
+                            detectedSkills,
+                            lastClearedAt: new Date().toISOString(),
+                            messageCountProcessed: messages.length,
+                        },
                         memorySummaryUpdatedAt: new Date()
                     }, { merge: true });
                 }

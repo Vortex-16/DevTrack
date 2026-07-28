@@ -71,6 +71,11 @@ const collections = {
     resumes: () => getFirestore().collection('resumes'),
     endorsements: () => getFirestore().collection('endorsements'),
     reports: () => getFirestore().collection('reports'),
+
+    // ─── Monetization ────────────────────────────────────────────────────────
+    subscriptions: () => getFirestore().collection('subscriptions'),
+    usageLogs: () => getFirestore().collection('usageLogs'),
+    payments: () => getFirestore().collection('payments'),
 };
 
 module.exports = {

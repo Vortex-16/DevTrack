@@ -49,3 +49,15 @@ coverage/
 
 # Local scripts
 run_servers.bat
+
+/docs
+/mobile
+
+# Docker
+docker-compose.override.yml
+
+# Husky
+.husky/_/
+
+# Prettier cache
+.prettierignore

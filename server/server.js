@@ -4,19 +4,22 @@
  * Startup sequence:
  *   1. Load env vars
  *   2. Initialize Firebase Admin SDK
- *   3. Boot Express app + middleware stack
- *   4. Initialize cron scheduler
- *   5. Listen on PORT
+ *   3. Initialize Redis (Upstash)
+ *   4. Boot Express app + middleware stack
+ *   5. Initialize cron scheduler
+ *   6. Listen on PORT
  *
  * Shutdown sequence (SIGTERM / SIGINT):
  *   1. Stop accepting new connections
  *   2. Wait up to 30s for in-flight requests to complete
- *   3. Close Firebase/cache connections
- *   4. Exit with code 0
+ *   3. Disconnect Redis
+ *   4. Close Firebase/cache connections
+ *   5. Exit with code 0
  */
 
 const app = require('./src/app');
 const { initializeFirebase } = require('./src/config/firebase');
+const { initializeRedis, disconnectRedis } = require('./src/config/redis');
 const { initializeScheduler } = require('./src/utils/scheduler');
 const logger = require('./src/utils/logger');
 
@@ -33,6 +36,9 @@ const startServer = async () => {
         await initializeFirebase();
         logger.info('Firebase initialized');
 
+        // Initialize Redis (Upstash — graceful degradation if unavailable)
+        await initializeRedis();
+
         // Initialize Scheduler (cron jobs)
         initializeScheduler();
 
@@ -48,6 +54,16 @@ const startServer = async () => {
         // Set connection timeout (prevents hung connections)
         server.keepAliveTimeout = 65_000;  // > Render's 60s LB timeout
         server.headersTimeout = 66_000;
+
+        // Broadcast Pro Trial announcement email to existing users (async background execution)
+        try {
+            const emailService = require('./src/services/emailService');
+            emailService.broadcastProTrialEmailsOnStartup().catch(err => {
+                logger.warn('Pro trial email broadcast error on boot', { error: err.message });
+            });
+        } catch (err) {
+            // Non-critical
+        }
 
     } catch (error) {
         logger.error('Failed to start server', { error: error.message, stack: error.stack });
@@ -75,9 +91,9 @@ const shutdown = (signal) => {
         logger.info('HTTP server closed — all connections drained');
 
         try {
-            // Flush any pending cache writes (no-op for node-cache, important for Redis)
-            const cache = require('./src/config/cache');
-            logger.info('Cache flushed');
+            // Disconnect Redis gracefully
+            await disconnectRedis();
+            logger.info('Redis disconnected');
         } catch {
             // Non-critical
         }

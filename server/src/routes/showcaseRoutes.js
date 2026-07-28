@@ -19,6 +19,8 @@ const {
     toggleOpenToBuild,
 } = require('../controllers/showcaseController');
 
+const { quotaGuard } = require('../middleware/quotaGuard');
+
 // All routes require authentication
 router.use(requireAuth);
 
@@ -34,8 +36,8 @@ router.get('/trending', getTrending);
 // GET /api/showcase/check/:projectId - Check if project is showcased
 router.get('/check/:projectId', checkShowcaseStatus);
 
-// POST /api/showcase - Create a new showcase
-router.post('/', createShowcase);
+// POST /api/showcase - Create a new showcase (quota protected)
+router.post('/', quotaGuard('showcase_create'), createShowcase);
 
 // DELETE /api/showcase/:id - Delete a showcase
 router.delete('/:id', deleteShowcase);

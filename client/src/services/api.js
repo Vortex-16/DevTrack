@@ -65,16 +65,29 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling & quota limit interception
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Handle unauthorized - could redirect to login
+        const status = error.response?.status;
+        if (status === 401) {
+            // Handle unauthorized - redirect to sign in
             console.error('Unauthorized - please sign in');
             if (window.location.pathname !== '/' && window.location.pathname !== '/mobile-auth') {
                 window.location.href = '/?expired=true';
             }
+        } else if (status === 429 || status === 402) {
+            // Handle Quota Exceeded (429) or Payment Required (402) -> trigger UpgradePrompt modal
+            const details = error.response?.data?.details || {};
+            const message = error.response?.data?.error;
+            window.dispatchEvent(
+                new CustomEvent('devtrack:quota_exceeded', {
+                    detail: {
+                        action: details.action || 'Quota Limit Reached',
+                        details: { ...details, message },
+                    },
+                })
+            );
         }
         return Promise.reject(error);
     }

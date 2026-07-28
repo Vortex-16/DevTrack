@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
 const { requireAuth } = require('../middleware/auth');
+const { quotaGuard } = require('../middleware/quotaGuard');
 
 // Report history (paginated)
 router.get('/history', requireAuth, reportController.getUserReports);
@@ -21,7 +22,7 @@ router.post('/schedule', requireAuth, reportController.saveSchedule);
 // Queue status — returns next scheduled report time and last sent time
 router.get('/status', requireAuth, reportController.getQueueStatus);
 
-// Manually trigger a report generation (on-demand)
-router.post('/trigger', requireAuth, reportController.triggerReport);
+// Manually trigger a report generation (quota protected)
+router.post('/trigger', requireAuth, quotaGuard('pdf_report'), reportController.triggerReport);
 
 module.exports = router;

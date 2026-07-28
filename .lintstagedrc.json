@@ -1,0 +1,5 @@
+{
+  "client/src/**/*.{js,jsx}": ["prettier --write"],
+  "server/src/**/*.js": ["prettier --write"],
+  "**/*.{json,css,md}": ["prettier --write"]
+}
