@@ -55,16 +55,6 @@ const startServer = async () => {
         server.keepAliveTimeout = 65_000;  // > Render's 60s LB timeout
         server.headersTimeout = 66_000;
 
-        // Broadcast Pro Trial announcement email to existing users (async background execution)
-        try {
-            const emailService = require('./src/services/emailService');
-            emailService.broadcastProTrialEmailsOnStartup().catch(err => {
-                logger.warn('Pro trial email broadcast error on boot', { error: err.message });
-            });
-        } catch (err) {
-            // Non-critical
-        }
-
     } catch (error) {
         logger.error('Failed to start server', { error: error.message, stack: error.stack });
         process.exit(1);

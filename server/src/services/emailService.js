@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const { collections } = require('../config/firebase');
 
 class EmailService {
@@ -16,7 +17,23 @@ class EmailService {
             email: process.env.EMAIL_FROM || 'alpha4coders@gmail.com',
             name: process.env.EMAIL_FROM_NAME || 'DevTrack',
         };
-        console.log('📧 Email service initialized with Brevo');
+
+        // Initialize Nodemailer transporter if SMTP credentials are preset
+        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            const cleanPass = (process.env.SMTP_PASS || '').replace(/^["']|["']$/g, '');
+            this.transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: parseInt(process.env.SMTP_PORT || '465', 10),
+                secure: parseInt(process.env.SMTP_PORT || '465', 10) === 465,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: cleanPass,
+                },
+            });
+            console.log('📧 Nodemailer SMTP initialized with Gmail');
+        } else {
+            console.log('📧 Email service initialized with Brevo');
+        }
     }
 
     /**
@@ -36,16 +53,14 @@ class EmailService {
             }
 
             const payload = {
-                sender: from
-                    ? { email: from }
-                    : this.defaultFrom,
+                sender: from ? { email: from } : this.defaultFrom,
                 to: [{ email: to }],
                 subject,
                 htmlContent: html,
             };
 
             if (attachments.length > 0) {
-                payload.attachment = attachments.map(att => ({
+                payload.attachment = attachments.map((att) => ({
                     name: att.filename,
                     content: att.content, // base64 string
                 }));
@@ -56,7 +71,7 @@ class EmailService {
                 headers: {
                     'api-key': this.apiKey,
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                 },
                 body: JSON.stringify(payload),
             });
@@ -85,15 +100,17 @@ class EmailService {
      * @param {string} aiSummary - AI generated summary snippet
      * @returns {Promise<Object>}
      */
-    async sendWeeklyReport(to, userName, pdfBuffer, aiSummary = "") {
+    async sendWeeklyReport(to, userName, pdfBuffer, aiSummary = '') {
         const subject = `Your Weekly GitHub Report - ${new Date().toLocaleDateString()}`;
-        
-        const aiSection = aiSummary ? `
+
+        const aiSection = aiSummary
+            ? `
             <div style="background: #1e293b; border-left: 4px solid #6366f1; padding: 20px; margin: 24px 0; border-radius: 8px;">
                 <h3 style="color: #6366f1; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">✨ AI Weekly Insight</h3>
                 <p style="color: #e2e8f0; margin-bottom: 0; font-style: italic; line-height: 1.6;">"${aiSummary}"</p>
             </div>
-        ` : '';
+        `
+            : '';
 
         const html = `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; padding: 40px; border-radius: 16px;">
@@ -114,11 +131,13 @@ class EmailService {
             to,
             subject,
             html,
-            attachments: [{
-                filename: `devtrack-report-${new Date().toISOString().split('T')[0]}.pdf`,
-                content: pdfBuffer.toString('base64'),
-                encoding: 'base64',
-            }],
+            attachments: [
+                {
+                    filename: `devtrack-report-${new Date().toISOString().split('T')[0]}.pdf`,
+                    content: pdfBuffer.toString('base64'),
+                    encoding: 'base64',
+                },
+            ],
         });
     }
 
@@ -158,24 +177,24 @@ class EmailService {
             ? `👑 Vortex-16 — Your Permanent Pro Founder Access is Active`
             : `🚀 You've Been Upgraded to DevTrack Pro — 30 Days Free`;
 
-        // Load social preview image for email header
-        let imageHtml = '';
-        try {
-            const possiblePaths = [
-                path.join(__dirname, '../../../client/public/DevTrack Social View.jpg'),
-                path.join(process.cwd(), '../client/public/DevTrack Social View.jpg'),
-                path.join(process.cwd(), 'client/public/DevTrack Social View.jpg'),
-            ];
-            for (const imgPath of possiblePaths) {
-                if (fs.existsSync(imgPath)) {
-                    const imgBase64 = fs.readFileSync(imgPath).toString('base64');
-                    imageHtml = `<img src="data:image/jpeg;base64,${imgBase64}" alt="DevTrack — Build Faster. Track Smarter. Ship Like a Team." style="width: 100%; display: block;" />`;
-                    break;
-                }
+        // Find social preview image for inline CID attachment
+        const possiblePaths = [
+            path.join(__dirname, '../../../client/public/DevTrack Social View.jpg'),
+            path.join(process.cwd(), '../client/public/DevTrack Social View.jpg'),
+            path.join(process.cwd(), 'client/public/DevTrack Social View.jpg'),
+        ];
+        let imagePath = null;
+        for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+                imagePath = p;
+                break;
             }
-        } catch (err) {
-            console.warn('Could not load DevTrack Social View image:', err.message);
         }
+
+        // Use inline CID tag for 100% reliable rendering in Gmail, Outlook & Apple Mail
+        const imageHtml = imagePath
+            ? `<img src="cid:devtrack-poster" alt="DevTrack — Build Faster. Track Smarter. Ship Like a Team." style="width: 100%; display: block;" />`
+            : '';
 
         // --- Dynamic content based on founder vs standard user ---
         const badgeHtml = isExempt
@@ -342,6 +361,32 @@ class EmailService {
             </div>
         `;
 
+        const attachments = imagePath
+            ? [
+                  {
+                      filename: 'DevTrack Social View.jpg',
+                      path: imagePath,
+                      cid: 'devtrack-poster',
+                  },
+              ]
+            : [];
+
+        if (this.transporter) {
+            try {
+                const info = await this.transporter.sendMail({
+                    from: `"${process.env.EMAIL_FROM_NAME || 'DevTrack'}" <${process.env.SMTP_USER}>`,
+                    to,
+                    subject,
+                    html,
+                    attachments,
+                });
+                console.log(`✅ Nodemailer email sent to ${to}, messageId: ${info.messageId}`);
+                return { success: true, messageId: info.messageId };
+            } catch (err) {
+                console.error(`❌ Nodemailer failed sending to ${to}:`, err.message);
+            }
+        }
+
         return this.sendEmail({ to, subject, html });
     }
 
@@ -375,27 +420,27 @@ class EmailService {
                 }
 
                 const githubUsername = (userData.githubUsername || '').toLowerCase();
-                const isExempt = githubUsername === 'vortex-16' ||
-                                 githubUsername === 'vortex16' ||
-                                 email.toLowerCase().includes('alpha4coders') ||
-                                 userData.isExemptFromDowngrade === true;
+                const isExempt =
+                    githubUsername === 'vortex-16' ||
+                    githubUsername === 'vortex16' ||
+                    email.toLowerCase().includes('alpha4coders') ||
+                    userData.isExemptFromDowngrade === true;
 
-                const result = await this.sendProTrialAnnouncementEmail(
-                    email,
-                    userData.name || 'Developer',
-                    isExempt
-                );
+                const result = await this.sendProTrialAnnouncementEmail(email, userData.name || 'Developer', isExempt);
 
                 if (result.success) {
                     sentCount++;
-                    await collections.users().doc(userId).set({
-                        proTrialEmailSent: true,
-                        proTrialEmailSentAt: new Date().toISOString(),
-                    }, { merge: true });
+                    await collections.users().doc(userId).set(
+                        {
+                            proTrialEmailSent: true,
+                            proTrialEmailSentAt: new Date().toISOString(),
+                        },
+                        { merge: true }
+                    );
                 }
 
                 // Small 200ms delay to prevent rate-limit bursts
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise((r) => setTimeout(r, 200));
             }
 
             console.log(`✅ [Startup Broadcast] Completed! Sent: ${sentCount}, Skipped: ${skippedCount}`);
