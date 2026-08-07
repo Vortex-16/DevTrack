@@ -7,19 +7,35 @@ export default {
     theme: {
         extend: {
             colors: {
+                // New Primary: Cyan/Teal (#4dd0e1)
                 primary: {
-                    50: '#faf5ff',
-                    100: '#f3e8ff',
-                    200: '#e9d5ff',
-                    300: '#d8b4fe',
-                    400: '#c084fc',
-                    500: '#a855f7',
-                    600: '#9333ea',
-                    700: '#7e22ce',
-                    800: '#6b21a8',
-                    900: '#581c87',
-                    950: '#3b0764',
+                    50: '#e0f7fa',
+                    100: '#b2ebf2',
+                    200: '#80deea',
+                    300: '#4dd0e1',
+                    400: '#26c6da',
+                    500: '#00bcd4',
+                    600: '#00acc1',
+                    700: '#0097a7',
+                    800: '#00838f',
+                    900: '#006064',
+                    950: '#00363a',
                 },
+                // New Accent: Copper/Gold (#e8a838)
+                accent: {
+                    50: '#fdf8f0',
+                    100: '#faeedb',
+                    200: '#f4d9b2',
+                    300: '#ecc285',
+                    400: '#e8a838', // Main copper
+                    500: '#df8e1c',
+                    600: '#d07414',
+                    700: '#ad5913',
+                    800: '#8a4616',
+                    900: '#6f3915',
+                    950: '#3c1b09',
+                },
+                // New Dark: True Deep Black
                 dark: {
                     50: '#f8fafc',
                     100: '#f1f5f9',
@@ -29,19 +45,19 @@ export default {
                     500: '#64748b',
                     600: '#475569',
                     700: '#334155',
-                    800: '#1e293b',
-                    900: '#0f172a',
-                    950: '#020617',
+                    800: '#222222', // Slightly lighter dark
+                    900: '#1a1a1a', // DevTrack Poster Main Background
+                    950: '#111111', // Deepest dark
                 },
-                border: '#1e293b',
+                border: '#333333',
                 tier: {
                     free: '#94a3b8',
-                    pro: '#a855f7',
-                    enterprise: '#f59e0b',
+                    pro: '#4dd0e1', // Cyan for pro
+                    enterprise: '#e8a838', // Copper for enterprise
                 },
                 quota: {
-                    safe: '#10b981',
-                    warning: '#f59e0b',
+                    safe: '#4dd0e1',
+                    warning: '#e8a838',
                     danger: '#ef4444',
                 },
             },

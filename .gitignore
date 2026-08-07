@@ -18,10 +18,11 @@ dist/
 build/
 .next/
 
-# Generated report previews (local only)
+# Generated report previews & test scripts (local only)
 server/report-preview.pdf
 server/test_report.pdf
 server/test-report-debug.pdf
+server/test-*.js
 
 # Logs
 logs/

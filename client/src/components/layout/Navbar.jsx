@@ -1,8 +1,8 @@
-import { Link, useLocation } from 'react-router-dom'
-import { UserButton } from '@clerk/clerk-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
-import NotificationSettings from '../settings/NotificationSettings'
+import { Link, useLocation } from 'react-router-dom';
+import { UserButton } from '@clerk/clerk-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import NotificationSettings from '../settings/NotificationSettings';
 import {
     BookOpen,
     Trophy,
@@ -16,42 +16,59 @@ import {
     ShieldCheck,
     HelpCircle,
     Shield,
-    Sparkles
-} from 'lucide-react'
+    Sparkles,
+} from 'lucide-react';
 
 // SVG Icon Components
-const DashboardIcon = ({ className = "w-5 h-5" }) => (
+const DashboardIcon = ({ className = 'w-5 h-5' }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+        />
     </svg>
-)
+);
 
-const GeminiIcon = ({ className = "w-5 h-5" }) => (
-    <svg className={className}
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-    >
+const GeminiIcon = ({ className = 'w-5 h-5' }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
             d="M12 2C10.5 8.5 8 10.5 2 12C8 13.5 10.5 16 12 22C13.5 16 16 13.5 22 12C16 10.5 13.5 8 12 2Z"
             fill="currentColor"
         />
     </svg>
-)
+);
 
-const WindowsTerminalIcon = ({ className = "w-5 h-5" }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const WindowsTerminalIcon = ({ className = 'w-5 h-5' }) => (
+    <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
         <rect x="2" y="4" width="20" height="16" rx="3" />
         <path d="M7 10l3 3-3 3" />
         <path d="M13 16h4" />
     </svg>
-)
+);
 
-const GithubOutlineIcon = ({ className = "w-5 h-5" }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const GithubOutlineIcon = ({ className = 'w-5 h-5' }) => (
+    <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
         <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
     </svg>
-)
+);
 
 // Define the groups
 const navGroups = [
@@ -60,7 +77,7 @@ const navGroups = [
         name: 'Home',
         type: 'single',
         path: '/dashboard',
-        icon: DashboardIcon
+        icon: DashboardIcon,
     },
     {
         id: 'dev',
@@ -71,7 +88,7 @@ const navGroups = [
             { name: 'Roadmap', path: '/roadmap', icon: Map },
             { name: 'Projects', path: '/projects', icon: WindowsTerminalIcon },
             { name: 'GitHub', path: '/github-insights', icon: GithubOutlineIcon },
-        ]
+        ],
     },
     {
         id: 'social',
@@ -81,16 +98,14 @@ const navGroups = [
         items: [
             { name: 'Community', path: '/showcase', icon: Globe },
             { name: 'Matchmaking', path: '/showcase?tab=collaborators', icon: ShieldCheck },
-        ]
+        ],
     },
     {
         id: 'growth',
         name: 'Growth',
         type: 'group',
         icon: Rocket,
-        items: [
-            { name: 'Learning', path: '/learning', icon: BookOpen },
-        ]
+        items: [{ name: 'Learning', path: '/learning', icon: BookOpen }],
     },
     {
         id: 'tools',
@@ -101,7 +116,7 @@ const navGroups = [
             { name: 'AI Chat', path: '/chat', icon: GeminiIcon },
             { name: 'Resume', path: '/resume', icon: FileText },
             { name: 'Pricing & Pro', path: '/pricing', icon: Sparkles },
-        ]
+        ],
     },
     {
         id: 'docs',
@@ -111,31 +126,30 @@ const navGroups = [
         items: [
             { name: 'User Guide', path: '/guide', icon: BookOpen },
             { name: 'Privacy', path: '/privacy', icon: Shield },
-        ]
-    }
-]
+        ],
+    },
+];
 
 // Single Sidebar Item
 function SidebarItem({ item, isActive }) {
-    const IconComponent = item.icon
+    const IconComponent = item.icon;
 
     return (
         <Link to={item.path} className="relative group flex items-center justify-center w-12 h-12">
             <motion.div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200
-                    ${isActive
-                        ? 'bg-white/10 shadow-lg'
-                        : 'hover:bg-white/5'
-                    }`}
+                    ${isActive ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <IconComponent className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-slate-400'}`} />
+                <IconComponent className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-slate-400'}`} />
             </motion.div>
 
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
-                opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            <div
+                className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
+                opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+            >
                 {item.name}
             </div>
 
@@ -147,17 +161,17 @@ function SidebarItem({ item, isActive }) {
                 />
             )}
         </Link>
-    )
+    );
 }
 
 // Group Sidebar Item (flyout)
 function SidebarGroup({ group, isActiveGroup }) {
-    const [isHovered, setIsHovered] = useState(false)
-    const IconComponent = group.icon
-    const location = useLocation()
+    const [isHovered, setIsHovered] = useState(false);
+    const IconComponent = group.icon;
+    const location = useLocation();
 
     // Check if any child is active to highlight the group icon
-    const hasActiveChild = group.items.some(item => location.pathname.startsWith(item.path))
+    const hasActiveChild = group.items.some((item) => location.pathname.startsWith(item.path));
 
     return (
         <div
@@ -167,14 +181,11 @@ function SidebarGroup({ group, isActiveGroup }) {
         >
             <motion.div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 z-20
-                    ${hasActiveChild || isHovered
-                        ? 'bg-white/10 shadow-lg'
-                        : 'hover:bg-white/5'
-                    }`}
+                    ${hasActiveChild || isHovered ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <IconComponent className={`w-5 h-5 ${hasActiveChild ? 'text-purple-400' : 'text-slate-400'}`} />
+                <IconComponent className={`w-5 h-5 ${hasActiveChild ? 'text-primary-400' : 'text-slate-400'}`} />
             </motion.div>
 
             {/* Active indicator for group */}
@@ -192,7 +203,7 @@ function SidebarGroup({ group, isActiveGroup }) {
                         initial={{ opacity: 0, x: -10, scale: 0.95 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
                         exit={{ opacity: 0, x: -10, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
                         className="absolute left-10 top-0 pl-4 z-50"
                     >
                         <div className="bg-[#1a1b2e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-xl flex flex-col gap-1 min-w-[160px]">
@@ -200,13 +211,13 @@ function SidebarGroup({ group, isActiveGroup }) {
                                 {group.name}
                             </div>
                             {group.items.map((item) => {
-                                const ItemIcon = item.icon
-                                const isItemActive = location.pathname.startsWith(item.path)
+                                const ItemIcon = item.icon;
+                                const isItemActive = location.pathname.startsWith(item.path);
                                 return (
                                     <Link key={item.path} to={item.path}>
                                         <motion.div
                                             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors
-                                                ${isItemActive ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-white/5 text-slate-300 hover:text-white'}
+                                                ${isItemActive ? 'bg-primary-500/20 text-primary-300' : 'hover:bg-white/5 text-slate-300 hover:text-white'}
                                             `}
                                             whileHover={{ x: 4 }}
                                         >
@@ -214,14 +225,14 @@ function SidebarGroup({ group, isActiveGroup }) {
                                             <span className="text-sm font-medium">{item.name}</span>
                                         </motion.div>
                                     </Link>
-                                )
+                                );
                             })}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
         </div>
-    )
+    );
 }
 
 // Settings Icon Button
@@ -234,21 +245,33 @@ function SettingsButton({ onClick }) {
             whileTap={{ scale: 0.95 }}
         >
             <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
             </svg>
             {/* Tooltip */}
-            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
-                opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+            <div
+                className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
+                opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+            >
                 Settings
             </div>
         </motion.button>
-    )
+    );
 }
 
 // Desktop Sidebar
 function Sidebar({ onOpenSettings }) {
-    const location = useLocation()
+    const location = useLocation();
 
     return (
         <motion.aside
@@ -279,20 +302,13 @@ function Sidebar({ onOpenSettings }) {
 
             {/* Navigation */}
             <nav className="flex flex-col items-center gap-4 flex-1">
-                {navGroups.map((group) => (
+                {navGroups.map((group) =>
                     group.type === 'single' ? (
-                        <SidebarItem
-                            key={group.id}
-                            item={group}
-                            isActive={location.pathname.startsWith(group.path)}
-                        />
+                        <SidebarItem key={group.id} item={group} isActive={location.pathname.startsWith(group.path)} />
                     ) : (
-                        <SidebarGroup
-                            key={group.id}
-                            group={group}
-                        />
+                        <SidebarGroup key={group.id} group={group} />
                     )
-                ))}
+                )}
             </nav>
 
             {/* Settings & User at bottom */}
@@ -308,35 +324,36 @@ function Sidebar({ onOpenSettings }) {
                             elements: {
                                 avatarBox: 'w-10 h-10',
                                 userButtonTrigger: 'focus:shadow-none',
-                                userButtonPopoverCard: 'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-white/10'
-                            }
+                                userButtonPopoverCard:
+                                    'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-white/10',
+                            },
                         }}
                     />
                 </motion.div>
             </div>
         </motion.aside>
-    )
+    );
 }
 
 // Mobile top navbar (pill-shaped)
 function MobileNavbar({ onOpenSettings }) {
-    const location = useLocation()
-    const [isHidden, setIsHidden] = useState(false)
-    const [activeGroup, setActiveGroup] = useState(null)
-    
+    const location = useLocation();
+    const [isHidden, setIsHidden] = useState(false);
+    const [activeGroup, setActiveGroup] = useState(null);
+
     // Keep navbar constant on mobile (removed scroll reveal logic)
     useEffect(() => {
-        setIsHidden(false)
-    }, [])
+        setIsHidden(false);
+    }, []);
 
     const handleGroupClick = (group) => {
-        if (group.type === 'single') return
+        if (group.type === 'single') return;
         if (activeGroup === group.id) {
-            setActiveGroup(null) // Toggle off
+            setActiveGroup(null); // Toggle off
         } else {
-            setActiveGroup(group.id)
+            setActiveGroup(group.id);
         }
-    }
+    };
 
     return (
         <>
@@ -366,23 +383,22 @@ function MobileNavbar({ onOpenSettings }) {
                     {/* Nav items */}
                     <div className="flex items-center flex-1 justify-between sm:justify-center gap-2 sm:gap-4 pr-3 sm:pr-0">
                         {navGroups.map((group) => {
-                            const isActive = group.type === 'single'
-                                ? location.pathname === group.path
-                                : group.items.some(item => location.pathname.startsWith(item.path)) || activeGroup === group.id
+                            const isActive =
+                                group.type === 'single'
+                                    ? location.pathname === group.path
+                                    : group.items.some((item) => location.pathname.startsWith(item.path)) ||
+                                      activeGroup === group.id;
 
-                            const Icon = group.icon
+                            const Icon = group.icon;
 
                             return group.type === 'single' ? (
-                                <Link
-                                    key={group.id}
-                                    to={group.path}
-                                    className="relative flex flex-col items-center"
-                                >
+                                <Link key={group.id} to={group.path} className="relative flex flex-col items-center">
                                     <motion.div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center
-                                            ${isActive
-                                                ? 'bg-gradient-to-br from-purple-500 to-purple-700'
-                                                : 'hover:bg-white/10'
+                                            ${
+                                                isActive
+                                                    ? 'bg-gradient-to-br from-primary-400 to-primary-600'
+                                                    : 'hover:bg-white/10'
                                             }`}
                                         whileTap={{ scale: 0.95 }}
                                     >
@@ -398,22 +414,21 @@ function MobileNavbar({ onOpenSettings }) {
                                 >
                                     <div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                                            ${isActive
-                                                ? 'bg-white/10 text-white'
-                                                : 'hover:bg-white/5 text-slate-400'
-                                            }`}
+                                            ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-slate-400'}`}
                                     >
-                                        <Icon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-slate-400'}`} />
+                                        <Icon
+                                            className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-slate-400'}`}
+                                        />
                                     </div>
                                     {/* Small dot if active group but no sub-item selected yet (or just general active state) */}
                                     {isActive && (
                                         <motion.div
                                             layoutId="mobileActiveDot"
-                                            className="absolute -bottom-1 w-1 h-1 bg-purple-400 rounded-full"
+                                            className="absolute -bottom-1 w-1 h-1 bg-primary-400 rounded-full"
                                         />
                                     )}
                                 </motion.button>
-                            )
+                            );
                         })}
                     </div>
 
@@ -424,8 +439,18 @@ function MobileNavbar({ onOpenSettings }) {
                         whileTap={{ scale: 0.95 }}
                     >
                         <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                            />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
                         </svg>
                     </motion.button>
 
@@ -437,8 +462,9 @@ function MobileNavbar({ onOpenSettings }) {
                                 elements: {
                                     avatarBox: 'w-8 h-8',
                                     userButtonTrigger: 'focus:shadow-none',
-                                    userButtonPopoverCard: 'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10'
-                                }
+                                    userButtonPopoverCard:
+                                        'z-[11000] !fixed !top-20 !left-1/2 !right-auto !-translate-x-1/2 sm:!right-auto sm:!left-6 sm:!transform-none shadow-xl border border-white/10',
+                                },
                             }}
                         />
                     </div>
@@ -454,43 +480,45 @@ function MobileNavbar({ onOpenSettings }) {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden mt-2"
                         >
-                            <div
-                                className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 mx-4 shadow-xl grid grid-cols-2 gap-2"
-                            >
-                                {navGroups.find(g => g.id === activeGroup)?.items.map((item) => {
-                                    const ItemIcon = item.icon
-                                    const isItemActive = location.pathname.startsWith(item.path)
-                                    return (
-                                        <Link
-                                            key={item.path}
-                                            to={item.path}
-                                            onClick={() => {
-                                                setIsHidden(true) // Optionally hide nav on selection
-                                            }}
-                                        >
-                                            <div className={`flex items-center gap-2 p-2 rounded-xl text-sm font-medium transition-colors
-                                                ${isItemActive
-                                                    ? 'bg-purple-500/20 text-purple-300'
-                                                    : 'bg-white/5 text-slate-300 active:bg-white/10'
-                                                }`}
+                            <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 mx-4 shadow-xl grid grid-cols-2 gap-2">
+                                {navGroups
+                                    .find((g) => g.id === activeGroup)
+                                    ?.items.map((item) => {
+                                        const ItemIcon = item.icon;
+                                        const isItemActive = location.pathname.startsWith(item.path);
+                                        return (
+                                            <Link
+                                                key={item.path}
+                                                to={item.path}
+                                                onClick={() => {
+                                                    setIsHidden(true); // Optionally hide nav on selection
+                                                }}
                                             >
-                                                <ItemIcon className="w-4 h-4" />
-                                                {item.name}
-                                            </div>
-                                        </Link>
-                                    )
-                                })}
+                                                <div
+                                                    className={`flex items-center gap-2 p-2 rounded-xl text-sm font-medium transition-colors
+                                                ${
+                                                    isItemActive
+                                                        ? 'bg-primary-500/20 text-primary-300'
+                                                        : 'bg-white/5 text-slate-300 active:bg-white/10'
+                                                }`}
+                                                >
+                                                    <ItemIcon className="w-4 h-4" />
+                                                    {item.name}
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </motion.nav>
         </>
-    )
+    );
 }
 
 export default function Navbar() {
-    const [settingsOpen, setSettingsOpen] = useState(false)
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     // Lock body and internal scroll containers when settings modal is open
     useEffect(() => {
@@ -501,35 +529,32 @@ export default function Navbar() {
             document.getElementById('learning-scroll-container'),
             document.getElementById('projects-scroll-container'),
             document.getElementById('github-insights-scroll-container'),
-            document.getElementById('showcase-scroll-container')
-        ]
+            document.getElementById('showcase-scroll-container'),
+        ];
 
         if (settingsOpen) {
-            getContainers().forEach(el => {
-                if (el) el.style.overflow = 'hidden'
-            })
+            getContainers().forEach((el) => {
+                if (el) el.style.overflow = 'hidden';
+            });
         } else {
-            getContainers().forEach(el => {
-                if (el) el.style.overflow = ''
-            })
+            getContainers().forEach((el) => {
+                if (el) el.style.overflow = '';
+            });
         }
 
         // Cleanup function
         return () => {
-            getContainers().forEach(el => {
-                if (el) el.style.overflow = ''
-            })
-        }
-    }, [settingsOpen])
+            getContainers().forEach((el) => {
+                if (el) el.style.overflow = '';
+            });
+        };
+    }, [settingsOpen]);
 
     return (
         <>
             <Sidebar onOpenSettings={() => setSettingsOpen(true)} />
             <MobileNavbar onOpenSettings={() => setSettingsOpen(true)} />
-            <NotificationSettings
-                isOpen={settingsOpen}
-                onClose={() => setSettingsOpen(false)}
-            />
+            <NotificationSettings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </>
-    )
+    );
 }
