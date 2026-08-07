@@ -11,7 +11,7 @@
     }
 
     body {
-        @apply bg-dark-950 text-slate-100 antialiased;
+        @apply bg-brand-cream text-dark-900 antialiased;
         font-family: 'Inter', system-ui, sans-serif;
     }
 
@@ -22,11 +22,11 @@
 
 @layer utilities {
     .glass {
-        @apply bg-dark-900/80 backdrop-blur-xl border border-primary-500/20;
+        @apply bg-white/60 backdrop-blur-xl border border-brand-oak/30 shadow-sm;
     }
 
     .glass-hover {
-        @apply hover:bg-primary-500/10 hover:border-primary-500/40 transition-all duration-300;
+        @apply hover:bg-white/80 hover:border-brand-oak/50 transition-all duration-300;
     }
 
     .gradient-primary {
@@ -34,7 +34,7 @@
     }
 
     .text-gradient {
-        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-primary-600;
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-accent-500;
     }
 
     .mask-fade-right {
@@ -62,19 +62,19 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(9, 12, 14, 0.15);
     border-radius: 99px;
     transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(9, 12, 14, 0.3);
 }
 
 /* Custom Scrollbar Utility */
 .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: rgba(9, 12, 14, 0.15) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -86,12 +86,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(9, 12, 14, 0.15);
     border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(9, 12, 14, 0.3);
 }
 
 /* Hide scrollbar for horizontal scroll */
@@ -106,8 +106,8 @@
 
 /* Selection styling */
 ::selection {
-    background: rgba(77, 208, 225, 0.3); /* Cyan / Primary 300 with opacity */
-    color: #fff;
+    background: rgba(23, 62, 99, 0.2); /* Deep Navy Blue with opacity */
+    color: #090c0e;
 }
 
 /* Animations */

@@ -142,12 +142,12 @@ function SidebarItem({ item, isActive }) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <IconComponent className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-slate-400'}`} />
+                <IconComponent className={`w-5 h-5 ${isActive ? 'text-accent-400' : 'text-brand-steel'}`} />
             </motion.div>
 
             {/* Tooltip */}
             <div
-                className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg 
+                className="absolute left-full ml-3 px-3 py-1.5 bg-[#090C0E] border border-brand-oak/20 text-white text-sm rounded-lg 
                 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
             >
                 {item.name}
@@ -156,7 +156,7 @@ function SidebarItem({ item, isActive }) {
             {/* Active indicator */}
             {isActive && (
                 <motion.div
-                    className="absolute -left-3 top-3 w-1 h-6 bg-white rounded-r-full"
+                    className="absolute -left-3 top-3 w-1 h-6 bg-accent-400 rounded-r-full"
                     layoutId="activeIndicator"
                 />
             )}
@@ -185,13 +185,13 @@ function SidebarGroup({ group, isActiveGroup }) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <IconComponent className={`w-5 h-5 ${hasActiveChild ? 'text-primary-400' : 'text-slate-400'}`} />
+                <IconComponent className={`w-5 h-5 ${hasActiveChild ? 'text-accent-400' : 'text-brand-steel'}`} />
             </motion.div>
 
             {/* Active indicator for group */}
             {hasActiveChild && (
                 <motion.div
-                    className="absolute -left-3 top-3 w-1 h-6 bg-white rounded-r-full"
+                    className="absolute -left-3 top-3 w-1 h-6 bg-accent-400 rounded-r-full"
                     layoutId="activeIndicator"
                 />
             )}
@@ -206,8 +206,8 @@ function SidebarGroup({ group, isActiveGroup }) {
                         transition={{ duration: 0.2, ease: 'easeOut' }}
                         className="absolute left-10 top-0 pl-4 z-50"
                     >
-                        <div className="bg-[#1a1b2e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-xl flex flex-col gap-1 min-w-[160px]">
-                            <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                        <div className="bg-[#090C0E]/95 backdrop-blur-xl border border-brand-oak/20 rounded-2xl p-2 shadow-xl flex flex-col gap-1 min-w-[160px]">
+                            <div className="px-2 py-1 text-xs font-semibold text-brand-steel uppercase tracking-wider mb-1">
                                 {group.name}
                             </div>
                             {group.items.map((item) => {
@@ -217,7 +217,7 @@ function SidebarGroup({ group, isActiveGroup }) {
                                     <Link key={item.path} to={item.path}>
                                         <motion.div
                                             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors
-                                                ${isItemActive ? 'bg-primary-500/20 text-primary-300' : 'hover:bg-white/5 text-slate-300 hover:text-white'}
+                                                ${isItemActive ? 'bg-accent-500/20 text-accent-300' : 'hover:bg-white/5 text-brand-steel hover:text-white'}
                                             `}
                                             whileHover={{ x: 4 }}
                                         >
@@ -278,8 +278,8 @@ function Sidebar({ onOpenSettings }) {
             className="hidden md:flex flex-col items-center py-6 px-3 h-screen fixed left-0 top-0 z-[10000]"
             style={{
                 width: '80px',
-                background: 'linear-gradient(180deg, #1a1b2e 0%, #0f1021 100%)',
-                borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+                background: '#090C0E',
+                borderRight: '1px solid rgba(166, 122, 87, 0.15)',
             }}
             initial={{ x: -80, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -288,7 +288,7 @@ function Sidebar({ onOpenSettings }) {
             {/* Logo */}
             <Link to="/" className="mb-8">
                 <motion.div
-                    className="w-12 h-12 rounded-2xl bg-[#3a3a3a] 
+                    className="w-12 h-12 rounded-2xl bg-brand-cream/10 
                         flex items-center justify-center shadow-lg overflow-hidden"
                     whileHover={{ scale: 1.05, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
@@ -325,7 +325,7 @@ function Sidebar({ onOpenSettings }) {
                                 avatarBox: 'w-10 h-10',
                                 userButtonTrigger: 'focus:shadow-none',
                                 userButtonPopoverCard:
-                                    'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-white/10',
+                                    'z-[11000] !fixed !left-[90px] !bottom-6 !top-auto !right-auto !transform-none shadow-xl border border-brand-oak/20 bg-[#090C0E]',
                             },
                         }}
                     />
@@ -366,9 +366,9 @@ function MobileNavbar({ onOpenSettings }) {
                 <div
                     className="rounded-full px-2 py-2 flex items-center justify-between backdrop-blur-xl"
                     style={{
-                        background: 'rgba(30, 30, 40, 0.6)',
+                        background: 'rgba(9, 12, 14, 0.95)',
                         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(166, 122, 87, 0.2)',
                     }}
                 >
                     {/* Logo - only on tablets/wide mobile */}
@@ -397,12 +397,12 @@ function MobileNavbar({ onOpenSettings }) {
                                         className={`w-10 h-10 rounded-full flex items-center justify-center
                                             ${
                                                 isActive
-                                                    ? 'bg-gradient-to-br from-primary-400 to-primary-600'
+                                                    ? 'bg-gradient-to-br from-accent-400 to-accent-600'
                                                     : 'hover:bg-white/10'
                                             }`}
                                         whileTap={{ scale: 0.95 }}
                                     >
-                                        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                                        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-brand-steel'}`} />
                                     </motion.div>
                                 </Link>
                             ) : (
@@ -414,17 +414,17 @@ function MobileNavbar({ onOpenSettings }) {
                                 >
                                     <div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                                            ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-slate-400'}`}
+                                            ${isActive ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-brand-steel'}`}
                                     >
                                         <Icon
-                                            className={`w-5 h-5 ${isActive ? 'text-primary-400' : 'text-slate-400'}`}
+                                            className={`w-5 h-5 ${isActive ? 'text-accent-400' : 'text-brand-steel'}`}
                                         />
                                     </div>
                                     {/* Small dot if active group but no sub-item selected yet (or just general active state) */}
                                     {isActive && (
                                         <motion.div
                                             layoutId="mobileActiveDot"
-                                            className="absolute -bottom-1 w-1 h-1 bg-primary-400 rounded-full"
+                                            className="absolute -bottom-1 w-1 h-1 bg-accent-400 rounded-full"
                                         />
                                     )}
                                 </motion.button>

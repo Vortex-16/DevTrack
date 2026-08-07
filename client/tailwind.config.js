@@ -7,57 +7,67 @@ export default {
     theme: {
         extend: {
             colors: {
-                // New Primary: Cyan/Teal (#4dd0e1)
+                // Primary: Deep Navy Blue (#173E63)
                 primary: {
-                    50: '#e0f7fa',
-                    100: '#b2ebf2',
-                    200: '#80deea',
-                    300: '#4dd0e1',
-                    400: '#26c6da',
-                    500: '#00bcd4',
-                    600: '#00acc1',
-                    700: '#0097a7',
-                    800: '#00838f',
-                    900: '#006064',
-                    950: '#00363a',
+                    50: '#edf5fb',
+                    100: '#d7e6f5',
+                    200: '#b5d0ec',
+                    300: '#82b0df',
+                    400: '#498ccf',
+                    500: '#173E63', // Main navy
+                    600: '#1d568c',
+                    700: '#1a4773',
+                    800: '#183c5e',
+                    900: '#183350',
+                    950: '#102135',
                 },
-                // New Accent: Copper/Gold (#e8a838)
+                // Accent: Burnt Orange (#B58561)
                 accent: {
-                    50: '#fdf8f0',
-                    100: '#faeedb',
-                    200: '#f4d9b2',
-                    300: '#ecc285',
-                    400: '#e8a838', // Main copper
-                    500: '#df8e1c',
-                    600: '#d07414',
-                    700: '#ad5913',
-                    800: '#8a4616',
-                    900: '#6f3915',
-                    950: '#3c1b09',
+                    50: '#faf6f0',
+                    100: '#f3e8da',
+                    200: '#e7ceb4',
+                    300: '#d9ad8b',
+                    400: '#c88b63',
+                    500: '#B58561', // Main burnt orange
+                    600: '#a76b4e',
+                    700: '#8b5340',
+                    800: '#714237',
+                    900: '#5c3730',
+                    950: '#321b18',
                 },
-                // New Dark: True Deep Black
+                // Dark: Deep Matte Black (#090C0E)
                 dark: {
-                    50: '#f8fafc',
-                    100: '#f1f5f9',
-                    200: '#e2e8f0',
-                    300: '#cbd5e1',
-                    400: '#94a3b8',
-                    500: '#64748b',
-                    600: '#475569',
-                    700: '#334155',
-                    800: '#222222', // Slightly lighter dark
-                    900: '#1a1a1a', // DevTrack Poster Main Background
-                    950: '#111111', // Deepest dark
+                    50: '#f5f6f6',
+                    100: '#e4e6e7',
+                    200: '#cdd0d3',
+                    300: '#abb1b6',
+                    400: '#818b93',
+                    500: '#5f6a73',
+                    600: '#4b555d',
+                    700: '#3b4349',
+                    800: '#23201E', // Charcoal Slate
+                    900: '#090C0E', // Deep Matte Black
+                    950: '#050708',
                 },
-                border: '#333333',
+                brand: {
+                    cream: '#FDF2E7',
+                    sand: '#EAC5A2',
+                    oak: '#CEA885',
+                    offwhite: '#F1DBC5',
+                    steel: '#666664',
+                    tech: '#406D81',
+                    slate: '#648796',
+                    walnut: '#4B4138',
+                },
+                border: '#e7ceb4', // Warm sand border
                 tier: {
-                    free: '#94a3b8',
-                    pro: '#4dd0e1', // Cyan for pro
-                    enterprise: '#e8a838', // Copper for enterprise
+                    free: '#666664',
+                    pro: '#173E63',
+                    enterprise: '#B58561',
                 },
                 quota: {
-                    safe: '#4dd0e1',
-                    warning: '#e8a838',
+                    safe: '#406D81',
+                    warning: '#B58561',
                     danger: '#ef4444',
                 },
             },
