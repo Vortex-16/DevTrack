@@ -35,19 +35,47 @@ export default {
                     900: '#5c3730',
                     950: '#321b18',
                 },
-                // Dark: Deep Matte Black (#090C0E)
+                // Dark: Deep Matte Black (#090C0E) but mapped to light backgrounds for legacy layouts
                 dark: {
-                    50: '#f5f6f6',
-                    100: '#e4e6e7',
-                    200: '#cdd0d3',
-                    300: '#abb1b6',
-                    400: '#818b93',
-                    500: '#5f6a73',
-                    600: '#4b555d',
-                    700: '#3b4349',
-                    800: '#23201E', // Charcoal Slate
-                    900: '#090C0E', // Deep Matte Black
-                    950: '#050708',
+                    50: '#090C0E',
+                    100: '#090C0E',
+                    200: '#23201E',
+                    300: '#4B4138',
+                    400: '#666664',
+                    500: '#666664',
+                    600: '#4B4138',
+                    700: '#CEA885',
+                    800: '#F1DBC5', // off-white
+                    900: '#EAC5A2', // soft sand
+                    950: '#FDF2E7', // cream white
+                },
+                // Slate: Map legacy dark classes to the new warm sand/cream theme
+                slate: {
+                    50: '#090C0E',
+                    100: '#090C0E',
+                    200: '#23201E',
+                    300: '#4B4138',
+                    400: '#666664',
+                    500: '#666664',
+                    600: '#4B4138',
+                    700: '#CEA885',
+                    800: '#F1DBC5', // off-white
+                    900: '#EAC5A2', // soft sand
+                    950: '#FDF2E7', // cream white
+                },
+                // Purple: Legacy purple components now map to Burnt Orange
+                purple: {
+                    50: '#faf6f0',
+                    100: '#f3e8da',
+                    200: '#e7ceb4',
+                    300: '#d9ad8b',
+                    400: '#c88b63',
+                    500: '#B58561', // main burnt orange
+                    600: '#a76b4e',
+                    700: '#8b5340',
+                    800: '#714237',
+                    900: '#5c3730',
+                    950: '#321b18',
                 },
                 brand: {
                     cream: '#FDF2E7',

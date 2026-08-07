@@ -118,16 +118,6 @@ const navGroups = [
             { name: 'Pricing & Pro', path: '/pricing', icon: Sparkles },
         ],
     },
-    {
-        id: 'docs',
-        name: 'Docs',
-        type: 'group',
-        icon: HelpCircle,
-        items: [
-            { name: 'User Guide', path: '/guide', icon: BookOpen },
-            { name: 'Privacy', path: '/privacy', icon: Shield },
-        ],
-    },
 ];
 
 // Single Sidebar Item
