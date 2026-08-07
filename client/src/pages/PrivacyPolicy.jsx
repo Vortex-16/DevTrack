@@ -4,11 +4,14 @@ import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-300 py-20 px-4">
+        <div className="text-slate-300 py-4 px-4">
             <div className="max-w-3xl mx-auto">
-                <Link to="/" className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8">
+                <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-8"
+                >
                     <ArrowLeft size={20} />
-                    <span>Back to Home</span>
+                    <span>Back to Dashboard</span>
                 </Link>
 
                 <motion.div
@@ -22,11 +25,15 @@ const PrivacyPolicy = () => {
                             <Shield className="w-8 h-8 text-cyan-400" />
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-white">
-                            Privacy <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Policy</span>
+                            Privacy{' '}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                                Policy
+                            </span>
                         </h1>
                     </div>
                     <p className="text-slate-400 text-lg">
-                        Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        Last updated:{' '}
+                        {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </p>
                 </motion.div>
 
@@ -42,7 +49,8 @@ const PrivacyPolicy = () => {
                             <h2 className="text-2xl font-bold text-white">Data Collection</h2>
                         </div>
                         <p className="text-slate-400 leading-relaxed mb-4">
-                            DevTrack collects minimal data required to provide you with insights into your development workflow. We store:
+                            DevTrack collects minimal data required to provide you with insights into your development
+                            workflow. We store:
                         </p>
                         <ul className="list-disc list-inside text-slate-400 space-y-2 ml-4">
                             <li>Public GitHub repository metadata (commits, stars, forks).</li>
@@ -62,9 +70,13 @@ const PrivacyPolicy = () => {
                             <h2 className="text-2xl font-bold text-white">GitHub OAuth & Token Security</h2>
                         </div>
                         <p className="text-slate-400 leading-relaxed">
-                            When you connect your GitHub account, we utilize Clerk for secure OAuth authentication. DevTrack never sees or stores your password. 
-                            <br /><br />
-                            If you explicitly grant DevTrack the `repo` scope to view private repository traffic (clones/views), your GitHub token is **encrypted at rest** using military-grade AES-256-GCM encryption before being saved to our Firestore database.
+                            When you connect your GitHub account, we utilize Clerk for secure OAuth authentication.
+                            DevTrack never sees or stores your password.
+                            <br />
+                            <br />
+                            If you explicitly grant DevTrack the `repo` scope to view private repository traffic
+                            (clones/views), your GitHub token is **encrypted at rest** using military-grade AES-256-GCM
+                            encryption before being saved to our Firestore database.
                         </p>
                     </motion.section>
 
@@ -79,8 +91,10 @@ const PrivacyPolicy = () => {
                             <h2 className="text-2xl font-bold text-white">Data Retention & Deletion</h2>
                         </div>
                         <p className="text-slate-400 leading-relaxed">
-                            Elevated GitHub access tokens are automatically purged from our systems after your configured retention window (default 7 days). 
-                            You can completely delete your DevTrack account at any time, which will immediately scrub all associated data, logs, and preferences from our database.
+                            Elevated GitHub access tokens are automatically purged from our systems after your
+                            configured retention window (default 7 days). You can completely delete your DevTrack
+                            account at any time, which will immediately scrub all associated data, logs, and preferences
+                            from our database.
                         </p>
                     </motion.section>
 
@@ -95,9 +109,18 @@ const PrivacyPolicy = () => {
                             We utilize the following trusted third-party services:
                         </p>
                         <ul className="list-disc list-inside text-slate-400 mt-4 space-y-2 ml-4">
-                            <li><strong className="text-slate-300">Clerk:</strong> For identity management and authentication.</li>
-                            <li><strong className="text-slate-300">Google Firebase:</strong> For secure database hosting.</li>
-                            <li><strong className="text-slate-300">Groq / Gemini:</strong> For AI-powered repository insights. We do not use your private code to train these models.</li>
+                            <li>
+                                <strong className="text-slate-300">Clerk:</strong> For identity management and
+                                authentication.
+                            </li>
+                            <li>
+                                <strong className="text-slate-300">Google Firebase:</strong> For secure database
+                                hosting.
+                            </li>
+                            <li>
+                                <strong className="text-slate-300">Groq / Gemini:</strong> For AI-powered repository
+                                insights. We do not use your private code to train these models.
+                            </li>
                         </ul>
                     </motion.section>
                 </div>

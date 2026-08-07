@@ -56,14 +56,15 @@ const Pricing = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-16">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-purple-300 bg-purple-950/60 border border-purple-800/50 rounded-full mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-primary-300 bg-primary-950/60 border border-primary-800/50 rounded-full mb-4">
                         <span>✨ Simple, Scalable Pricing</span>
                     </span>
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
                         Supercharge Your Technical Growth
                     </h1>
                     <p className="max-w-2xl mx-auto text-base text-slate-400">
-                        Choose the tier that fits your development workflow. Upgrade anytime for unlimited AI intelligence, PDF reports, and codebase analysis.
+                        Choose the tier that fits your development workflow. Upgrade anytime for unlimited AI
+                        intelligence, PDF reports, and codebase analysis.
                     </p>
                 </div>
 
@@ -80,7 +81,9 @@ const Pricing = () => {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-slate-400 mb-6">Perfect for individual developers getting started with consistent tracking.</p>
+                            <p className="text-xs text-slate-400 mb-6">
+                                Perfect for individual developers getting started with consistent tracking.
+                            </p>
                             <div className="flex items-baseline mb-6">
                                 <span className="text-4xl font-extrabold text-white">₹0</span>
                                 <span className="text-xs text-slate-400 ml-2">/ forever free</span>
@@ -101,25 +104,27 @@ const Pricing = () => {
                     </div>
 
                     {/* PRO TIER (RECOMMENDED) */}
-                    <div className="relative p-8 bg-gradient-to-b from-purple-950/40 via-slate-900/80 to-slate-900 border-2 border-purple-500/80 rounded-3xl backdrop-blur-xl flex flex-col justify-between shadow-2xl shadow-purple-950/50 transform hover:-translate-y-1 transition-all">
-                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full shadow-md">
+                    <div className="relative p-8 bg-gradient-to-b from-primary-950/40 via-slate-900/80 to-slate-900 border-2 border-primary-500/80 rounded-3xl backdrop-blur-xl flex flex-col justify-between shadow-2xl shadow-primary-950/50 transform hover:-translate-y-1 transition-all">
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-primary-600 to-accent-500 rounded-full shadow-md">
                             RECOMMENDED
                         </div>
                         <div>
                             <div className="flex justify-between items-center mb-4 mt-2">
                                 <h3 className="text-xl font-bold text-white">DevTrack Pro</h3>
                                 {isPro && (
-                                    <span className="px-2.5 py-1 text-xs font-semibold text-purple-300 bg-purple-950 border border-purple-800 rounded-full">
+                                    <span className="px-2.5 py-1 text-xs font-semibold text-primary-300 bg-primary-950 border border-primary-800 rounded-full">
                                         Active Plan
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-slate-300 mb-6">Designed for ambitious engineers shipping projects and proving consistency.</p>
+                            <p className="text-xs text-slate-300 mb-6">
+                                Designed for ambitious engineers shipping projects and proving consistency.
+                            </p>
                             <div className="flex items-baseline mb-1">
                                 <span className="text-4xl font-extrabold text-white">₹199</span>
                                 <span className="text-xs text-slate-400 ml-1.5">/ month</span>
                             </div>
-                            <span className="text-[11px] text-purple-400 font-medium block mb-6">
+                            <span className="text-[11px] text-primary-400 font-medium block mb-6">
                                 International pricing: $5 / month
                             </span>
                             <ul className="space-y-3 text-xs text-slate-200 mb-8">
@@ -142,7 +147,7 @@ const Pricing = () => {
                             <button
                                 onClick={handleUpgrade}
                                 disabled={loading}
-                                className="w-full py-3 px-4 text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl shadow-lg shadow-purple-600/30 transition-all transform hover:scale-[1.02]"
+                                className="w-full py-3 px-4 text-xs font-semibold text-white bg-gradient-to-r from-primary-600 to-accent-500 hover:from-primary-500 hover:to-accent-400 rounded-xl shadow-lg shadow-primary-600/30 transition-all transform hover:scale-[1.02]"
                             >
                                 {loading ? 'Processing...' : 'Upgrade to Pro →'}
                             </button>
@@ -158,7 +163,9 @@ const Pricing = () => {
                                     Coming Soon
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400 mb-6">For engineering teams, bootcamp cohorts, and organization workspaces.</p>
+                            <p className="text-xs text-slate-400 mb-6">
+                                For engineering teams, bootcamp cohorts, and organization workspaces.
+                            </p>
                             <div className="flex items-baseline mb-6">
                                 <span className="text-3xl font-extrabold text-white">Custom</span>
                             </div>
@@ -186,7 +193,7 @@ const Pricing = () => {
                                 <tr className="border-b border-slate-800 text-slate-400 font-semibold">
                                     <th className="py-3 px-4">Feature</th>
                                     <th className="py-3 px-4">Free Tier</th>
-                                    <th className="py-3 px-4 text-purple-400">Pro Tier</th>
+                                    <th className="py-3 px-4 text-primary-400">Pro Tier</th>
                                     <th className="py-3 px-4 text-slate-500">Enterprise</th>
                                 </tr>
                             </thead>
@@ -195,7 +202,7 @@ const Pricing = () => {
                                     <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="py-3 px-4 font-medium text-slate-200">{item.name}</td>
                                         <td className="py-3 px-4 text-slate-400">{item.free}</td>
-                                        <td className="py-3 px-4 font-semibold text-purple-300">{item.pro}</td>
+                                        <td className="py-3 px-4 font-semibold text-primary-300">{item.pro}</td>
                                         <td className="py-3 px-4 text-slate-500">{item.enterprise}</td>
                                     </tr>
                                 ))}
