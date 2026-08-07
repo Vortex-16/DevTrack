@@ -1,21 +1,20 @@
-import Badge from '../components/ui/Badge'
-import Button from '../components/ui/Button'
-import { logsApi, projectsApi } from '../services/api'
-import { useState, useEffect, useRef } from 'react'
-import { useAuth } from '@clerk/clerk-react'
-import { useCache } from '../context/CacheContext'
-import PixelTransition from '../components/ui/PixelTransition'
-import { motion, AnimatePresence } from 'framer-motion'
-import Lenis from 'lenis'
-import { ReactLenis, useLenis } from 'lenis/react'
-import DatePicker from '../components/ui/DatePicker'
-import TimePicker from '../components/ui/TimePicker'
-import LeetCodeStats from '../components/learning/LeetCodeStats'
-import TopSkills from '../components/learning/TopSkills'
-import ActivityStats from '../components/learning/ActivityStats'
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import { logsApi, projectsApi } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/clerk-react';
+import { useCache } from '../context/CacheContext';
+import PixelTransition from '../components/ui/PixelTransition';
+import { motion, AnimatePresence } from 'framer-motion';
+import Lenis from 'lenis';
+import { ReactLenis, useLenis } from 'lenis/react';
+import DatePicker from '../components/ui/DatePicker';
+import TimePicker from '../components/ui/TimePicker';
+import LeetCodeStats from '../components/learning/LeetCodeStats';
+import TopSkills from '../components/learning/TopSkills';
+import ActivityStats from '../components/learning/ActivityStats';
 
-
-import { createPortal } from 'react-dom'
+import { createPortal } from 'react-dom';
 import {
     BookOpen,
     Flame,
@@ -30,36 +29,41 @@ import {
     Pencil,
     Clock,
     Tag,
-    Smile
-} from 'lucide-react'
+    Smile,
+} from 'lucide-react';
 
 // Helper to format dates
 const formatDate = (date) => {
-    if (!date) return 'Unknown date'
+    if (!date) return 'Unknown date';
     if (date._seconds !== undefined) {
         return new Date(date._seconds * 1000).toLocaleDateString('en-US', {
-            weekday: 'short', month: 'short', day: 'numeric'
-        })
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        });
     }
     if (typeof date === 'string') {
-        const d = new Date(date)
-        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        const d = new Date(date);
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     }
-    if (date instanceof Date) return date.toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric'
-    })
-    return String(date)
-}
+    if (date instanceof Date)
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        });
+    return String(date);
+};
 
 const getRawDate = (date) => {
-    if (!date) return new Date().toISOString().split('T')[0]
+    if (!date) return new Date().toISOString().split('T')[0];
     if (date._seconds !== undefined) {
-        return new Date(date._seconds * 1000).toISOString().split('T')[0]
+        return new Date(date._seconds * 1000).toISOString().split('T')[0];
     }
-    if (typeof date === 'string') return date.split('T')[0]
-    if (date instanceof Date) return date.toISOString().split('T')[0]
-    return new Date().toISOString().split('T')[0]
-}
+    if (typeof date === 'string') return date.split('T')[0];
+    if (date instanceof Date) return date.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
+};
 
 // Helper to format time to AM/PM
 const formatTime = (timeStr) => {
@@ -69,53 +73,62 @@ const formatTime = (timeStr) => {
     const suffix = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     return `${h12}:${minutes}${suffix}`;
-}
+};
 
 // Animated counter
 function AnimatedCounter({ value }) {
-    const [count, setCount] = useState(0)
+    const [count, setCount] = useState(0);
     useEffect(() => {
-        const numValue = parseInt(value) || 0
-        if (numValue === 0) { setCount(0); return }
-        const step = numValue / 60
-        let current = 0
+        const numValue = parseInt(value) || 0;
+        if (numValue === 0) {
+            setCount(0);
+            return;
+        }
+        const step = numValue / 60;
+        let current = 0;
         const timer = setInterval(() => {
-            current += step
+            current += step;
             if (current >= numValue) {
-                setCount(numValue)
-                clearInterval(timer)
+                setCount(numValue);
+                clearInterval(timer);
             } else {
-                setCount(Math.floor(current))
+                setCount(Math.floor(current));
             }
-        }, 1000 / 60)
-        return () => clearInterval(timer)
-    }, [value])
-    return <span>{count}</span>
+        }, 1000 / 60);
+        return () => clearInterval(timer);
+    }, [value]);
+    return <span>{count}</span>;
 }
 
 // Stat Card Component
 function StatCard({ icon, label, value, color, delay = 0 }) {
     const colors = {
-        purple: { border: 'border-purple-500/30', iconBg: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
+        purple: {
+            border: 'border-purple-500/30',
+            iconBg: 'from-purple-500 to-purple-600',
+            glow: 'shadow-purple-500/20',
+        },
         cyan: { border: 'border-cyan-500/30', iconBg: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/20' },
-        green: { border: 'border-emerald-500/30', iconBg: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/20' },
-    }
-    const c = colors[color] || colors.purple
+        green: {
+            border: 'border-emerald-500/30',
+            iconBg: 'from-emerald-500 to-emerald-600',
+            glow: 'shadow-emerald-500/20',
+        },
+    };
+    const c = colors[color] || colors.purple;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
             <div
                 className={`rounded-2xl p-3 md:p-4 border ${c.border} backdrop-blur-sm h-full`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                 }}
             >
                 <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow} flex-shrink-0`}>
+                    <div
+                        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow} flex-shrink-0`}
+                    >
                         {icon}
                     </div>
                     <div className="min-w-0 flex flex-col justify-center min-h-[2.5rem]">
@@ -127,7 +140,7 @@ function StatCard({ icon, label, value, color, delay = 0 }) {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // Entry Card Component
@@ -136,14 +149,14 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
         great: Rocket,
         good: ThumbsUp,
         okay: Meh,
-        tired: Frown
-    }
+        tired: Frown,
+    };
     const moodColors = {
         great: 'from-emerald-500 to-emerald-600',
         good: 'from-blue-500 to-blue-600',
         okay: 'from-orange-500 to-orange-600',
-        tired: 'from-slate-500 to-slate-600'
-    }
+        tired: 'from-slate-500 to-slate-600',
+    };
 
     const Icon = MoodIcon[entry.mood] || ThumbsUp;
 
@@ -157,22 +170,25 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
             <div
                 className="rounded-2xl p-5 border border-white/10 hover:border-purple-500/30 transition-all duration-300 h-full flex flex-col"
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                 }}
             >
                 <div className="flex items-start gap-4 flex-1">
                     {/* Date badge */}
                     <div className="flex-shrink-0">
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}>
+                        <div
+                            className={`w-12 h-12 rounded-xl bg-gradient-to-br ${moodColors[entry.mood] || moodColors.good} flex flex-col items-center justify-center shadow-lg`}
+                        >
                             <Icon className="w-6 h-6 text-white" />
                         </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0 flex flex-col h-full">
-
                         <div className="flex flex-row items-center justify-between gap-2 lg:gap-5 mb-2">
-                            <h3 className="text-xs lg:text-sm font-bold text-white leading-tight whitespace-nowrap min-w-0 truncate">{formatDate(entry.date)}</h3>
+                            <h3 className="text-xs lg:text-sm font-bold text-white leading-tight whitespace-nowrap min-w-0 truncate">
+                                {formatDate(entry.date)}
+                            </h3>
                             <span className="bg-white/10 backdrop-blur-md border border-white/10 px-2 py-1 rounded-xl text-slate-400 text-[10px] lg:text-xs hidden sm:flex items-center gap-1 whitespace-nowrap flex-shrink-0">
                                 <Clock size={12} />
                                 {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
@@ -212,28 +228,28 @@ function EntryCard({ entry, onEdit, onDelete, delay = 0 }) {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
-    const lenis = useLenis()
+    const lenis = useLenis();
 
     useEffect(() => {
         if (isOpen) {
-            lenis?.stop()
-            document.body.style.overflow = 'hidden'
+            lenis?.stop();
+            document.body.style.overflow = 'hidden';
         } else {
-            lenis?.start()
-            document.body.style.overflow = 'unset'
+            lenis?.start();
+            document.body.style.overflow = 'unset';
         }
         return () => {
-            lenis?.start()
-            document.body.style.overflow = 'unset'
-        }
-    }, [isOpen, lenis])
+            lenis?.start();
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen, lenis]);
 
-    if (!isOpen) return null
+    if (!isOpen) return null;
 
     return createPortal(
         <AnimatePresence>
@@ -247,13 +263,13 @@ function Modal({ isOpen, onClose, title, children }) {
                 <motion.div
                     className="w-full max-w-lg rounded-3xl border border-white/10 overflow-hidden flex flex-col max-h-[85vh]"
                     style={{
-                        background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.98), rgba(20, 25, 40, 0.99))',
+                        background: 'linear-gradient(145deg, #23201E, #090C0E)',
                         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
                     }}
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center p-6 border-b border-white/10 flex-shrink-0">
                         <h2 className="text-xl font-bold text-white">{title}</h2>
@@ -262,7 +278,12 @@ function Modal({ isOpen, onClose, title, children }) {
                             className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
                             </svg>
                         </button>
                     </div>
@@ -273,27 +294,27 @@ function Modal({ isOpen, onClose, title, children }) {
             </motion.div>
         </AnimatePresence>,
         document.body
-    )
+    );
 }
 
 export default function Learning() {
-    const { isLoaded, isSignedIn, getToken } = useAuth()
-    const { getCachedData, setCachedData, hasCachedData } = useCache()
+    const { isLoaded, isSignedIn, getToken } = useAuth();
+    const { getCachedData, setCachedData, hasCachedData } = useCache();
 
     // Initialize from cache
-    const cachedData = getCachedData('learning_data') || {}
+    const cachedData = getCachedData('learning_data') || {};
 
-    const [learningEntries, setLearningEntries] = useState(cachedData.entries || [])
-    const [stats, setStats] = useState(cachedData.stats || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 })
-    const [verifiedSkills, setVerifiedSkills] = useState([])
+    const [learningEntries, setLearningEntries] = useState(cachedData.entries || []);
+    const [stats, setStats] = useState(cachedData.stats || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 });
+    const [verifiedSkills, setVerifiedSkills] = useState([]);
 
-    const [loading, setLoading] = useState(!hasCachedData('learning_data'))
-    const [isRefreshing, setIsRefreshing] = useState(false)
-    const [error, setError] = useState(null)
-    const [showModal, setShowModal] = useState(false)
-    const [editingEntry, setEditingEntry] = useState(null)
-    const [deleteConfirm, setDeleteConfirm] = useState(null)
-    const [showExtensionModal, setShowExtensionModal] = useState(false)
+    const [loading, setLoading] = useState(!hasCachedData('learning_data'));
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [showExtensionModal, setShowExtensionModal] = useState(false);
     const [activeMobileTab, setActiveMobileTab] = useState('log'); // 'log' | 'insights'
 
     const defaultFormData = {
@@ -302,164 +323,161 @@ export default function Learning() {
         endTime: '10:00',
         learnedToday: '',
         tags: '',
-        mood: 'good'
-    }
+        mood: 'good',
+    };
 
-    const [formData, setFormData] = useState(defaultFormData)
+    const [formData, setFormData] = useState(defaultFormData);
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-            fetchData()
+            fetchData();
         }
-    }, [isLoaded, isSignedIn])
+    }, [isLoaded, isSignedIn]);
 
     const fetchData = async () => {
         try {
             if (!hasCachedData('learning_data')) {
-                setLoading(true)
+                setLoading(true);
             } else {
-                setIsRefreshing(true)
+                setIsRefreshing(true);
             }
 
-            const token = await getToken({ skipCache: true })
+            const token = await getToken({ skipCache: true });
             if (!token) {
-                setLoading(false)
-                setIsRefreshing(false)
-                return
+                setLoading(false);
+                setIsRefreshing(false);
+                return;
             }
 
             const [logsRes, statsRes, projectsRes] = await Promise.all([
-                logsApi.getAll(
-                    { limit: 50 },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                ),
+                logsApi.getAll({ limit: 50 }, { headers: { Authorization: `Bearer ${token}` } }),
                 logsApi.getStats({
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: { Authorization: `Bearer ${token}` },
                 }),
-                projectsApi.getAll(
-                    { limit: 100 },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                )
-            ])
+                projectsApi.getAll({ limit: 100 }, { headers: { Authorization: `Bearer ${token}` } }),
+            ]);
 
-            const newEntries = logsRes.data.data.logs || []
-            const newStats = statsRes.data.data || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 }
+            const newEntries = logsRes.data.data.logs || [];
+            const newStats = statsRes.data.data || { totalLogs: 0, currentStreak: 0, uniqueDays: 0 };
 
             // Calculate Verified Skills
-            const projects = projectsRes.data.data.projects || []
-            const skillCounts = {}
-            projects.forEach(p => {
+            const projects = projectsRes.data.data.projects || [];
+            const skillCounts = {};
+            projects.forEach((p) => {
                 if (p.technologies && Array.isArray(p.technologies)) {
-                    p.technologies.forEach(tech => {
-                        skillCounts[tech] = (skillCounts[tech] || 0) + 1
-                    })
+                    p.technologies.forEach((tech) => {
+                        skillCounts[tech] = (skillCounts[tech] || 0) + 1;
+                    });
                 }
-            })
+            });
             const calculatedSkills = Object.entries(skillCounts)
                 .map(([name, count]) => ({ name, count, verified: true }))
-                .sort((a, b) => b.count - a.count)
+                .sort((a, b) => b.count - a.count);
 
-            setLearningEntries(newEntries)
-            setStats(newStats)
-            setVerifiedSkills(calculatedSkills)
+            setLearningEntries(newEntries);
+            setStats(newStats);
+            setVerifiedSkills(calculatedSkills);
 
             // Cache data
             setCachedData('learning_data', {
                 entries: newEntries,
                 stats: newStats,
-                verifiedSkills: calculatedSkills
-            })
+                verifiedSkills: calculatedSkills,
+            });
         } catch (err) {
-            setError(err.message)
+            setError(err.message);
         } finally {
-            setLoading(false)
-            setIsRefreshing(false)
+            setLoading(false);
+            setIsRefreshing(false);
         }
-    }
+    };
 
     const resetForm = () => {
-        setFormData(defaultFormData)
-        setEditingEntry(null)
-    }
+        setFormData(defaultFormData);
+        setEditingEntry(null);
+    };
 
     const openAddModal = () => {
-        resetForm()
-        setShowModal(true)
-    }
+        resetForm();
+        setShowModal(true);
+    };
 
     const openEditModal = (entry) => {
-        setEditingEntry(entry)
+        setEditingEntry(entry);
         setFormData({
             date: getRawDate(entry.date),
             startTime: entry.startTime || '09:00',
             endTime: entry.endTime || '10:00',
             learnedToday: entry.learnedToday || '',
             tags: (entry.tags || []).join(', '),
-            mood: entry.mood || 'good'
-        })
-        setShowModal(true)
-    }
+            mood: entry.mood || 'good',
+        });
+        setShowModal(true);
+    };
 
     const closeModal = () => {
-        setShowModal(false)
-        resetForm()
-    }
+        setShowModal(false);
+        resetForm();
+    };
 
     const handleSubmit = async (e) => {
-        e.preventDefault()
+        e.preventDefault();
         try {
-            const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t)
-            const payload = { ...formData, tags: tagsArray }
+            const tagsArray = formData.tags
+                .split(',')
+                .map((t) => t.trim())
+                .filter((t) => t);
+            const payload = { ...formData, tags: tagsArray };
 
             // Close modal immediately for fast UX
-            closeModal()
+            closeModal();
 
             if (editingEntry) {
                 // For edits, update then refresh
-                await logsApi.update(editingEntry.id, payload)
-                fetchData()
+                await logsApi.update(editingEntry.id, payload);
+                fetchData();
             } else {
                 // For new entries: optimistic UI
-                const response = await logsApi.create(payload)
-                const newEntry = response.data?.data
+                const response = await logsApi.create(payload);
+                const newEntry = response.data?.data;
 
                 if (newEntry) {
                     // Add to state immediately (prepend to show at top)
-                    setLearningEntries(prev => [newEntry, ...prev])
+                    setLearningEntries((prev) => [newEntry, ...prev]);
 
                     // Update stats optimistically
-                    setStats(prev => ({
+                    setStats((prev) => ({
                         ...prev,
                         totalLogs: (prev.totalLogs || 0) + 1,
-                        uniqueDays: prev.uniqueDays + 1 // May not be accurate but close enough
-                    }))
+                        uniqueDays: prev.uniqueDays + 1, // May not be accurate but close enough
+                    }));
 
                     // Update cache
                     setCachedData('learning_data', {
                         entries: [newEntry, ...learningEntries],
                         stats: {
                             ...stats,
-                            totalLogs: (stats.totalLogs || 0) + 1
-                        }
-                    })
+                            totalLogs: (stats.totalLogs || 0) + 1,
+                        },
+                    });
                 }
             }
         } catch (err) {
-            console.error('Error saving log:', err)
-            alert(`Failed to ${editingEntry ? 'update' : 'create'} log entry`)
+            console.error('Error saving log:', err);
+            alert(`Failed to ${editingEntry ? 'update' : 'create'} log entry`);
         }
-    }
+    };
 
     const handleDelete = async (id) => {
         try {
-            await logsApi.delete(id)
-            setDeleteConfirm(null)
-            fetchData()
+            await logsApi.delete(id);
+            setDeleteConfirm(null);
+            fetchData();
         } catch (err) {
-            console.error('Error deleting log:', err)
-            alert('Failed to delete log entry')
+            console.error('Error deleting log:', err);
+            alert('Failed to delete log entry');
         }
-    }
+    };
 
     const learningContainerRef = useRef(null);
     const learningContentRef = useRef(null);
@@ -534,16 +552,17 @@ export default function Learning() {
         <PixelTransition loading={loading}>
             <motion.div>
                 {/* Main Container - Background removed */}
-                <div
-                    className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden"
-                >
+                <div className="px-4 md:px-6 py-0 flex flex-col h-[calc(100vh-4rem)] overflow-hidden overflow-x-hidden">
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 flex-shrink-0">
                         <div>
                             <h1 className="text-3xl font-bold text-white mb-1">Learning Tracker</h1>
                             <p className="text-slate-400 text-sm">Track your courses, tutorials, and skills</p>
                         </div>
-                        <Button onClick={openAddModal} className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4">
+                        <Button
+                            onClick={openAddModal}
+                            className="flex items-center gap-2 text-xs lg:text-sm h-8 lg:h-10 px-3 lg:px-4"
+                        >
                             <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                             Add Entry
                         </Button>
@@ -552,13 +571,31 @@ export default function Learning() {
                     {/* Stats Row - Full Width */}
                     <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-4 flex-shrink-0">
                         <div className="flex-shrink-0 w-48 sm:w-auto">
-                            <StatCard icon={<BookOpen size={20} />} label="Total Entries" value={stats.totalLogs || 0} color="purple" delay={0.1} />
+                            <StatCard
+                                icon={<BookOpen size={20} />}
+                                label="Total Entries"
+                                value={stats.totalLogs || 0}
+                                color="purple"
+                                delay={0.1}
+                            />
                         </div>
                         <div className="flex-shrink-0 w-48 sm:w-auto">
-                            <StatCard icon={<Flame size={20} />} label="Current Streak" value={stats.currentStreak || 0} color="cyan" delay={0.15} />
+                            <StatCard
+                                icon={<Flame size={20} />}
+                                label="Current Streak"
+                                value={stats.currentStreak || 0}
+                                color="cyan"
+                                delay={0.15}
+                            />
                         </div>
                         <div className="flex-shrink-0 w-48 sm:w-auto">
-                            <StatCard icon={<Calendar size={20} />} label="Unique Days" value={stats.uniqueDays || 0} color="green" delay={0.2} />
+                            <StatCard
+                                icon={<Calendar size={20} />}
+                                label="Unique Days"
+                                value={stats.uniqueDays || 0}
+                                color="green"
+                                delay={0.2}
+                            />
                         </div>
                     </div>
 
@@ -580,7 +617,9 @@ export default function Learning() {
 
                     <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
                         {/* Main Content Area (Entries) - Visible if Desktop OR (Mobile AND Tab is 'log') */}
-                        <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${activeMobileTab === 'log' ? 'flex' : 'hidden lg:flex'}`}>
+                        <div
+                            className={`flex-1 flex flex-col min-h-0 overflow-hidden ${activeMobileTab === 'log' ? 'flex' : 'hidden lg:flex'}`}
+                        >
                             {/* Scrollable List */}
                             <div
                                 ref={learningContainerRef}
@@ -598,7 +637,9 @@ export default function Learning() {
                                             <div className="flex items-center gap-3">
                                                 <AlertTriangle className="text-red-400" size={20} />
                                                 <p className="text-red-400 flex-1">Error: {error}</p>
-                                                <Button variant="ghost" onClick={fetchData} className="text-sm">Retry</Button>
+                                                <Button variant="ghost" onClick={fetchData} className="text-sm">
+                                                    Retry
+                                                </Button>
                                             </div>
                                         </motion.div>
                                     )}
@@ -613,9 +654,15 @@ export default function Learning() {
                                             <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
                                                 <BookOpen size={40} className="text-purple-500" />
                                             </div>
-                                            <h3 className="text-xl font-semibold text-white mb-2">No Learning Entries Yet</h3>
-                                            <p className="text-slate-400 mb-8 max-w-sm mx-auto text-xs md:text-base px-4 md:px-0">Start tracking your learning journey, skills, and progress today!</p>
-                                            <Button onClick={openAddModal} className="px-8">Add Your First Entry</Button>
+                                            <h3 className="text-xl font-semibold text-white mb-2">
+                                                No Learning Entries Yet
+                                            </h3>
+                                            <p className="text-slate-400 mb-8 max-w-sm mx-auto text-xs md:text-base px-4 md:px-0">
+                                                Start tracking your learning journey, skills, and progress today!
+                                            </p>
+                                            <Button onClick={openAddModal} className="px-8">
+                                                Add Your First Entry
+                                            </Button>
                                         </motion.div>
                                     )}
 
@@ -635,7 +682,8 @@ export default function Learning() {
                                                 {learningEntries.map((entry, idx) => (
                                                     <div key={entry.id} className="relative group">
                                                         {/* Timeline Dot */}
-                                                        <div className={`absolute -left-[29px] sm:-left-[33px] top-6 w-3 h-3 rounded-full border-2 border-[#0B0C15] transition-all duration-300 z-10 
+                                                        <div
+                                                            className={`absolute -left-[29px] sm:-left-[33px] top-6 w-3 h-3 rounded-full border-2 border-[#0B0C15] transition-all duration-300 z-10 
                                                                     ${idx === 0 ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-125' : 'bg-white/20 group-hover:bg-purple-400 group-hover:scale-110'}`}
                                                         />
 
@@ -686,16 +734,30 @@ export default function Learning() {
                     <div className="space-y-4">
                         <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
                             <p className="text-sm text-purple-200">
-                                To track website activity, you need to load the helper extension in Chrome/Edge manually (Dev Mode).
+                                To track website activity, you need to load the helper extension in Chrome/Edge manually
+                                (Dev Mode).
                             </p>
                         </div>
 
                         <ol className="list-decimal list-inside space-y-3 text-slate-300 text-sm">
-                            <li>Open <b>chrome://extensions</b> in your browser.</li>
-                            <li>Enable <b>Developer mode</b> toggle in the top right.</li>
-                            <li>Click <b>Load unpacked</b> (top left).</li>
-                            <li>Select this folder: <code className="bg-white/10 px-1 rounded text-white">d:\hdd\DevTrack\Shell\extension</code></li>
-                            <li>Click the specific <b>Refresh</b> (rotate icon) on the card if it was already there.</li>
+                            <li>
+                                Open <b>chrome://extensions</b> in your browser.
+                            </li>
+                            <li>
+                                Enable <b>Developer mode</b> toggle in the top right.
+                            </li>
+                            <li>
+                                Click <b>Load unpacked</b> (top left).
+                            </li>
+                            <li>
+                                Select this folder:{' '}
+                                <code className="bg-white/10 px-1 rounded text-white">
+                                    d:\hdd\DevTrack\Shell\extension
+                                </code>
+                            </li>
+                            <li>
+                                Click the specific <b>Refresh</b> (rotate icon) on the card if it was already there.
+                            </li>
                         </ol>
 
                         <div className="pt-4 border-t border-white/10 text-center">
@@ -707,17 +769,15 @@ export default function Learning() {
                 </Modal>
 
                 {/* Delete Confirmation Modal */}
-                <Modal
-                    isOpen={!!deleteConfirm}
-                    onClose={() => setDeleteConfirm(null)}
-                    title="Delete Entry?"
-                >
+                <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Entry?">
                     <div className="text-center">
                         <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle size={40} className="text-red-500" />
                         </div>
                         <p className="text-white text-lg font-semibold mb-2">Are you sure?</p>
-                        <p className="text-slate-400 mb-6">This action cannot be undone and will permanently remove this learning entry.</p>
+                        <p className="text-slate-400 mb-6">
+                            This action cannot be undone and will permanently remove this learning entry.
+                        </p>
                         <div className="flex gap-4">
                             <Button
                                 variant="ghost"
@@ -814,10 +874,11 @@ export default function Learning() {
                                             key={mood.value}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, mood: mood.value })}
-                                            className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${formData.mood === mood.value
-                                                ? 'bg-purple-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/10'
-                                                : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
-                                                }`}
+                                            className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                                                formData.mood === mood.value
+                                                    ? 'bg-purple-500/20 border-purple-500 text-white shadow-lg shadow-purple-500/10'
+                                                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                                            }`}
                                         >
                                             <MoodIcon size={24} />
                                             <div className="text-xs font-medium">{mood.label}</div>
@@ -829,7 +890,12 @@ export default function Learning() {
 
                         {/* Submit */}
                         <div className="flex gap-4 pt-2">
-                            <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 border border-white/10">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={closeModal}
+                                className="flex-1 border border-white/10"
+                            >
                                 Cancel
                             </Button>
                             <Button type="submit" className="flex-1">

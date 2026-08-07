@@ -1,38 +1,51 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '@clerk/clerk-react'
-import { goalsApi } from '../services/api'
-import PixelTransition from '../components/ui/PixelTransition'
-import Button from '../components/ui/Button'
-import { Plus, Target, Calendar, CheckCircle, Clock, Trash2, Edit2, AlertTriangle, ChevronRight, Check, Map, User } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import DatePicker from '../components/ui/DatePicker'
-import DomainCard from '../components/roadmap/DomainCard'
-import RoadmapViewer from '../components/roadmap/RoadmapViewer'
-import { allRoadmaps, getRoadmapById } from '../data/roadmaps/index'
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@clerk/clerk-react';
+import { goalsApi } from '../services/api';
+import PixelTransition from '../components/ui/PixelTransition';
+import Button from '../components/ui/Button';
+import {
+    Plus,
+    Target,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Trash2,
+    Edit2,
+    AlertTriangle,
+    ChevronRight,
+    Check,
+    Map,
+    User,
+} from 'lucide-react';
+import { createPortal } from 'react-dom';
+import DatePicker from '../components/ui/DatePicker';
+import DomainCard from '../components/roadmap/DomainCard';
+import RoadmapViewer from '../components/roadmap/RoadmapViewer';
+import { allRoadmaps, getRoadmapById } from '../data/roadmaps/index';
 
 // Format date helper
 const formatDate = (dateString, includeYear = false) => {
-    if (!dateString) return 'No Date'
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (!dateString) return 'No Date';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
     if (typeof dateString === 'object' && dateString._seconds) {
         return new Date(dateString._seconds * 1000).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
-            year: includeYear ? 'numeric' : undefined
-        })
+            year: includeYear ? 'numeric' : undefined,
+        });
     }
     return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        year: includeYear ? 'numeric' : undefined
-    })
-}
+        year: includeYear ? 'numeric' : undefined,
+    });
+};
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }) {
-    if (!isOpen) return null
+    if (!isOpen) return null;
     return createPortal(
         <AnimatePresence>
             <motion.div
@@ -45,13 +58,13 @@ function Modal({ isOpen, onClose, title, children }) {
                 <motion.div
                     className="w-full max-w-lg rounded-3xl border border-white/10 overflow-hidden flex flex-col max-h-[85vh]"
                     style={{
-                        background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.98), rgba(20, 25, 40, 0.99))',
+                        background: 'linear-gradient(145deg, #23201E, #090C0E)',
                         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
                     }}
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    onClick={e => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center p-6 border-b border-white/10 flex-shrink-0">
                         <h2 className="text-xl font-bold text-white">{title}</h2>
@@ -60,7 +73,12 @@ function Modal({ isOpen, onClose, title, children }) {
                             className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
                             </svg>
                         </button>
                     </div>
@@ -71,25 +89,25 @@ function Modal({ isOpen, onClose, title, children }) {
             </motion.div>
         </AnimatePresence>,
         document.body
-    )
+    );
 }
 
 function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
-    const progress = goal.progress || 0
-    const milestones = Array.isArray(goal.milestones) ? goal.milestones : []
-    const nextMilestone = milestones.find(m => !m.isCompleted)
+    const progress = goal.progress || 0;
+    const milestones = Array.isArray(goal.milestones) ? goal.milestones : [];
+    const nextMilestone = milestones.find((m) => !m.isCompleted);
 
     const getDaysRemaining = () => {
-        if (!goal.targetDate) return null
-        const target = new Date(goal.targetDate._seconds ? goal.targetDate._seconds * 1000 : goal.targetDate)
-        const now = new Date()
-        const diffTime = target - now
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        return diffDays
-    }
+        if (!goal.targetDate) return null;
+        const target = new Date(goal.targetDate._seconds ? goal.targetDate._seconds * 1000 : goal.targetDate);
+        const now = new Date();
+        const diffTime = target - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    };
 
-    const daysRemaining = getDaysRemaining()
-    const isOverdue = daysRemaining !== null && daysRemaining < 0 && goal.status !== 'Completed'
+    const daysRemaining = getDaysRemaining();
+    const isOverdue = daysRemaining !== null && daysRemaining < 0 && goal.status !== 'Completed';
 
     return (
         <motion.div
@@ -101,11 +119,18 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider
-                            ${goal.category === 'Career' ? 'bg-blue-500/20 text-blue-400' :
-                                goal.category === 'Learning' ? 'bg-purple-500/20 text-purple-400' :
-                                    goal.category === 'Project' ? 'bg-emerald-500/20 text-emerald-400' :
-                                        'bg-slate-500/20 text-slate-400'}`}>
+                        <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider
+                            ${
+                                goal.category === 'Career'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : goal.category === 'Learning'
+                                      ? 'bg-purple-500/20 text-purple-400'
+                                      : goal.category === 'Project'
+                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        : 'bg-slate-500/20 text-slate-400'
+                            }`}
+                        >
                             {goal.category}
                         </span>
                         {isOverdue && (
@@ -117,10 +142,16 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                     <h3 className="text-lg font-bold text-white leading-tight">{goal.title}</h3>
                 </div>
                 <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onEdit(goal)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                    <button
+                        onClick={() => onEdit(goal)}
+                        className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                    >
                         <Edit2 size={14} />
                     </button>
-                    <button onClick={() => onDelete(goal.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors">
+                    <button
+                        onClick={() => onDelete(goal.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors"
+                    >
                         <Trash2 size={14} />
                     </button>
                 </div>
@@ -135,7 +166,7 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
+                        transition={{ duration: 1, ease: 'easeOut' }}
                         className={`h-full rounded-full ${progress === 100 ? 'bg-emerald-500' : progress > 50 ? 'bg-purple-500' : 'bg-blue-500'}`}
                     />
                 </div>
@@ -159,38 +190,34 @@ function GoalCard({ goal, onEdit, onDelete, onUpdate }) {
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium whitespace-nowrap">
                     <Clock size={12} />
-                    {daysRemaining !== null ? (
-                        daysRemaining < 0 ? `${Math.abs(daysRemaining)}d overdue` : `${daysRemaining} days left`
-                    ) : 'No deadline'}
+                    {daysRemaining !== null
+                        ? daysRemaining < 0
+                            ? `${Math.abs(daysRemaining)}d overdue`
+                            : `${daysRemaining} days left`
+                        : 'No deadline'}
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // ─── Domain Roadmaps Section ──────────────────────────────────────────────────
 function DomainRoadmapsSection() {
-    const [selectedRoadmapId, setSelectedRoadmapId] = useState(null)
-    const selectedRoadmap = selectedRoadmapId ? getRoadmapById(selectedRoadmapId) : null
+    const [selectedRoadmapId, setSelectedRoadmapId] = useState(null);
+    const selectedRoadmap = selectedRoadmapId ? getRoadmapById(selectedRoadmapId) : null;
 
     return (
         <AnimatePresence mode="wait">
             {selectedRoadmap ? (
-                <RoadmapViewer
-                    key="viewer"
-                    roadmap={selectedRoadmap}
-                    onBack={() => setSelectedRoadmapId(null)}
-                />
+                <RoadmapViewer key="viewer" roadmap={selectedRoadmap} onBack={() => setSelectedRoadmapId(null)} />
             ) : (
-                <motion.div
-                    key="grid"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                >
+                <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                     <div className="mb-8">
                         <h2 className="text-2xl font-bold text-white mb-1">Tech Domain Roadmaps</h2>
-                        <p className="text-slate-400 text-sm">Explore curated, step-by-step learning paths for popular tech domains — inspired by <span className="text-purple-400 font-medium">roadmap.sh</span>.</p>
+                        <p className="text-slate-400 text-sm">
+                            Explore curated, step-by-step learning paths for popular tech domains — inspired by{' '}
+                            <span className="text-purple-400 font-medium">roadmap.sh</span>.
+                        </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-20">
                         {allRoadmaps.map((roadmap, index) => (
@@ -205,20 +232,20 @@ function DomainRoadmapsSection() {
                 </motion.div>
             )}
         </AnimatePresence>
-    )
+    );
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Roadmap() {
-    const { isLoaded, isSignedIn } = useAuth()
-    const [loading, setLoading] = useState(true)
-    const [goals, setGoals] = useState([])
-    const [showModal, setShowModal] = useState(false)
-    const [editingGoal, setEditingGoal] = useState(null)
-    const [deleteConfirm, setDeleteConfirm] = useState(null)
-    const [error, setError] = useState(null)
-    const [refreshTrigger, setRefreshTrigger] = useState(0)
-    const [activeTab, setActiveTab] = useState('goals') // 'goals' | 'domains'
+    const { isLoaded, isSignedIn } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [goals, setGoals] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [editingGoal, setEditingGoal] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [error, setError] = useState(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [activeTab, setActiveTab] = useState('goals'); // 'goals' | 'domains'
 
     const defaultForm = {
         title: '',
@@ -226,107 +253,113 @@ export default function Roadmap() {
         category: 'Personal',
         startDate: new Date().toISOString().split('T')[0],
         targetDate: '',
-        milestones: []
-    }
-    const [formData, setFormData] = useState(defaultForm)
-    const [newMilestone, setNewMilestone] = useState('')
+        milestones: [],
+    };
+    const [formData, setFormData] = useState(defaultForm);
+    const [newMilestone, setNewMilestone] = useState('');
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-            fetchGoals()
+            fetchGoals();
         }
-    }, [isLoaded, isSignedIn, refreshTrigger])
+    }, [isLoaded, isSignedIn, refreshTrigger]);
 
     const fetchGoals = async () => {
         try {
-            if (goals.length === 0) setLoading(true)
-            const res = await goalsApi.getAll()
-            setGoals(res.data?.data?.goals || [])
+            if (goals.length === 0) setLoading(true);
+            const res = await goalsApi.getAll();
+            setGoals(res.data?.data?.goals || []);
         } catch (err) {
-            console.error('Failed to fetch goals:', err)
-            setError('Could not load your roadmap.')
+            console.error('Failed to fetch goals:', err);
+            setError('Could not load your roadmap.');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const handleOpenModal = (goal = null) => {
         if (goal) {
-            setEditingGoal(goal)
+            setEditingGoal(goal);
             setFormData({
                 title: goal.title,
                 description: goal.description,
                 category: goal.category,
-                startDate: goal.startDate ? (goal.startDate._seconds ? new Date(goal.startDate._seconds * 1000).toISOString().split('T')[0] : goal.startDate.split('T')[0]) : '',
-                targetDate: goal.targetDate ? (goal.targetDate._seconds ? new Date(goal.targetDate._seconds * 1000).toISOString().split('T')[0] : goal.targetDate.split('T')[0]) : '',
-                milestones: Array.isArray(goal.milestones) ? goal.milestones : []
-            })
+                startDate: goal.startDate
+                    ? goal.startDate._seconds
+                        ? new Date(goal.startDate._seconds * 1000).toISOString().split('T')[0]
+                        : goal.startDate.split('T')[0]
+                    : '',
+                targetDate: goal.targetDate
+                    ? goal.targetDate._seconds
+                        ? new Date(goal.targetDate._seconds * 1000).toISOString().split('T')[0]
+                        : goal.targetDate.split('T')[0]
+                    : '',
+                milestones: Array.isArray(goal.milestones) ? goal.milestones : [],
+            });
         } else {
-            setEditingGoal(null)
-            setFormData(defaultForm)
+            setEditingGoal(null);
+            setFormData(defaultForm);
         }
-        setShowModal(true)
-    }
+        setShowModal(true);
+    };
 
     const handleAddMilestone = () => {
-        if (!newMilestone.trim()) return
-        setFormData(prev => ({
+        if (!newMilestone.trim()) return;
+        setFormData((prev) => ({
             ...prev,
             milestones: [
                 ...prev.milestones,
-                { id: crypto.randomUUID(), title: newMilestone.trim(), isCompleted: false }
-            ]
-        }))
-        setNewMilestone('')
-    }
+                { id: crypto.randomUUID(), title: newMilestone.trim(), isCompleted: false },
+            ],
+        }));
+        setNewMilestone('');
+    };
 
     const removeMilestone = (id) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            milestones: prev.milestones.filter(m => m.id !== id)
-        }))
-    }
+            milestones: prev.milestones.filter((m) => m.id !== id),
+        }));
+    };
 
     const toggleMilestoneInForm = (id) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            milestones: prev.milestones.map(m =>
-                m.id === id ? { ...m, isCompleted: !m.isCompleted } : m
-            )
-        }))
-    }
+            milestones: prev.milestones.map((m) => (m.id === id ? { ...m, isCompleted: !m.isCompleted } : m)),
+        }));
+    };
 
     const handleSubmit = async (e) => {
-        e.preventDefault()
+        e.preventDefault();
         try {
             if (editingGoal) {
-                await goalsApi.update(editingGoal.id, formData)
+                await goalsApi.update(editingGoal.id, formData);
             } else {
-                await goalsApi.create(formData)
+                await goalsApi.create(formData);
             }
-            setShowModal(false)
-            setRefreshTrigger(prev => prev + 1)
+            setShowModal(false);
+            setRefreshTrigger((prev) => prev + 1);
         } catch (err) {
-            console.error('Error saving goal:', err)
-            alert('Failed to save goal')
+            console.error('Error saving goal:', err);
+            alert('Failed to save goal');
         }
-    }
+    };
 
     const handleDelete = async (id) => {
         try {
-            await goalsApi.delete(id)
-            setDeleteConfirm(null)
-            setRefreshTrigger(prev => prev + 1)
+            await goalsApi.delete(id);
+            setDeleteConfirm(null);
+            setRefreshTrigger((prev) => prev + 1);
         } catch (err) {
-            console.error('Error deleting goal:', err)
-            alert('Failed to delete goal')
+            console.error('Error deleting goal:', err);
+            alert('Failed to delete goal');
         }
-    }
+    };
 
     const TABS = [
         { id: 'goals', label: 'My Goals', icon: User },
         { id: 'domains', label: 'Domain Roadmaps', icon: Map },
-    ]
+    ];
 
     return (
         <PixelTransition loading={loading}>
@@ -335,7 +368,9 @@ export default function Roadmap() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-1">Roadmap</h1>
-                        <p className="text-slate-400 text-sm">Track your personal goals or explore curated developer paths.</p>
+                        <p className="text-slate-400 text-sm">
+                            Track your personal goals or explore curated developer paths.
+                        </p>
                     </div>
                     {activeTab === 'goals' && (
                         <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
@@ -346,15 +381,12 @@ export default function Roadmap() {
 
                 {/* Tab Switcher */}
                 <div className="flex gap-1 p-1 mb-8 rounded-xl bg-white/[0.04] border border-white/10 w-fit">
-                    {TABS.map(tab => (
+                    {TABS.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
-                                ${activeTab === tab.id
-                                    ? 'text-white'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                }`}
+                                ${activeTab === tab.id ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}
                         >
                             {activeTab === tab.id && (
                                 <motion.div
@@ -384,12 +416,14 @@ export default function Roadmap() {
                                         <Target size={40} className="text-purple-500" />
                                     </div>
                                     <h3 className="text-xl font-semibold text-white mb-2">No Goals Set Yet</h3>
-                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">Define what you want to achieve next. A clear roadmap is the key to success!</p>
+                                    <p className="text-slate-400 mb-8 max-w-sm mx-auto">
+                                        Define what you want to achieve next. A clear roadmap is the key to success!
+                                    </p>
                                     <Button onClick={() => handleOpenModal()}>Set Your First Goal</Button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                                    {goals.map(goal => (
+                                    {goals.map((goal) => (
                                         <GoalCard
                                             key={goal.id}
                                             goal={goal}
@@ -417,7 +451,7 @@ export default function Roadmap() {
                 <Modal
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
-                    title={editingGoal ? "Edit Goal" : "Create New Goal"}
+                    title={editingGoal ? 'Edit Goal' : 'Create New Goal'}
                 >
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-2 gap-4">
@@ -426,7 +460,7 @@ export default function Roadmap() {
                                 <input
                                     type="text"
                                     value={formData.title}
-                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition-colors"
                                     placeholder="e.g. Master React Performance"
                                     required
@@ -435,15 +469,17 @@ export default function Roadmap() {
                             <div className="col-span-2">
                                 <label className="block text-sm text-slate-400 mb-2">Category</label>
                                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                    {['Personal', 'Career', 'Learning', 'Project'].map(cat => (
+                                    {['Personal', 'Career', 'Learning', 'Project'].map((cat) => (
                                         <button
                                             key={cat}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, category: cat })}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
-                                                ${formData.category === cat
-                                                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
-                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                ${
+                                                    formData.category === cat
+                                                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                                                        : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                }`}
                                         >
                                             {cat}
                                         </button>
@@ -454,7 +490,7 @@ export default function Roadmap() {
                                 <label className="block text-sm text-slate-400 mb-2">Description</label>
                                 <textarea
                                     value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white min-h-[100px] focus:border-purple-500 focus:outline-none transition-colors resize-none"
                                     placeholder="Briefly describe what you want to achieve..."
                                 />
@@ -463,14 +499,14 @@ export default function Roadmap() {
                                 <DatePicker
                                     label="Start Date"
                                     value={formData.startDate}
-                                    onChange={val => setFormData({ ...formData, startDate: val })}
+                                    onChange={(val) => setFormData({ ...formData, startDate: val })}
                                 />
                             </div>
                             <div>
                                 <DatePicker
                                     label="Target Date"
                                     value={formData.targetDate}
-                                    onChange={val => setFormData({ ...formData, targetDate: val })}
+                                    onChange={(val) => setFormData({ ...formData, targetDate: val })}
                                     minDate={formData.startDate || new Date().toISOString().split('T')[0]}
                                 />
                             </div>
@@ -484,7 +520,10 @@ export default function Roadmap() {
                                     <p className="text-xs text-slate-500 italic">No milestones added yet.</p>
                                 )}
                                 {formData.milestones.map((m, idx) => (
-                                    <div key={m.id} className="flex items-center gap-3 group bg-white/5 p-2 rounded-lg border border-white/5 hover:border-white/10">
+                                    <div
+                                        key={m.id}
+                                        className="flex items-center gap-3 group bg-white/5 p-2 rounded-lg border border-white/5 hover:border-white/10"
+                                    >
                                         <button
                                             type="button"
                                             onClick={() => toggleMilestoneInForm(m.id)}
@@ -493,7 +532,9 @@ export default function Roadmap() {
                                         >
                                             <Check size={12} strokeWidth={3} />
                                         </button>
-                                        <span className={`flex-1 text-sm ${m.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                        <span
+                                            className={`flex-1 text-sm ${m.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}
+                                        >
                                             {m.title}
                                         </span>
                                         <button
@@ -510,8 +551,8 @@ export default function Roadmap() {
                                 <input
                                     type="text"
                                     value={newMilestone}
-                                    onChange={e => setNewMilestone(e.target.value)}
-                                    onKeyDown={e => {
+                                    onChange={(e) => setNewMilestone(e.target.value)}
+                                    onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
                                             handleAddMilestone();
@@ -531,7 +572,12 @@ export default function Roadmap() {
                         </div>
 
                         <div className="flex gap-4 pt-2">
-                            <Button type="button" variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setShowModal(false)}
+                                className="flex-1"
+                            >
                                 Cancel
                             </Button>
                             <Button type="submit" className="flex-1">
@@ -542,22 +588,23 @@ export default function Roadmap() {
                 </Modal>
 
                 {/* Delete Confirmation */}
-                <Modal
-                    isOpen={!!deleteConfirm}
-                    onClose={() => setDeleteConfirm(null)}
-                    title="Delete Goal?"
-                >
+                <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Goal?">
                     <div className="text-center">
                         <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                             <Trash2 size={32} className="text-red-500" />
                         </div>
                         <p className="text-white text-lg font-semibold mb-2">Are you sure?</p>
-                        <p className="text-slate-400 mb-6">This will permanently remove this goal and all its progress.</p>
+                        <p className="text-slate-400 mb-6">
+                            This will permanently remove this goal and all its progress.
+                        </p>
                         <div className="flex gap-4">
                             <Button variant="ghost" onClick={() => setDeleteConfirm(null)} className="flex-1">
                                 Cancel
                             </Button>
-                            <Button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-red-600 hover:bg-red-700">
+                            <Button
+                                onClick={() => handleDelete(deleteConfirm)}
+                                className="flex-1 bg-red-600 hover:bg-red-700"
+                            >
                                 Delete It
                             </Button>
                         </div>
@@ -565,5 +612,5 @@ export default function Roadmap() {
                 </Modal>
             </div>
         </PixelTransition>
-    )
+    );
 }

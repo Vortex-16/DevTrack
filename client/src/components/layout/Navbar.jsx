@@ -283,7 +283,7 @@ function Sidebar({ onOpenSettings }) {
                     whileHover={{ scale: 1.05, rotate: 5 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    <img src="devtrack-BG.png" alt="DevTrack" className="w-10 h-10 object-contain" />
+                    <img src="LatestLogo.png" alt="DevTrack" className="w-10 h-10 object-contain" />
                 </motion.div>
             </Link>
 
@@ -367,7 +367,7 @@ function MobileNavbar({ onOpenSettings }) {
                             className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center overflow-hidden"
                             whileHover={{ scale: 1.05 }}
                         >
-                            <img src="devtrack-BG.png" alt="Logo" className="w-6 h-6 object-contain" />
+                            <img src="LatestLogo.png" alt="Logo" className="w-6 h-6 object-contain" />
                         </motion.div>
                     </Link>
                     {/* Nav items */}

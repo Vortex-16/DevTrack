@@ -10,9 +10,9 @@ export default function TopSkills({ entries, verifiedSkills = [] }) {
         const tagCounts = {};
         let totalTags = 0;
 
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
             if (entry.tags && Array.isArray(entry.tags)) {
-                entry.tags.forEach(tag => {
+                entry.tags.forEach((tag) => {
                     const normalizedTag = tag.trim();
                     if (normalizedTag) {
                         tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
@@ -26,7 +26,7 @@ export default function TopSkills({ entries, verifiedSkills = [] }) {
             .map(([name, count]) => ({
                 name,
                 count,
-                percentage: Math.round((count / totalTags) * 100)
+                percentage: Math.round((count / totalTags) * 100),
             }))
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
@@ -49,22 +49,25 @@ export default function TopSkills({ entries, verifiedSkills = [] }) {
                     <Tag className="w-5 h-5 text-slate-400" />
                 </div>
                 <h3 className="text-white font-semibold text-sm mb-1">No Skills Data</h3>
-                <p className="text-slate-400 text-xs text-center">
-                    Track learning or add projects to see skills here.
-                </p>
+                <p className="text-slate-400 text-xs text-center">Track learning or add projects to see skills here.</p>
             </div>
         );
     }
 
     return (
-        <div className="rounded-2xl p-5 border border-white/10 h-full flex flex-col"
+        <div
+            className="rounded-2xl p-5 border border-white/10 h-full flex flex-col"
             style={{
-                background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                background: 'linear-gradient(145deg, #23201E, #090C0E)',
             }}
         >
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                    {activeTab === 'learning' ? <Sparkles className="w-4 h-4 text-purple-400" /> : <Briefcase className="w-4 h-4 text-cyan-400" />}
+                    {activeTab === 'learning' ? (
+                        <Sparkles className="w-4 h-4 text-purple-400" />
+                    ) : (
+                        <Briefcase className="w-4 h-4 text-cyan-400" />
+                    )}
                     Top Skills
                 </h3>
 
@@ -86,7 +89,10 @@ export default function TopSkills({ entries, verifiedSkills = [] }) {
                 )}
             </div>
 
-            <div data-lenis-prevent className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 overscroll-contain relative z-30 pointer-events-auto touch-pan-y">
+            <div
+                data-lenis-prevent
+                className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2 overscroll-contain relative z-30 pointer-events-auto touch-pan-y"
+            >
                 {displayedSkills.map((skill, index) => (
                     <div key={skill.name} className="group">
                         <div className="flex justify-between items-center text-xs mb-1.5">
@@ -98,7 +104,12 @@ export default function TopSkills({ entries, verifiedSkills = [] }) {
                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-1000 ease-out ${activeTab === 'learning' ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gradient-to-r from-cyan-500 to-teal-500'}`}
-                                style={{ width: activeTab === 'learning' ? `${skill.percentage}%` : `${Math.min((skill.count / 5) * 100, 100)}%` }}
+                                style={{
+                                    width:
+                                        activeTab === 'learning'
+                                            ? `${skill.percentage}%`
+                                            : `${Math.min((skill.count / 5) * 100, 100)}%`,
+                                }}
                             />
                         </div>
                     </div>

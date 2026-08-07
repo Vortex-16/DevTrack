@@ -1,93 +1,109 @@
-import Card from '../components/ui/Card'
-import Badge from '../components/ui/Badge'
-import Button from '../components/ui/Button'
-import { logsApi, projectsApi, githubApi } from '../services/api'
-import LoadingText from '../components/ui/LoadingText'
-import Calendar from '../components/dashboard/Calendar'
-import { useState, useEffect, useRef } from 'react'
-import AppDownloadPopup from '../components/AppDownloadPopup'
-import { Link } from 'react-router-dom'
-import PixelTransition from '../components/ui/PixelTransition'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useUser } from '@clerk/clerk-react'
-import { Brain, Github, GitCommitHorizontal, Lightbulb, BookOpen, Flame, Anchor, Rocket, History, ExternalLink, Download, Globe } from 'lucide-react'
-import { useCache } from '../context/CacheContext'
-import { ReactLenis } from 'lenis/react'
-import Skeleton, { SkeletonCard, SkeletonActivity, SkeletonStats } from '../components/ui/Skeleton'
-
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import { logsApi, projectsApi, githubApi } from '../services/api';
+import LoadingText from '../components/ui/LoadingText';
+import Calendar from '../components/dashboard/Calendar';
+import { useState, useEffect, useRef } from 'react';
+import AppDownloadPopup from '../components/AppDownloadPopup';
+import { Link } from 'react-router-dom';
+import PixelTransition from '../components/ui/PixelTransition';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '@clerk/clerk-react';
+import {
+    Brain,
+    Github,
+    GitCommitHorizontal,
+    Lightbulb,
+    BookOpen,
+    Flame,
+    Anchor,
+    Rocket,
+    History,
+    ExternalLink,
+    Download,
+    Globe,
+} from 'lucide-react';
+import { useCache } from '../context/CacheContext';
+import { ReactLenis } from 'lenis/react';
+import Skeleton, { SkeletonCard, SkeletonActivity, SkeletonStats } from '../components/ui/Skeleton';
 
 // Helper to format dates for display
 const formatDate = (date) => {
-    if (!date) return 'Unknown'
+    if (!date) return 'Unknown';
     if (date._seconds !== undefined) {
-        return new Date(date._seconds * 1000).toLocaleDateString()
+        return new Date(date._seconds * 1000).toLocaleDateString();
     }
     if (typeof date === 'string') {
-        const parts = date.split('-')
+        const parts = date.split('-');
         if (parts.length === 3 && parts[0].length === 4) {
-            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
-            return d.toLocaleDateString()
+            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            return d.toLocaleDateString();
         }
-        return date
+        return date;
     }
-    if (date instanceof Date) return date.toLocaleDateString()
-    return String(date)
-}
+    if (date instanceof Date) return date.toLocaleDateString();
+    return String(date);
+};
 
 // Helper to get YYYY-MM-DD string from any date format
 const getDateString = (date) => {
-    if (!date) return null
-    let d
+    if (!date) return null;
+    let d;
     if (date._seconds !== undefined) {
-        d = new Date(date._seconds * 1000)
+        d = new Date(date._seconds * 1000);
     } else if (typeof date === 'string') {
         if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
-            return date.split('T')[0]
+            return date.split('T')[0];
         }
-        d = new Date(date)
+        d = new Date(date);
     } else if (date instanceof Date) {
-        d = date
+        d = date;
     } else {
-        return null
+        return null;
     }
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-}
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 // Animated counter
 function AnimatedCounter({ value, duration = 1.5 }) {
-    const [count, setCount] = useState(0)
+    const [count, setCount] = useState(0);
 
     useEffect(() => {
-        const numValue = parseInt(value) || 0
-        if (numValue === 0) { setCount(0); return }
+        const numValue = parseInt(value) || 0;
+        if (numValue === 0) {
+            setCount(0);
+            return;
+        }
 
-        const step = numValue / (duration * 60)
-        let current = 0
+        const step = numValue / (duration * 60);
+        let current = 0;
         const timer = setInterval(() => {
-            current += step
+            current += step;
             if (current >= numValue) {
-                setCount(numValue)
-                clearInterval(timer)
+                setCount(numValue);
+                clearInterval(timer);
             } else {
-                setCount(Math.floor(current))
+                setCount(Math.floor(current));
             }
-        }, 1000 / 60)
+        }, 1000 / 60);
 
-        return () => clearInterval(timer)
-    }, [value, duration])
+        return () => clearInterval(timer);
+    }, [value, duration]);
 
-    return <span>{count}</span>
+    return <span>{count}</span>;
 }
 
 // PortfolioCard with Skeleton
 function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
     if (loading) {
         return (
-            <div className={`rounded-2xl p-4 h-full border border-white/10 space-y-4 shadow-lg`}
-                style={{ background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))' }}
+            <div
+                className={`rounded-2xl p-4 h-full border border-white/10 space-y-4 shadow-lg`}
+                style={{ background: 'linear-gradient(145deg, #23201E, #090C0E)' }}
             >
                 <div className="flex justify-between">
                     <Skeleton variant="title" className="w-20" />
@@ -96,90 +112,106 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
                 <Skeleton variant="text" className="w-32" />
                 <Skeleton className="h-24 w-full rounded-xl" />
             </div>
-        )
+        );
     }
 
-    const [selectedPeriod, setSelectedPeriod] = useState('1W')
+    const [selectedPeriod, setSelectedPeriod] = useState('1W');
 
     // Get days based on selected period
     const getDaysForPeriod = (period) => {
         switch (period) {
-            case '1D': return 1
-            case '1W': return 7
-            case '1M': return 30
-            case '3M': return 90
-            case '1Y': return 365
-            case 'All': return 365
-            default: return 7
+            case '1D':
+                return 1;
+            case '1W':
+                return 7;
+            case '1M':
+                return 30;
+            case '3M':
+                return 90;
+            case '1Y':
+                return 365;
+            case 'All':
+                return 365;
+            default:
+                return 7;
         }
-    }
+    };
 
-    const days = getDaysForPeriod(selectedPeriod)
+    const days = getDaysForPeriod(selectedPeriod);
 
     // Determine bucket size based on period (for better visualization of longer periods)
     const getBucketDays = (period) => {
         switch (period) {
-            case '1D': return 1
-            case '1W': return 1
-            case '1M': return 1
-            case '3M': return 7  // Weekly buckets for 3 months
-            case '1Y': return 30 // Monthly buckets for 1 year
-            case 'All': return 30 // Monthly buckets for all time
-            default: return 1
+            case '1D':
+                return 1;
+            case '1W':
+                return 1;
+            case '1M':
+                return 1;
+            case '3M':
+                return 7; // Weekly buckets for 3 months
+            case '1Y':
+                return 30; // Monthly buckets for 1 year
+            case 'All':
+                return 30; // Monthly buckets for all time
+            default:
+                return 1;
         }
-    }
+    };
 
-    const bucketDays = getBucketDays(selectedPeriod)
-    const numBuckets = Math.ceil(days / bucketDays)
-    const displayBuckets = Math.min(numBuckets, 30) // Max 30 points on chart
+    const bucketDays = getBucketDays(selectedPeriod);
+    const numBuckets = Math.ceil(days / bucketDays);
+    const displayBuckets = Math.min(numBuckets, 30); // Max 30 points on chart
 
     // Helper to get date at midnight
     const getMidnight = (date) => {
-        const d = new Date(date)
-        d.setHours(0, 0, 0, 0)
-        return d
-    }
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    };
 
     // Generate chart data based on selected period with proper bucketing
     const chartData = Array.from({ length: displayBuckets }, (_, i) => {
-        const today = getMidnight(new Date())
-        const bucketsBack = displayBuckets - 1 - i
+        const today = getMidnight(new Date());
+        const bucketsBack = displayBuckets - 1 - i;
 
         // Calculate bucket end date
-        const bucketEnd = new Date(today)
-        bucketEnd.setDate(bucketEnd.getDate() - (bucketsBack * bucketDays))
+        const bucketEnd = new Date(today);
+        bucketEnd.setDate(bucketEnd.getDate() - bucketsBack * bucketDays);
 
         // Calculate bucket start date
-        const bucketStart = new Date(bucketEnd)
-        bucketStart.setDate(bucketStart.getDate() - bucketDays + 1)
+        const bucketStart = new Date(bucketEnd);
+        bucketStart.setDate(bucketStart.getDate() - bucketDays + 1);
 
         // Count logs in this bucket
-        return logs.filter(log => {
-            const logDateStr = getDateString(log.date)
-            if (!logDateStr) return false
-            const logDate = getMidnight(new Date(logDateStr))
-            return logDate >= bucketStart && logDate <= bucketEnd
-        }).length
-    })
+        return logs.filter((log) => {
+            const logDateStr = getDateString(log.date);
+            if (!logDateStr) return false;
+            const logDate = getMidnight(new Date(logDateStr));
+            return logDate >= bucketStart && logDate <= bucketEnd;
+        }).length;
+    });
 
-    const maxVal = Math.max(...chartData, 1)
-    const points = chartData.map((val, i) => {
-        const x = 10 + (i / (chartData.length - 1 || 1)) * 180
-        const y = 45 - (val / maxVal) * 35  // Adjusted for viewBox height 50
-        return `${x},${y}`
-    }).join(' ')
+    const maxVal = Math.max(...chartData, 1);
+    const points = chartData
+        .map((val, i) => {
+            const x = 10 + (i / (chartData.length - 1 || 1)) * 180;
+            const y = 45 - (val / maxVal) * 35; // Adjusted for viewBox height 50
+            return `${x},${y}`;
+        })
+        .join(' ');
 
-    const areaPoints = `10,45 ${points} 190,45`  // Adjusted baseline
+    const areaPoints = `10,45 ${points} 190,45`; // Adjusted baseline
 
     // Calculate period stats
-    const periodStart = getMidnight(new Date())
-    periodStart.setDate(periodStart.getDate() - days)
-    const periodLogs = logs.filter(log => {
-        const logDateStr = getDateString(log.date)
-        if (!logDateStr) return false
-        const logDate = getMidnight(new Date(logDateStr))
-        return logDate >= periodStart
-    })
+    const periodStart = getMidnight(new Date());
+    periodStart.setDate(periodStart.getDate() - days);
+    const periodLogs = logs.filter((log) => {
+        const logDateStr = getDateString(log.date);
+        if (!logDateStr) return false;
+        const logDate = getMidnight(new Date(logDateStr));
+        return logDate >= periodStart;
+    });
 
     return (
         <motion.div
@@ -191,7 +223,7 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
             <div
                 className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full relative overflow-hidden border border-white/10`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
@@ -239,11 +271,11 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
                         {/* Dots on data points */}
                         {chartData.map((val, i) => {
                             if (val > 0) {
-                                const x = 10 + (i / (chartData.length - 1 || 1)) * 180
-                                const y = 45 - (val / maxVal) * 35  // Match new baseline
-                                return <circle key={i} cx={x} cy={y} r="2.5" fill="#a855f7" />
+                                const x = 10 + (i / (chartData.length - 1 || 1)) * 180;
+                                const y = 45 - (val / maxVal) * 35; // Match new baseline
+                                return <circle key={i} cx={x} cy={y} r="2.5" fill="#a855f7" />;
                             }
-                            return null
+                            return null;
                         })}
                     </svg>
 
@@ -254,9 +286,11 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
                                 key={period}
                                 onClick={() => setSelectedPeriod(period)}
                                 className={`flex-1 px-1 py-1 text-[9px] font-medium rounded-xl transition-all duration-200
-                                    ${selectedPeriod === period
-                                        ? 'bg-purple-500 text-white shadow-lg'
-                                        : 'text-slate-500 hover:text-white hover:bg-white/10'}`}
+                                    ${
+                                        selectedPeriod === period
+                                            ? 'bg-purple-500 text-white shadow-lg'
+                                            : 'text-slate-500 hover:text-white hover:bg-white/10'
+                                    }`}
                             >
                                 {period}
                             </button>
@@ -265,18 +299,30 @@ function PortfolioCard({ totalLogs, currentStreak, logs, compact, loading }) {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // Asset Card - DARK themed
 function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, compact, loading }) {
     const colors = {
         cyan: { border: 'border-cyan-500/30', iconBg: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/20' },
-        purple: { border: 'border-purple-500/30', iconBg: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
-        green: { border: 'border-emerald-500/30', iconBg: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/20' },
-        orange: { border: 'border-orange-500/30', iconBg: 'from-orange-500 to-orange-600', glow: 'shadow-orange-500/20' },
-    }
-    const c = colors[color] || colors.cyan
+        purple: {
+            border: 'border-purple-500/30',
+            iconBg: 'from-purple-500 to-purple-600',
+            glow: 'shadow-purple-500/20',
+        },
+        green: {
+            border: 'border-emerald-500/30',
+            iconBg: 'from-emerald-500 to-emerald-600',
+            glow: 'shadow-emerald-500/20',
+        },
+        orange: {
+            border: 'border-orange-500/30',
+            iconBg: 'from-orange-500 to-orange-600',
+            glow: 'shadow-orange-500/20',
+        },
+    };
+    const c = colors[color] || colors.cyan;
 
     if (loading) {
         return (
@@ -286,8 +332,9 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
                 transition={{ delay }}
                 className="flex-1 min-w-[140px]"
             >
-                <div className={`rounded-2xl p-4 h-full border border-white/10 space-y-3`}
-                    style={{ background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))' }}
+                <div
+                    className={`rounded-2xl p-4 h-full border border-white/10 space-y-3`}
+                    style={{ background: 'linear-gradient(145deg, #23201E, #090C0E)' }}
                 >
                     <div className="flex gap-3">
                         <Skeleton className="h-10 w-10 rounded-xl" />
@@ -299,7 +346,7 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
                     <Skeleton className="h-4 w-full" />
                 </div>
             </motion.div>
-        )
+        );
     }
 
     return (
@@ -312,11 +359,13 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
             <div
                 className={`rounded-2xl transition-all duration-500 ${compact ? 'p-3' : 'p-4'} h-full border ${c.border} backdrop-blur-sm`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                 }}
             >
                 <div className="flex items-center gap-2 mb-2">
-                    <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}>
+                    <div
+                        className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center text-lg shadow-lg ${c.glow}`}
+                    >
                         {icon}
                     </div>
                     <div className="pl-1">
@@ -329,14 +378,17 @@ function AssetCard({ icon, title, subtitle, value, change, color, delay = 0, com
                 <div className="flex items-center justify-between">
                     <span className="text-slate-500 text-xs pl-1">{subtitle}</span>
                     {change !== undefined && change !== 0 && (
-                        <span className={`text-xs font-medium pr-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {change >= 0 ? '+' : ''}{change}%
+                        <span
+                            className={`text-xs font-medium pr-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
+                        >
+                            {change >= 0 ? '+' : ''}
+                            {change}%
                         </span>
                     )}
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // Activity Table - DARK themed with combined GitHub + Learning logs
@@ -346,7 +398,7 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
             <div
                 className={`rounded-2xl p-3 h-full border border-white/10 flex flex-col`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
@@ -361,25 +413,25 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
                     <SkeletonActivity />
                 </div>
             </div>
-        )
+        );
     }
 
     // Helper to parse date properly
     const parseDate = (date) => {
-        if (!date) return new Date(0)
-        if (date._seconds) return new Date(date._seconds * 1000)
+        if (!date) return new Date(0);
+        if (date._seconds) return new Date(date._seconds * 1000);
         if (typeof date === 'string') {
             // Handle ISO strings and YYYY-MM-DD
-            return new Date(date)
+            return new Date(date);
         }
-        return new Date(date)
-    }
+        return new Date(date);
+    };
 
     // Combine and sort activities
-    const combinedActivities = []
+    const combinedActivities = [];
 
     // Add learning logs
-    logs.slice(0, 10).forEach(log => {
+    logs.slice(0, 10).forEach((log) => {
         combinedActivities.push({
             id: log.id,
             type: 'learning',
@@ -387,9 +439,9 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
             date: log.date,
             parsedDate: parseDate(log.date),
             tags: log.tags || [],
-            icon: <BookOpen size={14} />
-        })
-    })
+            icon: <BookOpen size={14} />,
+        });
+    });
 
     // Add GitHub commits
     githubCommits.slice(0, 10).forEach((commit, idx) => {
@@ -400,15 +452,15 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
             date: commit.date,
             parsedDate: parseDate(commit.date),
             repo: commit.repo,
-            icon: <Github size={14} />
-        })
-    })
+            icon: <Github size={14} />,
+        });
+    });
 
     // Sort by parsed date (most recent first)
-    combinedActivities.sort((a, b) => b.parsedDate - a.parsedDate)
+    combinedActivities.sort((a, b) => b.parsedDate - a.parsedDate);
 
     // Take top 4
-    const topActivities = combinedActivities.slice(0, 4)
+    const topActivities = combinedActivities.slice(0, 4);
 
     return (
         <motion.div
@@ -420,7 +472,7 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
             <div
                 className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-3'} h-full border border-white/10 flex flex-col`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
             >
@@ -454,19 +506,23 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
                                 transition={{ delay: 0.4 + idx * 0.08 }}
                             >
                                 {/* Icon */}
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg flex-shrink-0
-                                    ${activity.type === 'github'
-                                        ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
-                                        : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
+                                <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-lg flex-shrink-0
+                                    ${
+                                        activity.type === 'github'
+                                            ? 'bg-gradient-to-br from-gray-700 to-gray-800 shadow-gray-500/20'
+                                            : 'bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/20'
                                     }
-                                `}>
+                                `}
+                                >
                                     {activity.icon}
                                 </div>
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-white text-sm truncate">
-                                        {activity.title?.slice(0, 50)}{activity.title?.length > 50 ? '...' : ''}
+                                        {activity.title?.slice(0, 50)}
+                                        {activity.title?.length > 50 ? '...' : ''}
                                     </p>
                                     <p className="text-xs text-slate-500">
                                         {activity.type === 'github' && activity.repo && (
@@ -477,12 +533,15 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
                                 </div>
 
                                 {/* Type badge */}
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
-                                    ${activity.type === 'github'
-                                        ? 'bg-gray-500/20 text-gray-400'
-                                        : 'bg-purple-500/20 text-purple-400'
+                                <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0
+                                    ${
+                                        activity.type === 'github'
+                                            ? 'bg-gray-500/20 text-gray-400'
+                                            : 'bg-purple-500/20 text-purple-400'
                                     }
-                                `}>
+                                `}
+                                >
                                     {activity.type === 'github' ? 'Commit' : 'Learning'}
                                 </span>
                             </motion.div>
@@ -491,7 +550,7 @@ function ActivityTable({ logs, logStats, githubCommits, compact, loading }) {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // Promo Card - DARK themed
@@ -516,11 +575,10 @@ function PromoCard() {
 
                 <div className="relative z-10">
                     <h3 className="text-xl font-bold text-white mb-2">
-                        Track Your <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Growth</span>
+                        Track Your{' '}
+                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded">Growth</span>
                     </h3>
-                    <h3 className="text-xl font-bold text-white mb-4">
-                        with DevTrack!
-                    </h3>
+                    <h3 className="text-xl font-bold text-white mb-4">with DevTrack!</h3>
                     <p className="text-slate-400 text-sm mb-6 max-w-[200px]">
                         Log your learning daily and watch your consistency grow!
                     </p>
@@ -532,116 +590,123 @@ function PromoCard() {
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // CS Trivia Card - Fetches from Open Trivia DB (Computer Science)
 function CSTriviaCard({ compact }) {
-    const [trivia, setTrivia] = useState({ question: '', answer: '' })
-    const [loading, setLoading] = useState(true)
-    const [showAnswer, setShowAnswer] = useState(false)
+    const [trivia, setTrivia] = useState({ question: '', answer: '' });
+    const [loading, setLoading] = useState(true);
+    const [showAnswer, setShowAnswer] = useState(false);
 
     useEffect(() => {
-        fetchTrivia()
-    }, [])
+        fetchTrivia();
+    }, []);
 
     // Decode HTML entities
     const decodeHTML = (html) => {
-        const txt = document.createElement('textarea')
-        txt.innerHTML = html
-        return txt.value
-    }
+        const txt = document.createElement('textarea');
+        txt.innerHTML = html;
+        return txt.value;
+    };
 
     const fetchTrivia = async (forceRefresh = false) => {
-        setLoading(true)
-        setShowAnswer(false)
+        setLoading(true);
+        setShowAnswer(false);
 
-        const CACHE_KEY = 'devtrack_trivia_cache'
-        const CACHE_DURATION = 30 * 60 * 1000 // 1 hour se 30 min kr rha hun best hoga
+        const CACHE_KEY = 'devtrack_trivia_cache';
+        const CACHE_DURATION = 30 * 60 * 1000; // 1 hour se 30 min kr rha hun best hoga
 
         // Try to load from cache if not forcing refresh
         if (!forceRefresh) {
-            const cached = localStorage.getItem(CACHE_KEY)
+            const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 try {
-                    const cachedParsed = JSON.parse(cached)
-                    const { data, timestamp } = cachedParsed
+                    const cachedParsed = JSON.parse(cached);
+                    const { data, timestamp } = cachedParsed;
                     if (Date.now() - timestamp < CACHE_DURATION && !forceRefresh) {
-                        setTrivia(data)
-                        setLoading(false)
-                        return
+                        setTrivia(data);
+                        setLoading(false);
+                        return;
                     }
                 } catch (e) {
-                    console.error('Error parsing trivia cache', e)
+                    console.error('Error parsing trivia cache', e);
                 }
             }
         }
 
         try {
-            const response = await fetch('https://opentdb.com/api.php?amount=1&category=18&type=multiple')
+            const response = await fetch('https://opentdb.com/api.php?amount=1&category=18&type=multiple');
 
             // Handle Rate Limiting (429) gracefully
             if (response.status === 429) {
-                console.warn('Trivia API rate limited, using cache or fallback')
+                console.warn('Trivia API rate limited, using cache or fallback');
                 // If we have cache (even expired), use it as fallback for rate limit
-                const cached = localStorage.getItem(CACHE_KEY)
+                const cached = localStorage.getItem(CACHE_KEY);
                 if (cached) {
-                    const { data } = JSON.parse(cached)
-                    setTrivia(data)
-                    setLoading(false)
-                    return
+                    const { data } = JSON.parse(cached);
+                    setTrivia(data);
+                    setLoading(false);
+                    return;
                 }
-                throw new Error('Rate limited and no cache')
+                throw new Error('Rate limited and no cache');
             }
 
-            if (!response.ok) throw new Error('Failed to fetch trivia')
+            if (!response.ok) throw new Error('Failed to fetch trivia');
 
-            const data = await response.json()
+            const data = await response.json();
             if (data.results && data.results.length > 0) {
-                const result = data.results[0]
+                const result = data.results[0];
                 const newTrivia = {
                     question: decodeHTML(result.question),
                     answer: decodeHTML(result.correct_answer),
-                    difficulty: result.difficulty
-                }
+                    difficulty: result.difficulty,
+                };
 
-                setTrivia(newTrivia)
+                setTrivia(newTrivia);
 
                 // Update cache
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                    data: newTrivia,
-                    timestamp: Date.now()
-                }))
+                localStorage.setItem(
+                    CACHE_KEY,
+                    JSON.stringify({
+                        data: newTrivia,
+                        timestamp: Date.now(),
+                    })
+                );
             }
         } catch (err) {
-            console.error('Error fetching CS trivia:', err)
+            console.error('Error fetching CS trivia:', err);
             // Fallback trivia
             setTrivia({
-                question: "What does CPU stand for?",
-                answer: "Central Processing Unit",
-                difficulty: "easy"
-            })
+                question: 'What does CPU stand for?',
+                answer: 'Central Processing Unit',
+                difficulty: 'easy',
+            });
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const handleClick = () => {
         if (!showAnswer) {
-            setShowAnswer(true)
+            setShowAnswer(true);
         } else {
-            fetchTrivia(true)
+            fetchTrivia(true);
         }
-    }
+    };
 
     const getDifficultyColor = (difficulty) => {
         switch (difficulty?.toLowerCase()) {
-            case 'easy': return 'text-emerald-400'
-            case 'medium': return 'text-yellow-400'
-            case 'hard': return 'text-red-400'
-            default: return 'text-slate-400'
+            case 'easy':
+                return 'text-emerald-400';
+            case 'medium':
+                return 'text-yellow-400';
+            case 'hard':
+                return 'text-red-400';
+            default:
+                return 'text-slate-400';
         }
-    }
+    };
 
     return (
         <motion.div
@@ -653,7 +718,7 @@ function CSTriviaCard({ compact }) {
             <div
                 className={`rounded-2xl transition-all duration-500 ${compact ? 'p-2' : 'p-3'} h-full border border-white/10 flex flex-col relative overflow-hidden group cursor-pointer`}
                 style={{
-                    background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.95), rgba(20, 25, 40, 0.98))',
+                    background: 'linear-gradient(145deg, #23201E, #090C0E)',
                     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
                 }}
                 onClick={handleClick}
@@ -667,14 +732,16 @@ function CSTriviaCard({ compact }) {
                         CS Trivia
                     </h3>
                     {trivia.difficulty && (
-                        <span className={`text-[10px] font-semibold uppercase pr-1 ${getDifficultyColor(trivia.difficulty)}`}>
+                        <span
+                            className={`text-[10px] font-semibold uppercase pr-1 ${getDifficultyColor(trivia.difficulty)}`}
+                        >
                             {trivia.difficulty}
                         </span>
                     )}
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center relative z-10">
-                    <AnimatePresence mode='wait'>
+                    <AnimatePresence mode="wait">
                         {loading ? (
                             <motion.div
                                 key="loader"
@@ -717,16 +784,14 @@ function CSTriviaCard({ compact }) {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-600 uppercase tracking-wider pl-1">
-                        DevTrack Trivia
-                    </span>
+                    <span className="text-[10px] text-slate-600 uppercase tracking-wider pl-1">DevTrack Trivia</span>
                     <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-cyan-400 transition-colors pr-1">
                         {showAnswer ? 'Next' : 'Reveal'}
                     </span>
                 </div>
             </div>
         </motion.div>
-    )
+    );
 }
 
 // GitHub Icon component
@@ -756,11 +821,12 @@ function LightStreaks() {
 // Quick Start Card for Empty State
 function QuickStartCard({ title, desc, icon, link, color, delay }) {
     const colors = {
-        purple: "from-purple-500/20 to-purple-600/5 border-purple-500/30 hover:border-purple-500/60 shadow-purple-500/10",
-        cyan: "from-cyan-500/20 to-cyan-600/5 border-cyan-500/30 hover:border-cyan-500/60 shadow-cyan-500/10",
-        emerald: "from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 hover:border-emerald-600/60 shadow-emerald-500/10",
-    }
-    const c = colors[color] || colors.purple
+        purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/30 hover:border-purple-500/60 shadow-purple-500/10',
+        cyan: 'from-cyan-500/20 to-cyan-600/5 border-cyan-500/30 hover:border-cyan-500/60 shadow-cyan-500/10',
+        emerald:
+            'from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 hover:border-emerald-600/60 shadow-emerald-500/10',
+    };
+    const c = colors[color] || colors.purple;
 
     return (
         <motion.div
@@ -771,13 +837,17 @@ function QuickStartCard({ title, desc, icon, link, color, delay }) {
             className="h-full"
         >
             <Link to={link}>
-                <div className={`h-full p-6 rounded-2xl border bg-gradient-to-br ${c} backdrop-blur-md transition-all duration-300 group relative overflow-hidden`}>
+                <div
+                    className={`h-full p-6 rounded-2xl border bg-gradient-to-br ${c} backdrop-blur-md transition-all duration-300 group relative overflow-hidden`}
+                >
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         {icon && <div className="scale-[3] transform">{icon}</div>}
                     </div>
 
                     <div className="relative z-10">
-                        <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4 border border-white/10 group-hover:border-white/20 transition-colors`}>
+                        <div
+                            className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-4 border border-white/10 group-hover:border-white/20 transition-colors`}
+                        >
                             {icon}
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
@@ -791,7 +861,7 @@ function QuickStartCard({ title, desc, icon, link, color, delay }) {
                 </div>
             </Link>
         </motion.div>
-    )
+    );
 }
 
 function EmptyDashboardState() {
@@ -815,11 +885,15 @@ function EmptyDashboardState() {
                         Awaiting your first project
                     </div>
                     <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
-                        Your <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">Command Center</span> is ready.
+                        Your{' '}
+                        <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                            Command Center
+                        </span>{' '}
+                        is ready.
                     </h1>
                     <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                        DevTrack is the ultimate workspace for developers to track progress,
-                        share insights, and build a premium tech profile.
+                        DevTrack is the ultimate workspace for developers to track progress, share insights, and build a
+                        premium tech profile.
                     </p>
                 </motion.div>
 
@@ -851,87 +925,91 @@ function EmptyDashboardState() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
 function GitHubIcon() {
     return (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z" />
+            <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"
+            />
         </svg>
-    )
+    );
 }
 
 export default function Dashboard() {
-    const { user, isLoaded, isSignedIn, getToken } = useUser()
-    const { getCachedData, setCachedData, hasCachedData } = useCache()
+    const { user, isLoaded, isSignedIn, getToken } = useUser();
+    const { getCachedData, setCachedData, hasCachedData } = useCache();
 
     // Initialize from cache if available
-    const CACHE_KEY = 'dashboard_data_v2' // Validated cache key
-    const cachedData = getCachedData(CACHE_KEY) || {}
+    const CACHE_KEY = 'dashboard_data_v2'; // Validated cache key
+    const cachedData = getCachedData(CACHE_KEY) || {};
 
-    const [logStats, setLogStats] = useState(cachedData.logStats || null)
-    const [projectStats, setProjectStats] = useState(cachedData.projectStats || null)
-    const [recentLogs, setRecentLogs] = useState(cachedData.recentLogs || [])
-    const [githubCommits, setGithubCommits] = useState(cachedData.githubCommits || [])
-    const [githubStreak, setGithubStreak] = useState(cachedData.githubStreak || 0)
-    const [githubStats, setGithubStats] = useState(cachedData.githubStats || null)
+    const [logStats, setLogStats] = useState(cachedData.logStats || null);
+    const [projectStats, setProjectStats] = useState(cachedData.projectStats || null);
+    const [recentLogs, setRecentLogs] = useState(cachedData.recentLogs || []);
+    const [githubCommits, setGithubCommits] = useState(cachedData.githubCommits || []);
+    const [githubStreak, setGithubStreak] = useState(cachedData.githubStreak || 0);
+    const [githubStats, setGithubStats] = useState(cachedData.githubStats || null);
 
-    const [githubUsername, setGithubUsername] = useState('')
-    const [loading, setLoading] = useState(!hasCachedData(CACHE_KEY))
-    const [statsLoading, setStatsLoading] = useState(!hasCachedData(CACHE_KEY))
-    const [logsLoading, setLogsLoading] = useState(!hasCachedData(CACHE_KEY))
-    const [githubLoading, setGithubLoading] = useState(!hasCachedData(CACHE_KEY))
-    const [isRefreshing, setIsRefreshing] = useState(false)
-    const retriedGithub = useRef(false)
-    const scrollTracker = useRef({ lastY: 0, state: 'up' }) // Track scroll for navbar
+    const [githubUsername, setGithubUsername] = useState('');
+    const [loading, setLoading] = useState(!hasCachedData(CACHE_KEY));
+    const [statsLoading, setStatsLoading] = useState(!hasCachedData(CACHE_KEY));
+    const [logsLoading, setLogsLoading] = useState(!hasCachedData(CACHE_KEY));
+    const [githubLoading, setGithubLoading] = useState(!hasCachedData(CACHE_KEY));
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const retriedGithub = useRef(false);
+    const scrollTracker = useRef({ lastY: 0, state: 'up' }); // Track scroll for navbar
 
     useEffect(() => {
-        fetchData()
+        fetchData();
         // Get GitHub username from Clerk user metadata
         if (user?.externalAccounts) {
-            const githubAccount = user.externalAccounts.find(acc => acc.provider === 'github')
+            const githubAccount = user.externalAccounts.find((acc) => acc.provider === 'github');
             if (githubAccount?.username) {
-                setGithubUsername(githubAccount.username)
+                setGithubUsername(githubAccount.username);
             }
         }
-    }, [user])
+    }, [user]);
 
     useEffect(() => {
         if (!loading && githubCommits.length === 0 && !retriedGithub.current) {
-            retriedGithub.current = true
+            retriedGithub.current = true;
             const timer = setTimeout(async () => {
                 try {
-                    setGithubLoading(true)
-                    const githubRes = await githubApi.getCommits(30)
-                    const commits = githubRes.data?.data?.commits || []
-                    const streak = githubRes.data?.data?.streak || 0
+                    setGithubLoading(true);
+                    const githubRes = await githubApi.getCommits(30);
+                    const commits = githubRes.data?.data?.commits || [];
+                    const streak = githubRes.data?.data?.streak || 0;
                     if (commits.length > 0 || streak > 0) {
-                        setGithubCommits(commits)
-                        setGithubStreak(streak)
+                        setGithubCommits(commits);
+                        setGithubStreak(streak);
                     }
                 } catch (err) {
-                    console.log('GitHub retry failed:', err.message)
+                    console.log('GitHub retry failed:', err.message);
                 } finally {
-                    setGithubLoading(false)
+                    setGithubLoading(false);
                 }
-            }, 1500)
-            return () => clearTimeout(timer)
+            }, 1500);
+            return () => clearTimeout(timer);
         }
-    }, [loading, githubCommits.length])
+    }, [loading, githubCommits.length]);
 
     const fetchData = async () => {
-        const hasCache = hasCachedData(CACHE_KEY)
+        const hasCache = hasCachedData(CACHE_KEY);
 
         // If no cache, set individual loaders to true
         // If cache exists, we're refreshing (isRefreshing = true), so keep loaders false (optimistic)
         if (!hasCache) {
-            setLoading(true)
-            setStatsLoading(true)
-            setLogsLoading(true)
-            setGithubLoading(true)
+            setLoading(true);
+            setStatsLoading(true);
+            setLogsLoading(true);
+            setGithubLoading(true);
         } else {
-            setIsRefreshing(true)
+            setIsRefreshing(true);
         }
 
         try {
@@ -940,44 +1018,52 @@ export default function Dashboard() {
                 // 1. Stats and Top Cards
                 Promise.all([
                     logsApi.getStats().catch(() => ({ error: true })),
-                    projectsApi.getStats().catch(() => ({ error: true }))
+                    projectsApi.getStats().catch(() => ({ error: true })),
                 ]).then(([logStatsRes, projectStatsRes]) => {
-                    const newLogStats = logStatsRes.error ? null : (logStatsRes.data?.data || {})
-                    const newProjectStats = projectStatsRes.error ? null : (projectStatsRes.data?.data || {})
-                    if (newLogStats) setLogStats(newLogStats)
-                    if (newProjectStats) setProjectStats(newProjectStats)
-                    setStatsLoading(false)
-                    return { logStats: newLogStats, projectStats: newProjectStats }
+                    const newLogStats = logStatsRes.error ? null : logStatsRes.data?.data || {};
+                    const newProjectStats = projectStatsRes.error ? null : projectStatsRes.data?.data || {};
+                    if (newLogStats) setLogStats(newLogStats);
+                    if (newProjectStats) setProjectStats(newProjectStats);
+                    setStatsLoading(false);
+                    return { logStats: newLogStats, projectStats: newProjectStats };
                 }),
 
                 // 2. Logs (Recent Activity)
-                logsApi.getAll({ limit: 50 }).catch(() => ({ error: true }))
-                    .then(logsRes => {
-                        const newRecentLogs = logsRes.error ? null : (logsRes.data?.data?.logs || [])
-                        if (newRecentLogs) setRecentLogs(newRecentLogs)
-                        setLogsLoading(false)
-                        return { recentLogs: newRecentLogs }
+                logsApi
+                    .getAll({ limit: 50 })
+                    .catch(() => ({ error: true }))
+                    .then((logsRes) => {
+                        const newRecentLogs = logsRes.error ? null : logsRes.data?.data?.logs || [];
+                        if (newRecentLogs) setRecentLogs(newRecentLogs);
+                        setLogsLoading(false);
+                        return { recentLogs: newRecentLogs };
                     }),
 
                 // 3. GitHub Data (Can be slower)
-                githubApi.getCommits(30).catch(() => ({ error: true }))
-                    .then(githubRes => {
-                        const newGithubStats = githubRes.error ? null : (githubRes.data?.data || {})
-                        const newGithubCommits = newGithubStats?.commits || []
-                        const newGithubStreak = newGithubStats?.streak || 0
+                githubApi
+                    .getCommits(30)
+                    .catch(() => ({ error: true }))
+                    .then((githubRes) => {
+                        const newGithubStats = githubRes.error ? null : githubRes.data?.data || {};
+                        const newGithubCommits = newGithubStats?.commits || [];
+                        const newGithubStreak = newGithubStats?.streak || 0;
                         if (newGithubStats) {
-                            setGithubStats(newGithubStats)
-                            setGithubCommits(newGithubCommits)
-                            setGithubStreak(newGithubStreak)
+                            setGithubStats(newGithubStats);
+                            setGithubCommits(newGithubCommits);
+                            setGithubStreak(newGithubStreak);
                         }
-                        setGithubLoading(false)
-                        return { githubStats: newGithubStats, githubCommits: newGithubCommits, githubStreak: newGithubStreak }
-                    })
-            ]
+                        setGithubLoading(false);
+                        return {
+                            githubStats: newGithubStats,
+                            githubCommits: newGithubCommits,
+                            githubStreak: newGithubStreak,
+                        };
+                    }),
+            ];
 
             // Wait for all to update cache
-            const results = await Promise.all(promises)
-            const finalData = results.reduce((acc, curr) => ({ ...acc, ...curr }), {})
+            const results = await Promise.all(promises);
+            const finalData = results.reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
             // Cache the actual data object (merge with existing if any fields missing)
             setCachedData(CACHE_KEY, {
@@ -986,29 +1072,29 @@ export default function Dashboard() {
                 recentLogs: finalData.recentLogs || recentLogs,
                 githubStats: finalData.githubStats || githubStats,
                 githubCommits: finalData.githubCommits || githubCommits,
-                githubStreak: finalData.githubStreak || githubStreak
-            })
+                githubStreak: finalData.githubStreak || githubStreak,
+            });
         } catch (error) {
-            console.error("Dashboard: Error fetching data", error)
+            console.error('Dashboard: Error fetching data', error);
         } finally {
-            setLoading(false)
-            setStatsLoading(false)
-            setLogsLoading(false)
-            setGithubLoading(false)
-            setIsRefreshing(false)
+            setLoading(false);
+            setStatsLoading(false);
+            setLogsLoading(false);
+            setGithubLoading(false);
+            setIsRefreshing(false);
         }
-    }
+    };
 
-    const hasNoData = logStats?.totalLogs === 0 && projectStats?.totalProjects === 0
-    const allTags = recentLogs.flatMap(log => log.tags || [])
-    const uniqueTags = [...new Set(allTags)]
+    const hasNoData = logStats?.totalLogs === 0 && projectStats?.totalProjects === 0;
+    const allTags = recentLogs.flatMap((log) => log.tags || []);
+    const uniqueTags = [...new Set(allTags)];
 
-    const [isScrollable, setIsScrollable] = useState(false)
+    const [isScrollable, setIsScrollable] = useState(false);
 
     // Handler for interactions that require more space (e.g., adding a task)
     const handleExpandView = () => {
-        setIsScrollable(true)
-    }
+        setIsScrollable(true);
+    };
 
     return (
         <PixelTransition loading={false}>
@@ -1021,9 +1107,7 @@ export default function Dashboard() {
                 {/* Main Container - Background removed */}
                 <div
                     className={`px-4 md:px-6 py-0 flex flex-col transition-all duration-500 ease-in-out
-                    ${isScrollable
-                            ? 'h-full overflow-hidden'
-                            : 'h-auto md:h-full md:overflow-hidden'}`}
+                    ${isScrollable ? 'h-full overflow-hidden' : 'h-auto md:h-full md:overflow-hidden'}`}
                 >
                     {/* Header Row */}
                     <div className="flex items-center justify-between mb-2 flex-shrink-0">
@@ -1040,7 +1124,9 @@ export default function Dashboard() {
                                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-500/50 hover:bg-cyan-500/20 transition-all group"
                                     >
                                         <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                                        <span className="text-sm text-cyan-400 font-medium hidden sm:block group-hover:text-cyan-300">View Public Profile</span>
+                                        <span className="text-sm text-cyan-400 font-medium hidden sm:block group-hover:text-cyan-300">
+                                            View Public Profile
+                                        </span>
                                         <ExternalLink size={14} className="text-cyan-400 group-hover:text-cyan-300" />
                                     </Link>
                                 </div>
@@ -1066,11 +1152,7 @@ export default function Dashboard() {
                                 id="empty-dashboard-scroll"
                                 className="flex-1 overflow-y-auto scrollbar-hide"
                             >
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                >
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                                     <EmptyDashboardState />
                                 </motion.div>
                             </ReactLenis>
@@ -1083,11 +1165,16 @@ export default function Dashboard() {
                             <ReactLenis
                                 root={false}
                                 id="dashboard-scroll-container"
-                                className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${isScrollable ? 'space-y-4 lg:space-y-4' : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
-                                    }`}
+                                className={`h-full overflow-y-auto scrollbar-hide transition-all duration-300 ${
+                                    isScrollable
+                                        ? 'space-y-4 lg:space-y-4'
+                                        : 'space-y-3 lg:space-y-3 flex-1 flex flex-col min-h-0'
+                                }`}
                             >
                                 {/* Row 1: Portfolio + Assets */}
-                                <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}>
+                                <div
+                                    className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3 flex-shrink-0'}`}
+                                >
                                     {/* Portfolio Card - spans 4 cols */}
                                     <div className="lg:col-span-4">
                                         <PortfolioCard
@@ -1154,7 +1241,9 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Row 2: Activity Table + Calendar */}
-                                <div className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}>
+                                <div
+                                    className={`grid grid-cols-1 lg:grid-cols-12 ${isScrollable ? 'gap-4 lg:gap-4' : 'gap-3 lg:gap-3'} flex-1 min-h-0 mt-5`}
+                                >
                                     {/* Activity Table - spans 4 cols */}
                                     <div className="lg:col-span-4">
                                         <ActivityTable
@@ -1175,8 +1264,6 @@ export default function Dashboard() {
                                         <CSTriviaCard compact={!isScrollable} />
                                     </div>
                                 </div>
-
-
                             </ReactLenis>
                         </div>
                     )}

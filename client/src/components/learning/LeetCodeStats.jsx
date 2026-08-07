@@ -3,7 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SiLeetcode } from 'react-icons/si';
 import { leetCodeApi } from '../../services/api';
 import { useUser } from '@clerk/clerk-react';
-import { Trophy, Flame, Target, Calendar, ExternalLink, RefreshCw, AlertTriangle, Edit2, Check, X, Zap } from 'lucide-react';
+import {
+    Trophy,
+    Flame,
+    Target,
+    Calendar,
+    ExternalLink,
+    RefreshCw,
+    AlertTriangle,
+    Edit2,
+    Check,
+    X,
+    Zap,
+} from 'lucide-react';
 import Button from '../ui/Button';
 
 // Utility to calculate Levenshtein distance similarity
@@ -16,8 +28,9 @@ const calculateSimilarity = (str1, str2) => {
     if (s1 === s2) return 1;
     if (s1.includes(s2) || s2.includes(s1)) return 0.8; // High similarity if one contains other
 
-    const track = Array(s2.length + 1).fill(null).map(() =>
-        Array(s1.length + 1).fill(null));
+    const track = Array(s2.length + 1)
+        .fill(null)
+        .map(() => Array(s1.length + 1).fill(null));
     for (let i = 0; i <= s1.length; i += 1) {
         track[0][i] = i;
     }
@@ -30,7 +43,7 @@ const calculateSimilarity = (str1, str2) => {
             track[j][i] = Math.min(
                 track[j][i - 1] + 1, // deletion
                 track[j - 1][i] + 1, // insertion
-                track[j - 1][i - 1] + indicator, // substitution
+                track[j - 1][i - 1] + indicator // substitution
             );
         }
     }
@@ -39,7 +52,7 @@ const calculateSimilarity = (str1, str2) => {
     const maxLength = Math.max(s1.length, s2.length);
     if (maxLength === 0) return 0;
 
-    return 1 - (distance / maxLength);
+    return 1 - distance / maxLength;
 };
 
 export default function LeetCodeStats() {
@@ -85,7 +98,7 @@ export default function LeetCodeStats() {
         if (user.username) comparators.push(user.username);
 
         // 2. Email parts (before @)
-        user.emailAddresses.forEach(email => {
+        user.emailAddresses.forEach((email) => {
             const prefix = email.emailAddress.split('@')[0];
             comparators.push(prefix);
             // Also try removing dots from gmail-style comparisons
@@ -101,7 +114,7 @@ export default function LeetCodeStats() {
         }
 
         // 4. GitHub Username (if linked)
-        const githubAccount = user.externalAccounts.find(acc => acc.provider === 'github');
+        const githubAccount = user.externalAccounts.find((acc) => acc.provider === 'github');
         if (githubAccount && githubAccount.username) {
             comparators.push(githubAccount.username);
         }
@@ -110,7 +123,7 @@ export default function LeetCodeStats() {
         let maxScore = 0;
         let bestMatch = '';
 
-        comparators.forEach(ref => {
+        comparators.forEach((ref) => {
             if (!ref) return;
             const score = calculateSimilarity(input, ref);
             if (score > maxScore) {
@@ -124,7 +137,9 @@ export default function LeetCodeStats() {
         const SIMILARITY_THRESHOLD = 0.4; // 40% match required
 
         if (maxScore < SIMILARITY_THRESHOLD) {
-            setError(`Username must be at least 40% similar to your profile (e.g. matches "${bestMatch || 'your name'}"). This is to verify ownership.`);
+            setError(
+                `Username must be at least 40% similar to your profile (e.g. matches "${bestMatch || 'your name'}"). This is to verify ownership.`
+            );
             setSaving(false);
             return;
         }
@@ -194,7 +209,9 @@ export default function LeetCodeStats() {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5 font-bold">Username</label>
+                        <label className="block text-xs uppercase tracking-wider text-slate-500 mb-1.5 font-bold">
+                            Username
+                        </label>
                         <input
                             type="text"
                             value={usernameInput}
@@ -215,7 +232,14 @@ export default function LeetCodeStats() {
                     )}
 
                     <div className="flex gap-2">
-                        <Button variant="ghost" onClick={() => { setIsEditing(false); setError(null); }} className="flex-1">
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setIsEditing(false);
+                                setError(null);
+                            }}
+                            className="flex-1"
+                        >
                             Cancel
                         </Button>
                         <Button
@@ -235,7 +259,7 @@ export default function LeetCodeStats() {
         All: 'text-white',
         Easy: 'text-emerald-500',
         Medium: 'text-yellow-500',
-        Hard: 'text-red-500'
+        Hard: 'text-red-500',
     };
 
     return (
@@ -244,14 +268,18 @@ export default function LeetCodeStats() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl p-5 border border-white/10 h-full flex flex-col relative overflow-hidden group"
             style={{
-                background: 'linear-gradient(145deg, rgba(30, 35, 50, 0.9), rgba(20, 25, 40, 0.95))',
+                background: 'linear-gradient(145deg, #23201E, #090C0E)',
             }}
         >
             {/* Header */}
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5">
-                        <img src={stats.avatar} alt={stats.realName} className="w-full h-full rounded-xl object-cover" />
+                        <img
+                            src={stats.avatar}
+                            alt={stats.realName}
+                            className="w-full h-full rounded-xl object-cover"
+                        />
                     </div>
                     <div>
                         <h3 className="font-bold text-white text-sm">{stats.realName || stats.username}</h3>
@@ -294,7 +322,10 @@ export default function LeetCodeStats() {
                 <Calendar size={10} /> Recent Activity
             </h4>
 
-            <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar relative z-30 -mr-1 overscroll-contain pointer-events-auto touch-pan-y">
+            <div
+                data-lenis-prevent
+                className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar relative z-30 -mr-1 overscroll-contain pointer-events-auto touch-pan-y"
+            >
                 <div className="space-y-2 pb-1">
                     {stats.recentSubmissions.map((sub) => (
                         <a
@@ -305,10 +336,16 @@ export default function LeetCodeStats() {
                             className="block p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all group/item"
                         >
                             <div className="flex justify-between items-start gap-2">
-                                <span className="text-xs text-slate-200 font-medium line-clamp-1 group-hover/item:text-orange-400 transition-colors flex-1" title={sub.title}>
+                                <span
+                                    className="text-xs text-slate-200 font-medium line-clamp-1 group-hover/item:text-orange-400 transition-colors flex-1"
+                                    title={sub.title}
+                                >
                                     {sub.title}
                                 </span>
-                                <ExternalLink size={10} className="text-slate-500 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+                                <ExternalLink
+                                    size={10}
+                                    className="text-slate-500 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                />
                             </div>
                             <div className="text-[10px] text-slate-500 mt-1">
                                 {new Date(parseInt(sub.timestamp) * 1000).toLocaleDateString()}
@@ -316,9 +353,7 @@ export default function LeetCodeStats() {
                         </a>
                     ))}
                     {stats.recentSubmissions.length === 0 && (
-                        <div className="text-center py-4 text-slate-500 text-xs italic">
-                            No recent submissions
-                        </div>
+                        <div className="text-center py-4 text-slate-500 text-xs italic">No recent submissions</div>
                     )}
                 </div>
             </div>
