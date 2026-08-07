@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import paymentApi from '../services/paymentApi';
 
 const SubscriptionContext = createContext(null);
@@ -7,6 +8,7 @@ export const SubscriptionProvider = ({ children }) => {
     const [tier, setTier] = useState('free');
     const [usage, setUsage] = useState({});
     const [loading, setLoading] = useState(true);
+    const { isSignedIn, userId } = useAuth();
     const [promptState, setPromptState] = useState({
         open: false,
         action: null,
@@ -28,7 +30,13 @@ export const SubscriptionProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        refreshUsage();
+        if (isSignedIn) {
+            refreshUsage();
+        } else {
+            setTier('free');
+            setUsage({});
+            setLoading(false);
+        }
 
         // Listen for global 429 (quota exceeded) events dispatched by axios interceptor
         const handleQuotaExceeded = (event) => {
@@ -44,21 +52,27 @@ export const SubscriptionProvider = ({ children }) => {
         return () => {
             window.removeEventListener('devtrack:quota_exceeded', handleQuotaExceeded);
         };
-    }, [refreshUsage]);
+    }, [isSignedIn, userId, refreshUsage]);
 
-    const canUse = useCallback((action) => {
-        if (tier === 'pro' || tier === 'enterprise') return true;
-        const item = usage[action];
-        if (!item) return true;
-        if (item.limit === Infinity) return true;
-        return item.used < item.limit;
-    }, [tier, usage]);
+    const canUse = useCallback(
+        (action) => {
+            if (tier === 'pro' || tier === 'enterprise') return true;
+            const item = usage[action];
+            if (!item) return true;
+            if (item.limit === Infinity) return true;
+            return item.used < item.limit;
+        },
+        [tier, usage]
+    );
 
-    const remaining = useCallback((action) => {
-        const item = usage[action];
-        if (!item) return Infinity;
-        return item.remaining !== undefined ? item.remaining : Infinity;
-    }, [usage]);
+    const remaining = useCallback(
+        (action) => {
+            const item = usage[action];
+            if (!item) return Infinity;
+            return item.remaining !== undefined ? item.remaining : Infinity;
+        },
+        [usage]
+    );
 
     const closePrompt = () => {
         setPromptState((prev) => ({ ...prev, open: false }));
@@ -82,11 +96,7 @@ export const SubscriptionProvider = ({ children }) => {
         triggerUpgradePrompt,
     };
 
-    return (
-        <SubscriptionContext.Provider value={value}>
-            {children}
-        </SubscriptionContext.Provider>
-    );
+    return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
 };
 
 export const useSubscription = () => {
