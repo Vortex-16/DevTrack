@@ -8,7 +8,7 @@ export default function AppLayout() {
 
     return (
         <OnboardingCheck>
-            <div className="min-h-screen bg-brand-cream">
+            <div className="min-h-screen bg-black text-slate-100 font-sans">
                 <Navbar />
                 {/* Main content with sidebar offset for desktop */}
                 <div className="md:ml-[80px] min-h-screen flex flex-col">

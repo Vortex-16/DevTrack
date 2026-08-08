@@ -32,13 +32,13 @@ const getClerkToken = async (retries = 3, delay = 100) => {
 
             // If Clerk is loading, wait and retry
             if (window.Clerk && !window.Clerk.session && i < retries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await new Promise((resolve) => setTimeout(resolve, delay));
                 continue;
             }
         } catch (error) {
             console.warn(`Attempt ${i + 1} to get Clerk token failed:`, error.message);
             if (i < retries - 1) {
-                await new Promise(resolve => setTimeout(resolve, delay));
+                await new Promise((resolve) => setTimeout(resolve, delay));
             }
         }
     }
@@ -71,10 +71,19 @@ api.interceptors.response.use(
     (error) => {
         const status = error.response?.status;
         if (status === 401) {
-            // Handle unauthorized - redirect to sign in
             console.error('Unauthorized - please sign in');
-            if (window.location.pathname !== '/' && window.location.pathname !== '/mobile-auth') {
-                window.location.href = '/?expired=true';
+            if (
+                window.location.pathname !== '/' &&
+                window.location.pathname !== '/mobile-auth' &&
+                !window.__redirecting401
+            ) {
+                window.__redirecting401 = true;
+                if (window.Clerk?.signOut) {
+                    window.Clerk.signOut().catch(() => {});
+                }
+                setTimeout(() => {
+                    window.location.href = '/?expired=true';
+                }, 400);
             }
         } else if (status === 429 || status === 402) {
             // Handle Quota Exceeded (429) or Payment Required (402) -> trigger UpgradePrompt modal
@@ -120,8 +129,7 @@ export const healthApi = {
 
 export const githubApi = {
     getProfile: () => api.get('/github/profile'),
-    getRepos: (limit = 10, filterImported = false) =>
-        api.get('/github/repos', { params: { limit, filterImported } }),
+    getRepos: (limit = 10, filterImported = false) => api.get('/github/repos', { params: { limit, filterImported } }),
     getLanguages: () => api.get('/github/languages'),
     analyzeRepo: (owner, repo) => api.get(`/github/repo/${owner}/${repo}`),
     getActivity: () => api.get('/github/activity'),
@@ -135,8 +143,8 @@ export const githubApi = {
                 languages: languages?.join(','),
                 topics: topics?.join(','),
                 minStars,
-                limit
-            }
+                limit,
+            },
         }),
     downloadReport: () => api.get('/reports/latest', { responseType: 'arraybuffer' }),
 };
@@ -205,8 +213,7 @@ export const savedIdeasApi = {
 
 export const readmeApi = {
     generate: (projectId) => api.post(`/readme/generate/${projectId}`),
-    commit: (projectId, content, commitMessage) =>
-        api.post(`/readme/commit/${projectId}`, { content, commitMessage }),
+    commit: (projectId, content, commitMessage) => api.post(`/readme/commit/${projectId}`, { content, commitMessage }),
 };
 
 export const showcaseApi = {
@@ -220,8 +227,7 @@ export const showcaseApi = {
     toggleStar: (id) => api.post(`/showcase/${id}/star`),
     addComment: (id, content, authorName, authorAvatar) =>
         api.post(`/showcase/${id}/comments`, { content, authorName, authorAvatar }),
-    deleteComment: (showcaseId, commentId) =>
-        api.delete(`/showcase/${showcaseId}/comments/${commentId}`),
+    deleteComment: (showcaseId, commentId) => api.delete(`/showcase/${showcaseId}/comments/${commentId}`),
     toggleOpenToBuild: (id, openToBuild, goal, seekingStack) =>
         api.patch(`/showcase/${id}/open-to-build`, { openToBuild, goal, seekingStack }),
 };
@@ -271,5 +277,3 @@ export const insightsApi = {
 };
 
 export default api;
-
-
