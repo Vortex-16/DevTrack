@@ -9,7 +9,7 @@ class GroqNotificationService {
     constructor() {
         this.apiKey = process.env.GROQ_NOTIFICATION_API_KEY;
         this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        this.model = 'llama-3.3-70b-versatile';
+        this.model = 'openai/gpt-oss-120b';
 
         if (!this.apiKey) {
             console.warn('GROQ_NOTIFICATION_API_KEY not set — notification AI will use fallback messages.');
@@ -28,7 +28,7 @@ class GroqNotificationService {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`,
+                    Authorization: `Bearer ${this.apiKey}`,
                 },
                 body: JSON.stringify({
                     model: this.model,
@@ -156,9 +156,10 @@ Write a gentle but urgent reminder to push at least 1 commit before midnight. Do
         const raw = await this._request(this._baseSystem, prompt);
         return this._parse(raw, {
             title: '⚡ No Commits Yet Today',
-            body: streak > 0
-                ? `Your ${streak}-day streak is at risk! Push at least 1 commit before midnight.`
-                : 'Make your first commit of the day and start building momentum!',
+            body:
+                streak > 0
+                    ? `Your ${streak}-day streak is at risk! Push at least 1 commit before midnight.`
+                    : 'Make your first commit of the day and start building momentum!',
         });
     }
 

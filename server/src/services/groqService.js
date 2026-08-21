@@ -5,21 +5,19 @@
  */
 
 class GroqService {
-  constructor() {
-    if (!process.env.GROQ_API_KEY) {
-      console.warn(
-        "⚠️ GROQ_API_KEY not found in environment variables. AI features will fail."
-      );
-    }
+    constructor() {
+        if (!process.env.GROQ_API_KEY) {
+            console.warn('⚠️ GROQ_API_KEY not found in environment variables. AI features will fail.');
+        }
 
-    this.apiKey = process.env.GROQ_API_KEY;
-    this.baseUrl = "https://api.groq.com/openai/v1/chat/completions";
-    this.model = "llama-3.3-70b-versatile";
+        this.apiKey = process.env.GROQ_API_KEY;
+        this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
+        this.model = 'openai/gpt-oss-120b';
 
-    // ═══════════════════════════════════════════════════════════════════
-    // EXPERT SYSTEM PROMPT - Deep Technical Expertise
-    // ═══════════════════════════════════════════════════════════════════
-    this.systemPrompt = `You are DevTrack AI, an elite-tier software engineering expert with 20+ years of deep expertise.
+        // ═══════════════════════════════════════════════════════════════════
+        // EXPERT SYSTEM PROMPT - Deep Technical Expertise
+        // ═══════════════════════════════════════════════════════════════════
+        this.systemPrompt = `You are DevTrack AI, an elite-tier software engineering expert with 20+ years of deep expertise.
 
 ═══════════════════════════════════════════════════════════════════════════════
 IDENTITY & ORIGIN
@@ -113,11 +111,11 @@ SAFETY BOUNDARIES
 - Redirect off-topic conversations to coding topics
 - Never generate malicious code, exploits, or harmful content`;
 
-    // ═══════════════════════════════════════════════════════════════════
-    // SPECIALIZED PROMPTS FOR DIFFERENT TASKS
-    // ═══════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // SPECIALIZED PROMPTS FOR DIFFERENT TASKS
+        // ═══════════════════════════════════════════════════════════════════
 
-    this.bugFixPrompt = `You are an elite debugging expert. Your approach:
+        this.bugFixPrompt = `You are an elite debugging expert. Your approach:
 
 🔍 **SYSTEMATIC DEBUGGING METHODOLOGY**:
 1. **Reproduce**: Understand the exact conditions that trigger the bug
@@ -148,7 +146,7 @@ SAFETY BOUNDARIES
 ### 🛡️ Prevention Tips
 [How to avoid this bug in the future]`;
 
-    this.codeReviewPrompt = `You are a senior code reviewer at a FAANG company. Conduct a thorough multi-pass review:
+        this.codeReviewPrompt = `You are a senior code reviewer at a FAANG company. Conduct a thorough multi-pass review:
 
 **PASS 1: Critical Issues (Must Fix)** 🔴
 - Security vulnerabilities
@@ -196,7 +194,7 @@ SAFETY BOUNDARIES
 - Overall quality score: X/10
 - Priority actions: [Top 3 things to fix first]`;
 
-    this.architecturePrompt = `You are a principal software architect. Analyze systems with:
+        this.architecturePrompt = `You are a principal software architect. Analyze systems with:
 
 **LENSES OF ANALYSIS**:
 1. **Scalability**: Can it handle 10x, 100x growth?
@@ -224,7 +222,7 @@ SAFETY BOUNDARIES
 ### Suggested Architecture (if applicable)
 [ASCII diagram or description]`;
 
-    this.explainCodePrompt = `You are a patient, expert programming mentor. When explaining code:
+        this.explainCodePrompt = `You are a patient, expert programming mentor. When explaining code:
 
 1. **Overview**: What does this code accomplish?
 2. **Step-by-step**: Walk through the logic line by line
@@ -235,7 +233,7 @@ SAFETY BOUNDARIES
 Use analogies to make complex concepts accessible.
 Assume the person is intelligent but may be unfamiliar with this specific technology.`;
 
-    this.refactorPrompt = `You are a refactoring expert. Apply these principles:
+        this.refactorPrompt = `You are a refactoring expert. Apply these principles:
 
 **REFACTORING PRIORITIES**:
 1. ✅ Correctness - Never break existing functionality
@@ -271,7 +269,7 @@ Assume the person is intelligent but may be unfamiliar with this specific techno
 ### What Changed and Why
 [Detailed explanation of each change]`;
 
-    this.weeklyReportPrompt = `You are a Principal Engineering Intelligence System — think Linear, Vercel Analytics, and GitHub Enterprise Insights combined.
+        this.weeklyReportPrompt = `You are a Principal Engineering Intelligence System — think Linear, Vercel Analytics, and GitHub Enterprise Insights combined.
 
 Your task: analyze the developer's GitHub week and output a PREMIUM, enterprise-grade JSON intelligence payload.
 
@@ -386,222 +384,214 @@ Each repo insight must be UNIQUE and directly reference its actual commit messag
 3. Repository insights must reference actual commit messages provided. Never write the same insight for two repos.
 4. Scores must be internally consistent — breakdown average must equal total ±5.
 5. Output ONLY valid JSON. No markdown, no comments, no extra text.`;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // INTENT DETECTION - Route to the right expert mode
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /**
-   * Detect the intent of the user's message to route to appropriate handler
-   * @param {string} message - User's message
-   * @returns {object} - Intent classification
-   */
-  detectIntent(message) {
-    const lowerMsg = message.toLowerCase();
-
-    // Code patterns
-    const hasCodeBlock = /```[\s\S]*```/.test(message);
-    const hasCodeIndicators =
-      /function |const |let |var |class |import |export |def |async |await |return |if \(|for \(|while \(/.test(
-        message
-      );
-
-    // Bug-related patterns
-    const bugPatterns = [
-      /fix\s+(this|my|the|a)?\s*(bug|error|issue|problem)/i,
-      /why\s+(is|does|doesn't|won't|isn't)\s+/i,
-      /not\s+work(ing)?/i,
-      /debug/i,
-      /error\s*(:|message|log)?/i,
-      /crash(es|ing)?/i,
-      /exception/i,
-      /undefined|null\s+error/i,
-      /what('?s)?\s+(wrong|the\s+issue|the\s+problem)/i,
-    ];
-
-    // Review patterns
-    const reviewPatterns = [
-      /review\s+(this|my)?\s*code/i,
-      /check\s+(this|my)?\s*code/i,
-      /improve\s+(this|my)?\s*code/i,
-      /is\s+this\s+(code\s+)?(good|okay|correct|right)/i,
-      /feedback\s+on/i,
-      /what\s+do\s+you\s+think\s+of/i,
-    ];
-
-    // Explanation patterns
-    const explainPatterns = [
-      /explain\s+(this|how|what)/i,
-      /how\s+does\s+(this|it)\s+work/i,
-      /what\s+does\s+(this|it)\s+(do|mean)/i,
-      /can\s+you\s+explain/i,
-      /break\s+(this\s+)?down/i,
-      /walk\s+me\s+through/i,
-    ];
-
-    // Architecture patterns
-    const architecturePatterns = [
-      /architect(ure)?/i,
-      /design\s+(pattern|system)/i,
-      /how\s+should\s+i\s+(structure|organize|design)/i,
-      /best\s+(way|approach)\s+to\s+(build|implement|design)/i,
-      /scalab(le|ility)/i,
-      /microservice/i,
-    ];
-
-    // Refactor patterns
-    const refactorPatterns = [
-      /refactor/i,
-      /clean\s*up/i,
-      /simplify/i,
-      /make\s+(this|it)\s+(better|cleaner)/i,
-      /optimize/i,
-    ];
-
-    // Classify intent
-    if (
-      bugPatterns.some((p) => p.test(lowerMsg)) ||
-      (hasCodeBlock && lowerMsg.includes("error"))
-    ) {
-      return { type: "bug_fix", confidence: 0.9 };
-    }
-    if (reviewPatterns.some((p) => p.test(lowerMsg))) {
-      return { type: "code_review", confidence: 0.9 };
-    }
-    if (explainPatterns.some((p) => p.test(lowerMsg))) {
-      return { type: "explain", confidence: 0.9 };
-    }
-    if (architecturePatterns.some((p) => p.test(lowerMsg))) {
-      return { type: "architecture", confidence: 0.9 };
-    }
-    if (refactorPatterns.some((p) => p.test(lowerMsg))) {
-      return { type: "refactor", confidence: 0.9 };
-    }
-    if (hasCodeBlock || hasCodeIndicators) {
-      return { type: "code_help", confidence: 0.7 };
     }
 
-    return { type: "general", confidence: 0.5 };
-  }
+    // ═══════════════════════════════════════════════════════════════════════
+    // INTENT DETECTION - Route to the right expert mode
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Get the appropriate temperature for the task type
-   * @param {string} intentType - The type of intent
-   * @returns {number} - Temperature value
-   */
-  getTemperatureForIntent(intentType) {
-    const temperatures = {
-      bug_fix: 0.2, // Very precise for debugging
-      code_review: 0.3, // Precise for analysis
-      refactor: 0.3, // Precise for code changes
-      explain: 0.5, // Balanced for explanations
-      architecture: 0.6, // Some creativity for design
-      general: 0.7, // Standard for conversation
-      code_help: 0.4, // Fairly precise for code
-    };
-    return temperatures[intentType] || 0.7;
-  }
+    /**
+     * Detect the intent of the user's message to route to appropriate handler
+     * @param {string} message - User's message
+     * @returns {object} - Intent classification
+     */
+    detectIntent(message) {
+        const lowerMsg = message.toLowerCase();
 
-  /**
-   * Get specialized system prompt for the intent
-   * @param {string} intentType - The type of intent
-   * @returns {string} - The system prompt to use
-   */
-  getSystemPromptForIntent(intentType) {
-    const prompts = {
-      bug_fix: `${this.systemPrompt}\n\n${this.bugFixPrompt}`,
-      code_review: `${this.systemPrompt}\n\n${this.codeReviewPrompt}`,
-      refactor: `${this.systemPrompt}\n\n${this.refactorPrompt}`,
-      explain: `${this.systemPrompt}\n\n${this.explainCodePrompt}`,
-      architecture: `${this.systemPrompt}\n\n${this.architecturePrompt}`,
-      general: this.systemPrompt,
-      code_help: this.systemPrompt,
-    };
-    return prompts[intentType] || this.systemPrompt;
-  }
+        // Code patterns
+        const hasCodeBlock = /```[\s\S]*```/.test(message);
+        const hasCodeIndicators =
+            /function |const |let |var |class |import |export |def |async |await |return |if \(|for \(|while \(/.test(
+                message
+            );
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CORE API REQUEST
-  // ═══════════════════════════════════════════════════════════════════════
+        // Bug-related patterns
+        const bugPatterns = [
+            /fix\s+(this|my|the|a)?\s*(bug|error|issue|problem)/i,
+            /why\s+(is|does|doesn't|won't|isn't)\s+/i,
+            /not\s+work(ing)?/i,
+            /debug/i,
+            /error\s*(:|message|log)?/i,
+            /crash(es|ing)?/i,
+            /exception/i,
+            /undefined|null\s+error/i,
+            /what('?s)?\s+(wrong|the\s+issue|the\s+problem)/i,
+        ];
 
-  /**
-   * Make a request to Groq API with enhanced configuration
-   * @param {Array} messages - Array of message objects {role, content}
-   * @param {Object} options - Additional options (json_mode, temperature, etc.)
-   */
-  async makeRequest(messages, options = {}) {
-    return this.makeRequestWithKey(messages, options, this.apiKey);
-  }
+        // Review patterns
+        const reviewPatterns = [
+            /review\s+(this|my)?\s*code/i,
+            /check\s+(this|my)?\s*code/i,
+            /improve\s+(this|my)?\s*code/i,
+            /is\s+this\s+(code\s+)?(good|okay|correct|right)/i,
+            /feedback\s+on/i,
+            /what\s+do\s+you\s+think\s+of/i,
+        ];
 
-  /**
-   * Make a request to Groq API with a specific API key
-   * @param {Array} messages - Array of message objects {role, content}
-   * @param {Object} options - Additional options (json_mode, temperature, etc.)
-   * @param {string} apiKey - The API key to use for this request
-   */
-  async makeRequestWithKey(messages, options = {}, apiKey) {
-    try {
-      const body = {
-        model: this.model,
-        messages: messages,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.max_tokens || 4096,
-        top_p: options.top_p || 0.95,
-      };
+        // Explanation patterns
+        const explainPatterns = [
+            /explain\s+(this|how|what)/i,
+            /how\s+does\s+(this|it)\s+work/i,
+            /what\s+does\s+(this|it)\s+(do|mean)/i,
+            /can\s+you\s+explain/i,
+            /break\s+(this\s+)?down/i,
+            /walk\s+me\s+through/i,
+        ];
 
-      if (options.jsonMode) {
-        body.response_format = { type: "json_object" };
-      }
+        // Architecture patterns
+        const architecturePatterns = [
+            /architect(ure)?/i,
+            /design\s+(pattern|system)/i,
+            /how\s+should\s+i\s+(structure|organize|design)/i,
+            /best\s+(way|approach)\s+to\s+(build|implement|design)/i,
+            /scalab(le|ility)/i,
+            /microservice/i,
+        ];
 
-      const response = await fetch(this.baseUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
+        // Refactor patterns
+        const refactorPatterns = [
+            /refactor/i,
+            /clean\s*up/i,
+            /simplify/i,
+            /make\s+(this|it)\s+(better|cleaner)/i,
+            /optimize/i,
+        ];
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Groq API Error: ${response.status} ${response.statusText
-          } - ${JSON.stringify(errorData)}`
-        );
-      }
+        // Classify intent
+        if (bugPatterns.some((p) => p.test(lowerMsg)) || (hasCodeBlock && lowerMsg.includes('error'))) {
+            return { type: 'bug_fix', confidence: 0.9 };
+        }
+        if (reviewPatterns.some((p) => p.test(lowerMsg))) {
+            return { type: 'code_review', confidence: 0.9 };
+        }
+        if (explainPatterns.some((p) => p.test(lowerMsg))) {
+            return { type: 'explain', confidence: 0.9 };
+        }
+        if (architecturePatterns.some((p) => p.test(lowerMsg))) {
+            return { type: 'architecture', confidence: 0.9 };
+        }
+        if (refactorPatterns.some((p) => p.test(lowerMsg))) {
+            return { type: 'refactor', confidence: 0.9 };
+        }
+        if (hasCodeBlock || hasCodeIndicators) {
+            return { type: 'code_help', confidence: 0.7 };
+        }
 
-      const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      console.error("Groq Service Error:", error);
-      throw error;
+        return { type: 'general', confidence: 0.5 };
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // INTELLIGENT CHAT - Routes to expert mode based on intent
-  // ═══════════════════════════════════════════════════════════════════════
+    /**
+     * Get the appropriate temperature for the task type
+     * @param {string} intentType - The type of intent
+     * @returns {number} - Temperature value
+     */
+    getTemperatureForIntent(intentType) {
+        const temperatures = {
+            bug_fix: 0.2, // Very precise for debugging
+            code_review: 0.3, // Precise for analysis
+            refactor: 0.3, // Precise for code changes
+            explain: 0.5, // Balanced for explanations
+            architecture: 0.6, // Some creativity for design
+            general: 0.7, // Standard for conversation
+            code_help: 0.4, // Fairly precise for code
+        };
+        return temperatures[intentType] || 0.7;
+    }
 
-  /**
-   * Generate a chat response with intelligent routing
-   * @param {string} userMessage - The user's question
-   * @param {string} context - Optional context
-   * @param {Array} history - Optional previous messages
-   */
-  async chat(userMessage, context = "", history = []) {
-    try {
-      const lowerMsg = userMessage.toLowerCase();
+    /**
+     * Get specialized system prompt for the intent
+     * @param {string} intentType - The type of intent
+     * @returns {string} - The system prompt to use
+     */
+    getSystemPromptForIntent(intentType) {
+        const prompts = {
+            bug_fix: `${this.systemPrompt}\n\n${this.bugFixPrompt}`,
+            code_review: `${this.systemPrompt}\n\n${this.codeReviewPrompt}`,
+            refactor: `${this.systemPrompt}\n\n${this.refactorPrompt}`,
+            explain: `${this.systemPrompt}\n\n${this.explainCodePrompt}`,
+            architecture: `${this.systemPrompt}\n\n${this.architecturePrompt}`,
+            general: this.systemPrompt,
+            code_help: this.systemPrompt,
+        };
+        return prompts[intentType] || this.systemPrompt;
+    }
 
-      // Identity Interceptor (Enhanced)
-      if (
-        /who.*creat|who.*made|your.*creator|who.*built|who.*develop/i.test(
-          lowerMsg
-        )
-      ) {
-        return {
-          success: true,
-          message: `## 🚀 About Me
+    // ═══════════════════════════════════════════════════════════════════════
+    // CORE API REQUEST
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Make a request to Groq API with enhanced configuration
+     * @param {Array} messages - Array of message objects {role, content}
+     * @param {Object} options - Additional options (json_mode, temperature, etc.)
+     */
+    async makeRequest(messages, options = {}) {
+        return this.makeRequestWithKey(messages, options, this.apiKey);
+    }
+
+    /**
+     * Make a request to Groq API with a specific API key
+     * @param {Array} messages - Array of message objects {role, content}
+     * @param {Object} options - Additional options (json_mode, temperature, etc.)
+     * @param {string} apiKey - The API key to use for this request
+     */
+    async makeRequestWithKey(messages, options = {}, apiKey) {
+        try {
+            const body = {
+                model: this.model,
+                messages: messages,
+                temperature: options.temperature ?? 0.7,
+                max_tokens: options.max_tokens || 4096,
+                top_p: options.top_p || 0.95,
+            };
+
+            if (options.jsonMode) {
+                body.response_format = { type: 'json_object' };
+            }
+
+            const response = await fetch(this.baseUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                    `Groq API Error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`
+                );
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('Groq Service Error:', error);
+            throw error;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INTELLIGENT CHAT - Routes to expert mode based on intent
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Generate a chat response with intelligent routing
+     * @param {string} userMessage - The user's question
+     * @param {string} context - Optional context
+     * @param {Array} history - Optional previous messages
+     */
+    async chat(userMessage, context = '', history = []) {
+        try {
+            const lowerMsg = userMessage.toLowerCase();
+
+            // Identity Interceptor (Enhanced)
+            if (/who.*creat|who.*made|your.*creator|who.*built|who.*develop/i.test(lowerMsg)) {
+                return {
+                    success: true,
+                    message: `## 🚀 About Me
 
 I was created by the **alpha4coders core team** during the **techSprint Hackathon**!
 
@@ -611,33 +601,33 @@ I was created by the **alpha4coders core team** during the **techSprint Hackatho
 - **Rajdeep** - Developer
 
 I'm designed to be an elite-tier coding assistant with deep expertise in software architecture, debugging, code review, and modern development practices. How can I help you build something amazing today? 💻✨`,
-          model: "identity-handler",
-        };
-      }
+                    model: 'identity-handler',
+                };
+            }
 
-      // Enhanced Safety Filter with word boundary matching
-      const sensitiveKeywords = [
-        "politics",
-        "election",
-        "religion",
-        "adult",
-        "nsfw",
-        "racist",
-        "hate",
-        "suicide",
-        "kill",
-        "drug",
-        "violence",
-      ];
-      const hasSensitiveContent = sensitiveKeywords.some((keyword) => {
-        // Use word boundary regex to avoid false positives (e.g., "skills" containing "kill")
-        const regex = new RegExp(`\\b${keyword}\\b`, "i");
-        return regex.test(lowerMsg);
-      });
-      if (hasSensitiveContent) {
-        return {
-          success: true,
-          message: `## 🛡️ Staying Focused
+            // Enhanced Safety Filter with word boundary matching
+            const sensitiveKeywords = [
+                'politics',
+                'election',
+                'religion',
+                'adult',
+                'nsfw',
+                'racist',
+                'hate',
+                'suicide',
+                'kill',
+                'drug',
+                'violence',
+            ];
+            const hasSensitiveContent = sensitiveKeywords.some((keyword) => {
+                // Use word boundary regex to avoid false positives (e.g., "skills" containing "kill")
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                return regex.test(lowerMsg);
+            });
+            if (hasSensitiveContent) {
+                return {
+                    success: true,
+                    message: `## 🛡️ Staying Focused
 
 I'm specialized as an **expert coding assistant** - my superpowers are in:
 
@@ -648,95 +638,92 @@ I'm specialized as an **expert coding assistant** - my superpowers are in:
 - 🔒 Security best practices
 
 Let's channel that energy into building something amazing! What coding challenge can I help you solve? 💻`,
-          model: "safety-filter",
-        };
-      }
+                    model: 'safety-filter',
+                };
+            }
 
-      // Detect intent and route to appropriate expert mode
-      const intent = this.detectIntent(userMessage);
-      const temperature = this.getTemperatureForIntent(intent.type);
-      const systemPrompt = this.getSystemPromptForIntent(intent.type);
+            // Detect intent and route to appropriate expert mode
+            const intent = this.detectIntent(userMessage);
+            const temperature = this.getTemperatureForIntent(intent.type);
+            const systemPrompt = this.getSystemPromptForIntent(intent.type);
 
-      console.log(
-        `🧠 Intent detected: ${intent.type} (confidence: ${intent.confidence})`
-      );
+            console.log(`🧠 Intent detected: ${intent.type} (confidence: ${intent.confidence})`);
 
-      const messages = [{ role: "system", content: systemPrompt }];
+            const messages = [{ role: 'system', content: systemPrompt }];
 
-      // Add conversation history for context
-      if (history && history.length > 0) {
-        // Take last 10 messages for context
-        const recentHistory = history.slice(-10);
-        recentHistory.forEach((msg) => {
-          messages.push({
-            role: msg.role === "assistant" ? "assistant" : "user",
-            content: msg.content,
-          });
-        });
-      }
+            // Add conversation history for context
+            if (history && history.length > 0) {
+                // Take last 10 messages for context
+                const recentHistory = history.slice(-10);
+                recentHistory.forEach((msg) => {
+                    messages.push({
+                        role: msg.role === 'assistant' ? 'assistant' : 'user',
+                        content: msg.content,
+                    });
+                });
+            }
 
-      // Add project context if provided
-      if (context) {
-        // Check if context contains memory summary
-        const hasMemory = context.includes("🧠 Memory");
-        messages.push({
-          role: "system",
-          content: hasMemory
-            ? `${context}
+            // Add project context if provided
+            if (context) {
+                // Check if context contains memory summary
+                const hasMemory = context.includes('🧠 Memory');
+                messages.push({
+                    role: 'system',
+                    content: hasMemory
+                        ? `${context}
 
 IMPORTANT: You have persistent memory of this user from previous conversations. USE this memory to personalize your responses. When the user asks "do you remember" or similar questions, refer to what you know about them from your memory. Never say you don't have memory or can't remember - you DO have the memory shown above.`
-            : `## 📋 Current Context
+                        : `## 📋 Current Context
 The user is working on:
 ${context}
 
 Use this context to provide more relevant and specific assistance.`,
-        });
-      }
+                });
+            }
 
-      // Add chain-of-thought instruction for complex tasks
-      let enhancedMessage = userMessage;
-      if (["bug_fix", "code_review", "architecture"].includes(intent.type)) {
-        enhancedMessage = `${userMessage}
+            // Add chain-of-thought instruction for complex tasks
+            let enhancedMessage = userMessage;
+            if (['bug_fix', 'code_review', 'architecture'].includes(intent.type)) {
+                enhancedMessage = `${userMessage}
 
 Think step-by-step and be thorough in your analysis.`;
-      }
+            }
 
-      messages.push({ role: "user", content: enhancedMessage });
+            messages.push({ role: 'user', content: enhancedMessage });
 
-      const responseText = await this.makeRequest(messages, {
-        temperature,
-        max_tokens: 4096,
-      });
+            const responseText = await this.makeRequest(messages, {
+                temperature,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        message: responseText,
-        model: this.model,
-        intent: intent.type,
-      };
-    } catch (error) {
-      console.error("Chat error:", error);
-      return {
-        success: false,
-        error:
-          "AI assistant is currently unavailable. Please check your connection or API key.",
-        details: error.message,
-      };
+            return {
+                success: true,
+                message: responseText,
+                model: this.model,
+                intent: intent.type,
+            };
+        } catch (error) {
+            console.error('Chat error:', error);
+            return {
+                success: false,
+                error: 'AI assistant is currently unavailable. Please check your connection or API key.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXPERT BUG FIXING
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPERT BUG FIXING
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Expert bug analysis and fix suggestions
-   * @param {string} code - The problematic code
-   * @param {string} errorMessage - The error message or description
-   * @param {string} language - Programming language
-   */
-  async fixBug(code, errorMessage, language = "javascript") {
-    const prompt = `## 🐛 Bug Report
+    /**
+     * Expert bug analysis and fix suggestions
+     * @param {string} code - The problematic code
+     * @param {string} errorMessage - The error message or description
+     * @param {string} language - Programming language
+     */
+    async fixBug(code, errorMessage, language = 'javascript') {
+        const prompt = `## 🐛 Bug Report
 
 ### Error/Problem:
 ${errorMessage}
@@ -752,68 +739,67 @@ Please analyze this code and provide:
 3. **Prevention**: How to avoid this in the future
 4. **Edge Cases**: Any related issues to watch for`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `${this.systemPrompt}\n\n${this.bugFixPrompt}`,
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `${this.systemPrompt}\n\n${this.bugFixPrompt}`,
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const response = await this.makeRequest(messages, {
-        temperature: 0.2,
-        max_tokens: 4096,
-      });
+            const response = await this.makeRequest(messages, {
+                temperature: 0.2,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        analysis: response,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Bug fix error:", error);
-      return {
-        success: false,
-        error: "Bug analysis failed. Please try again.",
-        details: error.message,
-      };
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXPERT CODE REVIEW
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /**
-   * Comprehensive code review with quality scoring
-   * @param {string} code - The code to review
-   * @param {string} language - Programming language
-   * @param {object} options - Additional options (focus areas, etc.)
-   */
-  async reviewCode(code, language = "javascript", options = {}) {
-    const focusArea = options.focus || "all";
-
-    let focusInstruction = "";
-    switch (focusArea) {
-      case "security":
-        focusInstruction =
-          "Focus especially on security vulnerabilities (OWASP Top 10, input validation, auth issues).";
-        break;
-      case "performance":
-        focusInstruction =
-          "Focus especially on performance (time complexity, memory usage, optimization opportunities).";
-        break;
-      case "readability":
-        focusInstruction =
-          "Focus especially on readability (naming, structure, documentation, maintainability).";
-        break;
-      default:
-        focusInstruction =
-          "Provide a comprehensive review covering all aspects.";
+            return {
+                success: true,
+                analysis: response,
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Bug fix error:', error);
+            return {
+                success: false,
+                error: 'Bug analysis failed. Please try again.',
+                details: error.message,
+            };
+        }
     }
 
-    const prompt = `## 📝 Code Review Request
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPERT CODE REVIEW
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Comprehensive code review with quality scoring
+     * @param {string} code - The code to review
+     * @param {string} language - Programming language
+     * @param {object} options - Additional options (focus areas, etc.)
+     */
+    async reviewCode(code, language = 'javascript', options = {}) {
+        const focusArea = options.focus || 'all';
+
+        let focusInstruction = '';
+        switch (focusArea) {
+            case 'security':
+                focusInstruction =
+                    'Focus especially on security vulnerabilities (OWASP Top 10, input validation, auth issues).';
+                break;
+            case 'performance':
+                focusInstruction =
+                    'Focus especially on performance (time complexity, memory usage, optimization opportunities).';
+                break;
+            case 'readability':
+                focusInstruction =
+                    'Focus especially on readability (naming, structure, documentation, maintainability).';
+                break;
+            default:
+                focusInstruction = 'Provide a comprehensive review covering all aspects.';
+        }
+
+        const prompt = `## 📝 Code Review Request
 
 ### Language: ${language}
 ### Focus: ${focusArea.charAt(0).toUpperCase() + focusArea.slice(1)}
@@ -827,58 +813,59 @@ ${code}
 
 Provide a thorough multi-pass review following the FAANG-level code review format.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `${this.systemPrompt}\n\n${this.codeReviewPrompt}`,
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `${this.systemPrompt}\n\n${this.codeReviewPrompt}`,
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const review = await this.makeRequest(messages, {
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
+            const review = await this.makeRequest(messages, {
+                temperature: 0.3,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        review: review,
-        model: this.model,
-        focusArea: focusArea,
-      };
-    } catch (error) {
-      console.error("Code review error:", error);
-      return {
-        success: false,
-        error: "Code review failed. Please try again.",
-        details: error.message,
-      };
+            return {
+                success: true,
+                review: review,
+                model: this.model,
+                focusArea: focusArea,
+            };
+        } catch (error) {
+            console.error('Code review error:', error);
+            return {
+                success: false,
+                error: 'Code review failed. Please try again.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXPERT RESUME SUMMARY GENERATOR
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPERT RESUME SUMMARY GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Generate a professional resume summary based on user profile and verified projects
-   * @param {object} userData - User profile data (role, bio, experience)
-   * @param {Array} projects - List of user's key projects
-   * @param {Array} skills - List of verified skills
-   */
-  async generateResumeSummary(userData, projects, skills) {
-    const projectHighlights = projects.slice(0, 3).map(p =>
-      `- ${p.name}: ${p.description} (Tech: ${p.technologies?.join(', ')})`
-    ).join('\n');
+    /**
+     * Generate a professional resume summary based on user profile and verified projects
+     * @param {object} userData - User profile data (role, bio, experience)
+     * @param {Array} projects - List of user's key projects
+     * @param {Array} skills - List of verified skills
+     */
+    async generateResumeSummary(userData, projects, skills) {
+        const projectHighlights = projects
+            .slice(0, 3)
+            .map((p) => `- ${p.name}: ${p.description} (Tech: ${p.technologies?.join(', ')})`)
+            .join('\n');
 
-    const prompt = `You are a Professional Resume Writer for top-tier tech companies (Google, Meta, Netflix).
+        const prompt = `You are a Professional Resume Writer for top-tier tech companies (Google, Meta, Netflix).
     
     Write a concise, high-impact professional summary (3-4 sentences max) for a software developer's resume.
     
     **CANDIDATE PROFILE:**
     - Role: ${userData.role || 'Full Stack Developer'}
-    - Key Skills: ${skills.map(s => s.name).join(', ')}
+    - Key Skills: ${skills.map((s) => s.name).join(', ')}
     - Experience Level: ${userData.experience?.length || 0} previous roles
     
     **KEY PROJECTS:**
@@ -891,67 +878,65 @@ Provide a thorough multi-pass review following the FAANG-level code review forma
     4. Do NOT use personal pronouns like "I", "me", "my". Start sentences with verbs or adjectives.
     5. Output ONLY the summary text, no headings or other formatting.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: "You are an expert resume consultant who writes compelling, ATS-friendly professional summaries."
-        },
-        { role: "user", content: prompt }
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content:
+                        'You are an expert resume consultant who writes compelling, ATS-friendly professional summaries.',
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const summary = await this.makeRequest(messages, {
-        temperature: 0.6,
-        max_tokens: 200
-      });
+            const summary = await this.makeRequest(messages, {
+                temperature: 0.6,
+                max_tokens: 200,
+            });
 
-      return {
-        success: true,
-        summary: summary.trim()
-      };
-    } catch (error) {
-      console.error("Resume summary generation error:", error);
-      return {
-        success: false,
-        error: "Failed to generate summary.",
-        details: error.message
-      };
+            return {
+                success: true,
+                summary: summary.trim(),
+            };
+        } catch (error) {
+            console.error('Resume summary generation error:', error);
+            return {
+                success: false,
+                error: 'Failed to generate summary.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXPERT PROJECT ANALYSIS
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // EXPERT PROJECT ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Analyze project progress with comprehensive output
-   * @param {object} repoInfo - Complete repository information from GitHub
-   */
-  async analyzeProjectProgress(repoInfo) {
-    // Format key files for the prompt
-    const keyFilesSection =
-      repoInfo.keyFiles && Object.keys(repoInfo.keyFiles).length > 0
-        ? Object.entries(repoInfo.keyFiles)
-          .map(
-            ([filename, content]) =>
-              `### ${filename}\n\`\`\`\n${content.substring(0, 1200)}\n\`\`\``
-          )
-          .join("\n\n")
-        : "No key configuration files found";
+    /**
+     * Analyze project progress with comprehensive output
+     * @param {object} repoInfo - Complete repository information from GitHub
+     */
+    async analyzeProjectProgress(repoInfo) {
+        // Format key files for the prompt
+        const keyFilesSection =
+            repoInfo.keyFiles && Object.keys(repoInfo.keyFiles).length > 0
+                ? Object.entries(repoInfo.keyFiles)
+                      .map(([filename, content]) => `### ${filename}\n\`\`\`\n${content.substring(0, 1200)}\n\`\`\``)
+                      .join('\n\n')
+                : 'No key configuration files found';
 
-    // Format commit patterns
-    const commitPatternSection = repoInfo.commitStats?.commitPatterns
-      ? `
+        // Format commit patterns
+        const commitPatternSection = repoInfo.commitStats?.commitPatterns
+            ? `
 - 🚀 Feature commits: ${repoInfo.commitStats.commitPatterns.features}
 - 🐛 Bug fix commits: ${repoInfo.commitStats.commitPatterns.fixes}
 - 📚 Documentation commits: ${repoInfo.commitStats.commitPatterns.docs}
 - ♻️ Refactoring commits: ${repoInfo.commitStats.commitPatterns.refactors}
 - 🧪 Test commits: ${repoInfo.commitStats.commitPatterns.tests}
 - 📦 Other commits: ${repoInfo.commitStats.commitPatterns.other}`
-      : "Commit pattern analysis not available";
+            : 'Commit pattern analysis not available';
 
-    // Enhanced analysis prompt
-    const prompt = `You are a **Senior Technical Architect** conducting a comprehensive project analysis.
+        // Enhanced analysis prompt
+        const prompt = `You are a **Senior Technical Architect** conducting a comprehensive project analysis.
 
 ═══════════════════════════════════════════════════════════════════════════════
 ANALYSIS METHODOLOGY
@@ -982,66 +967,62 @@ REPOSITORY INTEL
 
 📊 **METRICS:**
 - Name: ${repoInfo.name}
-- Description: ${repoInfo.description || "No description"}
-- Primary Language: ${repoInfo.primaryLanguage || "Unknown"}
-- Languages: ${repoInfo.languages
-        ?.map((l) => `${l.name} (${l.percentage}%)`)
-        .join(", ") || "None"
-      }
+- Description: ${repoInfo.description || 'No description'}
+- Primary Language: ${repoInfo.primaryLanguage || 'Unknown'}
+- Languages: ${repoInfo.languages?.map((l) => `${l.name} (${l.percentage}%)`).join(', ') || 'None'}
 - Total Commits: ${repoInfo.totalCommits || 0}
 - Commits This Week: ${repoInfo.recentCommitsThisWeek || 0}
 - Stars: ${repoInfo.stars || 0} ⭐ | Forks: ${repoInfo.forks || 0} 🍴
 - Open Issues: ${repoInfo.openIssues?.length || 0}
 - Open PRs: ${repoInfo.openPullRequests?.length || 0}
 - Size: ${repoInfo.size || 0} KB
-- Created: ${repoInfo.createdAt || "Unknown"}
-- Last Push: ${repoInfo.pushedAt || "Unknown"}
-- Topics: ${repoInfo.topics?.join(", ") || "None"}
-- Visibility: ${repoInfo.isPrivate ? "🔒 Private" : "🌐 Public"}
+- Created: ${repoInfo.createdAt || 'Unknown'}
+- Last Push: ${repoInfo.pushedAt || 'Unknown'}
+- Topics: ${repoInfo.topics?.join(', ') || 'None'}
+- Visibility: ${repoInfo.isPrivate ? '🔒 Private' : '🌐 Public'}
 
 📈 **COMMIT PATTERNS:**
 ${commitPatternSection}
 
 📝 **RECENT COMMITS (last 30):**
-${repoInfo.commits
+${
+    repoInfo.commits
         ?.slice(0, 30)
-        .map(
-          (c) => `- [${c.date?.split("T")[0] || "?"}] ${c.message.substring(0, 80)}`
-        )
-        .join("\n") || "No commits"
-      }
+        .map((c) => `- [${c.date?.split('T')[0] || '?'}] ${c.message.substring(0, 80)}`)
+        .join('\n') || 'No commits'
+}
 
 🎫 **OPEN ISSUES:**
-${repoInfo.openIssues
+${
+    repoInfo.openIssues
         ?.slice(0, 15)
-        .map(
-          (i) =>
-            `- #${i.number}: ${i.title} [${i.labels?.join(", ") || "no labels"}]`
-        )
-        .join("\n") || "No open issues"
-      }
+        .map((i) => `- #${i.number}: ${i.title} [${i.labels?.join(', ') || 'no labels'}]`)
+        .join('\n') || 'No open issues'
+}
 
 🔀 **OPEN PRs:**
-${repoInfo.openPullRequests
+${
+    repoInfo.openPullRequests
         ?.slice(0, 8)
         .map((p) => `- #${p.number}: ${p.title}`)
-        .join("\n") || "No open PRs"
-      }
+        .join('\n') || 'No open PRs'
+}
 
 📁 **DIRECTORY STRUCTURE:**
-${repoInfo.directoryStructure
+${
+    repoInfo.directoryStructure
         ?.map((d) => {
-          const icon = d.type === "dir" ? "📁" : "📄";
-          return `- ${icon} ${d.name}${d.type === "dir" ? "/" : ""}`;
+            const icon = d.type === 'dir' ? '📁' : '📄';
+            return `- ${icon} ${d.name}${d.type === 'dir' ? '/' : ''}`;
         })
-        .join("\n") || "Unknown"
-      }
+        .join('\n') || 'Unknown'
+}
 
 📄 **KEY FILES:**
 ${keyFilesSection}
 
 📖 **README:**
-${repoInfo.readme?.substring(0, 1000) || "No README found"}
+${repoInfo.readme?.substring(0, 1000) || 'No README found'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 REQUIRED OUTPUT (JSON)
@@ -1118,55 +1099,55 @@ Respond with this EXACT JSON structure:
   "expertTip": "<one actionable pro tip specific to this project>"
 }`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `You are a Senior Technical Architect with 15+ years of experience. Analyze projects with the precision of a tech lead at a FAANG company. Be specific, actionable, and insightful. Always respond with valid JSON only.`,
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `You are a Senior Technical Architect with 15+ years of experience. Analyze projects with the precision of a tech lead at a FAANG company. Be specific, actionable, and insightful. Always respond with valid JSON only.`,
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const jsonResponse = await this.makeRequest(messages, {
-        jsonMode: true,
-        max_tokens: 3500,
-        temperature: 0.3,
-      });
+            const jsonResponse = await this.makeRequest(messages, {
+                jsonMode: true,
+                max_tokens: 3500,
+                temperature: 0.3,
+            });
 
-      const parsed = JSON.parse(jsonResponse);
+            const parsed = JSON.parse(jsonResponse);
 
-      console.log("✅ AI Expert Project Analysis complete");
+            console.log('✅ AI Expert Project Analysis complete');
 
-      return {
-        success: true,
-        ...parsed,
-      };
-    } catch (error) {
-      console.error("Project analysis error:", error);
-      return {
-        success: false,
-        progressSummary: "Analysis temporarily unavailable",
-        progressPercentage: 0,
-        healthScore: 0,
-        commitFrequencyScore: 0,
-        areasOfImprovement: [],
-        nextRecommendedTasks: [],
-        error: error.message,
-      };
+            return {
+                success: true,
+                ...parsed,
+            };
+        } catch (error) {
+            console.error('Project analysis error:', error);
+            return {
+                success: false,
+                progressSummary: 'Analysis temporarily unavailable',
+                progressPercentage: 0,
+                healthScore: 0,
+                commitFrequencyScore: 0,
+                areasOfImprovement: [],
+                nextRecommendedTasks: [],
+                error: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CODE EXPLANATION
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // CODE EXPLANATION
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Explain code in detail for learning
-   * @param {string} code - The code to explain
-   * @param {string} language - Programming language
-   */
-  async explainCode(code, language = "javascript") {
-    const prompt = `## 📖 Code Explanation Request
+    /**
+     * Explain code in detail for learning
+     * @param {string} code - The code to explain
+     * @param {string} language - Programming language
+     */
+    async explainCode(code, language = 'javascript') {
+        const prompt = `## 📖 Code Explanation Request
 
 Please explain this ${language} code in detail:
 
@@ -1176,51 +1157,49 @@ ${code}
 
 Walk through it step-by-step, explain any patterns or techniques used, and highlight anything tricky or noteworthy.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `${this.systemPrompt}\n\n${this.explainCodePrompt}`,
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `${this.systemPrompt}\n\n${this.explainCodePrompt}`,
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const explanation = await this.makeRequest(messages, {
-        temperature: 0.5,
-        max_tokens: 4096,
-      });
+            const explanation = await this.makeRequest(messages, {
+                temperature: 0.5,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        explanation: explanation,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Code explanation error:", error);
-      return {
-        success: false,
-        error: "Explanation failed. Please try again.",
-        details: error.message,
-      };
+            return {
+                success: true,
+                explanation: explanation,
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Code explanation error:', error);
+            return {
+                success: false,
+                error: 'Explanation failed. Please try again.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CODE REFACTORING
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // CODE REFACTORING
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Suggest and apply refactoring improvements
-   * @param {string} code - The code to refactor
-   * @param {string} language - Programming language
-   * @param {string} goal - Optional specific refactoring goal
-   */
-  async refactorCode(code, language = "javascript", goal = "") {
-    const goalInstruction = goal
-      ? `Specific goal: ${goal}`
-      : "Apply best practices to improve this code.";
+    /**
+     * Suggest and apply refactoring improvements
+     * @param {string} code - The code to refactor
+     * @param {string} language - Programming language
+     * @param {string} goal - Optional specific refactoring goal
+     */
+    async refactorCode(code, language = 'javascript', goal = '') {
+        const goalInstruction = goal ? `Specific goal: ${goal}` : 'Apply best practices to improve this code.';
 
-    const prompt = `## 🔄 Refactoring Request
+        const prompt = `## 🔄 Refactoring Request
 
 ${goalInstruction}
 
@@ -1231,45 +1210,45 @@ ${code}
 
 Provide the refactored version with detailed explanations of each change and why it improves the code.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `${this.systemPrompt}\n\n${this.refactorPrompt}`,
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `${this.systemPrompt}\n\n${this.refactorPrompt}`,
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const refactored = await this.makeRequest(messages, {
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
+            const refactored = await this.makeRequest(messages, {
+                temperature: 0.3,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        refactored: refactored,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Refactoring error:", error);
-      return {
-        success: false,
-        error: "Refactoring failed. Please try again.",
-        details: error.message,
-      };
+            return {
+                success: true,
+                refactored: refactored,
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Refactoring error:', error);
+            return {
+                success: false,
+                error: 'Refactoring failed. Please try again.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // MOTIVATIONAL MESSAGE
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // MOTIVATIONAL MESSAGE
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Generate an encouraging motivational message
-   * @param {object} stats - Developer stats
-   */
-  async generateMotivation(stats) {
-    const prompt = `Generate a SHORT (2-3 sentences max) motivational message for a developer.
+    /**
+     * Generate an encouraging motivational message
+     * @param {object} stats - Developer stats
+     */
+    async generateMotivation(stats) {
+        const prompt = `Generate a SHORT (2-3 sentences max) motivational message for a developer.
 
 Their stats:
 - Days active: ${stats.daysActive || 0}
@@ -1278,37 +1257,37 @@ Their stats:
 
 Be genuine, encouraging, and specific to their activity level. Add a relevant emoji.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content:
-            "You are an encouraging mentor. Keep responses SHORT (2-3 sentences). Be genuine and uplifting.",
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content:
+                        'You are an encouraging mentor. Keep responses SHORT (2-3 sentences). Be genuine and uplifting.',
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      return await this.makeRequest(messages, {
-        max_tokens: 100,
-        temperature: 0.8,
-      });
-    } catch (error) {
-      console.error("Motivation error:", error);
-      return "Every commit is progress! Keep building, keep learning. 🚀";
+            return await this.makeRequest(messages, {
+                max_tokens: 100,
+                temperature: 0.8,
+            });
+        } catch (error) {
+            console.error('Motivation error:', error);
+            return 'Every commit is progress! Keep building, keep learning. 🚀';
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SECURITY AUDIT
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // SECURITY AUDIT
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Perform a security audit on code
-   * @param {string} code - The code to audit
-   * @param {string} language - Programming language
-   */
-  async securityAudit(code, language = "javascript") {
-    const prompt = `## 🔒 Security Audit Request
+    /**
+     * Perform a security audit on code
+     * @param {string} code - The code to audit
+     * @param {string} language - Programming language
+     */
+    async securityAudit(code, language = 'javascript') {
+        const prompt = `## 🔒 Security Audit Request
 
 Perform a comprehensive security audit on this ${language} code:
 
@@ -1331,62 +1310,62 @@ For each issue found, provide:
 - The secure fix
 - Prevention strategy`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `${this.systemPrompt}
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `${this.systemPrompt}
 
 You are a cybersecurity expert. Be thorough and precise in identifying vulnerabilities. Provide actionable fixes for every issue found.`,
-        },
-        { role: "user", content: prompt },
-      ];
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const audit = await this.makeRequest(messages, {
-        temperature: 0.2,
-        max_tokens: 4096,
-      });
+            const audit = await this.makeRequest(messages, {
+                temperature: 0.2,
+                max_tokens: 4096,
+            });
 
-      return {
-        success: true,
-        audit: audit,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Security audit error:", error);
-      return {
-        success: false,
-        error: "Security audit failed. Please try again.",
-        details: error.message,
-      };
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // CONVERSATION MEMORY SUMMARIZATION
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /**
-   * Summarize a conversation to create persistent memory
-   * @param {Array} messages - Array of conversation messages
-   * @param {string} existingSummary - Previous summary to incorporate
-   * @returns {object} - Summary result
-   */
-  async summarizeConversation(messages, existingSummary = "") {
-    if (!messages || messages.length === 0) {
-      return {
-        success: true,
-        summary: existingSummary || "",
-      };
+            return {
+                success: true,
+                audit: audit,
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Security audit error:', error);
+            return {
+                success: false,
+                error: 'Security audit failed. Please try again.',
+                details: error.message,
+            };
+        }
     }
 
-    const conversationText = messages
-      .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
-      .join("\n\n");
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONVERSATION MEMORY SUMMARIZATION
+    // ═══════════════════════════════════════════════════════════════════════
 
-    const prompt = `You are creating a MEMORY SUMMARY for a coding assistant. This summary will be used to remember key information about the user across conversations.
+    /**
+     * Summarize a conversation to create persistent memory
+     * @param {Array} messages - Array of conversation messages
+     * @param {string} existingSummary - Previous summary to incorporate
+     * @returns {object} - Summary result
+     */
+    async summarizeConversation(messages, existingSummary = '') {
+        if (!messages || messages.length === 0) {
+            return {
+                success: true,
+                summary: existingSummary || '',
+            };
+        }
 
-${existingSummary ? `## Previous Memory:\n${existingSummary}\n\n---\n\n` : ""}
+        const conversationText = messages
+            .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n\n');
+
+        const prompt = `You are creating a MEMORY SUMMARY for a coding assistant. This summary will be used to remember key information about the user across conversations.
+
+${existingSummary ? `## Previous Memory:\n${existingSummary}\n\n---\n\n` : ''}
 
 ## New Conversation to Summarize:
 ${conversationText}
@@ -1404,88 +1383,78 @@ Create a concise memory summary that captures:
 
 If the previous memory exists, MERGE the new information with it, keeping the most relevant and recent details. Remove outdated information.`;
 
-    try {
-      const response = await this.makeRequest(
-        [
-          {
-            role: "system",
-            content:
-              "You are a memory summarization expert. Create concise, useful summaries that capture the essence of conversations for future reference.",
-          },
-          { role: "user", content: prompt },
-        ],
-        {
-          temperature: 0.3,
-          max_tokens: 800,
+        try {
+            const response = await this.makeRequest(
+                [
+                    {
+                        role: 'system',
+                        content:
+                            'You are a memory summarization expert. Create concise, useful summaries that capture the essence of conversations for future reference.',
+                    },
+                    { role: 'user', content: prompt },
+                ],
+                {
+                    temperature: 0.3,
+                    max_tokens: 800,
+                }
+            );
+
+            return {
+                success: true,
+                summary: response.trim(),
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Summarization error:', error);
+            return {
+                success: false,
+                error: 'Failed to summarize conversation',
+                summary: existingSummary || '',
+            };
         }
-      );
-
-      return {
-        success: true,
-        summary: response.trim(),
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Summarization error:", error);
-      return {
-        success: false,
-        error: "Failed to summarize conversation",
-        summary: existingSummary || "",
-      };
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PROJECT IDEAS GENERATOR
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // PROJECT IDEAS GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Generate personalized project ideas based on user's skills
-   * @param {object} skillProfile - User's skill profile
-   * @param {string[]} skillProfile.primarySkills - Most used skills
-   * @param {string[]} skillProfile.recentSkills - Recently learned skills
-   * @param {string[]} skillProfile.projectTypes - Types of projects completed
-   * @param {string} difficulty - beginner, intermediate, or advanced
-   * @param {string[]} excludeTitles - Previously shown project titles to avoid
-   */
-  async generateProjectIdeas(
-    skillProfile,
-    difficulty = "intermediate",
-    excludeTitles = []
-  ) {
-    const difficultyGuide = {
-      beginner:
-        "Simple projects achievable in 1-2 weeks, focusing on fundamentals",
-      intermediate:
-        "Moderate complexity projects for 2-4 weeks, introducing new concepts",
-      advanced:
-        "Complex projects for 4-8 weeks, involving system design and advanced patterns",
-    };
+    /**
+     * Generate personalized project ideas based on user's skills
+     * @param {object} skillProfile - User's skill profile
+     * @param {string[]} skillProfile.primarySkills - Most used skills
+     * @param {string[]} skillProfile.recentSkills - Recently learned skills
+     * @param {string[]} skillProfile.projectTypes - Types of projects completed
+     * @param {string} difficulty - beginner, intermediate, or advanced
+     * @param {string[]} excludeTitles - Previously shown project titles to avoid
+     */
+    async generateProjectIdeas(skillProfile, difficulty = 'intermediate', excludeTitles = []) {
+        const difficultyGuide = {
+            beginner: 'Simple projects achievable in 1-2 weeks, focusing on fundamentals',
+            intermediate: 'Moderate complexity projects for 2-4 weeks, introducing new concepts',
+            advanced: 'Complex projects for 4-8 weeks, involving system design and advanced patterns',
+        };
 
-    const prompt = `## 🎯 Project Ideas Generator
+        const prompt = `## 🎯 Project Ideas Generator
 
 Based on this developer's profile, generate 5 unique and exciting project ideas.
 
 ### Developer Profile:
-- **Primary Skills**: ${skillProfile.primarySkills?.join(", ") || "General programming"
-      }
-- **Recently Learning**: ${skillProfile.recentSkills?.join(", ") || "Various technologies"
-      }
-- **Completed Project Types**: ${skillProfile.projectTypes?.join(", ") || "Various projects"
-      }
+- **Primary Skills**: ${skillProfile.primarySkills?.join(', ') || 'General programming'}
+- **Recently Learning**: ${skillProfile.recentSkills?.join(', ') || 'Various technologies'}
+- **Completed Project Types**: ${skillProfile.projectTypes?.join(', ') || 'Various projects'}
 
-${excludeTitles.length > 0
+${
+    excludeTitles.length > 0
         ? `### ⚠️ EXCLUDED PROJECTS (DO NOT SUGGEST THESE OR SIMILAR):
 The following projects have already been shown. DO NOT generate these or any variations of them:
-${excludeTitles.map((t) => `- ${t}`).join("\n")}
+${excludeTitles.map((t) => `- ${t}`).join('\n')}
 
 Generate COMPLETELY DIFFERENT and UNIQUE project ideas.
 
 `
-        : ""
-      }### Requirements:
-- **Difficulty Level**: ${difficulty} - ${difficultyGuide[difficulty] || difficultyGuide.intermediate
-      }
+        : ''
+}### Requirements:
+- **Difficulty Level**: ${difficulty} - ${difficultyGuide[difficulty] || difficultyGuide.intermediate}
 - Each project should BUILD ON existing skills while introducing 1-2 new technologies
 - Projects should be practical and portfolio-worthy
 - Include a mix of categories (web app, tool, API, etc.)
@@ -1510,11 +1479,11 @@ Return ONLY valid JSON in this exact structure:
 
 Generate exactly 5 project ideas. Return ONLY the JSON, no other text.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `You are a senior developer mentor who suggests practical, engaging project ideas. 
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `You are a senior developer mentor who suggests practical, engaging project ideas. 
 Your suggestions are always:
 - Relevant to the developer's current skills
 - Challenging but achievable
@@ -1522,83 +1491,78 @@ Your suggestions are always:
 - Designed to teach valuable new skills
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no explanation, just the JSON object.`,
-        },
-        { role: "user", content: prompt },
-      ];
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const response = await this.makeRequest(messages, {
-        temperature: 0.8,
-        max_tokens: 3000,
-        jsonMode: true,
-      });
+            const response = await this.makeRequest(messages, {
+                temperature: 0.8,
+                max_tokens: 3000,
+                jsonMode: true,
+            });
 
-      // Parse the JSON response
-      let ideas;
-      try {
-        ideas = JSON.parse(response);
-      } catch (parseError) {
-        // Try to extract JSON if wrapped in markdown
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          ideas = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("Failed to parse AI response as JSON");
+            // Parse the JSON response
+            let ideas;
+            try {
+                ideas = JSON.parse(response);
+            } catch (parseError) {
+                // Try to extract JSON if wrapped in markdown
+                const jsonMatch = response.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    ideas = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('Failed to parse AI response as JSON');
+                }
+            }
+
+            return {
+                success: true,
+                ideas: ideas.ideas || [],
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Project ideas generation error:', error);
+            return {
+                success: false,
+                error: 'Failed to generate project ideas. Please try again.',
+                details: error.message,
+            };
         }
-      }
-
-      return {
-        success: true,
-        ideas: ideas.ideas || [],
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Project ideas generation error:", error);
-      return {
-        success: false,
-        error: "Failed to generate project ideas. Please try again.",
-        details: error.message,
-      };
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // README GENERATOR
-  // ═══════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // README GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════
 
-  /**
-   * Generate a professional README.md for a project
-   * @param {object} repoInfo - Complete repository information from GitHub
-   * @returns {object} - Generated README content
-   */
-  async generateReadme(repoInfo) {
-    // Format key files for context
-    const keyFilesSection =
-      repoInfo.keyFiles && Object.keys(repoInfo.keyFiles).length > 0
-        ? Object.entries(repoInfo.keyFiles)
-          .map(
-            ([filename, content]) =>
-              `### ${filename}\n\`\`\`\n${content.substring(0, 1500)}\n\`\`\``
-          )
-          .join("\n\n")
-        : "No configuration files found";
+    /**
+     * Generate a professional README.md for a project
+     * @param {object} repoInfo - Complete repository information from GitHub
+     * @returns {object} - Generated README content
+     */
+    async generateReadme(repoInfo) {
+        // Format key files for context
+        const keyFilesSection =
+            repoInfo.keyFiles && Object.keys(repoInfo.keyFiles).length > 0
+                ? Object.entries(repoInfo.keyFiles)
+                      .map(([filename, content]) => `### ${filename}\n\`\`\`\n${content.substring(0, 1500)}\n\`\`\``)
+                      .join('\n\n')
+                : 'No configuration files found';
 
-    // Format directory structure
-    const structureSection =
-      repoInfo.directoryStructure
-        ?.slice(0, 20)
-        .map((d) => {
-          const icon = d.type === "dir" ? "📁" : "📄";
-          return `${icon} ${d.name}${d.type === "dir" ? "/" : ""}`;
-        })
-        .join("\n") || "Structure not available";
+        // Format directory structure
+        const structureSection =
+            repoInfo.directoryStructure
+                ?.slice(0, 20)
+                .map((d) => {
+                    const icon = d.type === 'dir' ? '📁' : '📄';
+                    return `${icon} ${d.name}${d.type === 'dir' ? '/' : ''}`;
+                })
+                .join('\n') || 'Structure not available';
 
-    // Format languages
-    const languagesInfo =
-      repoInfo.languages
-        ?.map((l) => `${l.name} (${l.percentage}%)`)
-        .join(", ") || "Not detected";
+        // Format languages
+        const languagesInfo =
+            repoInfo.languages?.map((l) => `${l.name} (${l.percentage}%)`).join(', ') || 'Not detected';
 
-    const prompt = `You are an expert technical writer. Generate a professional, comprehensive README.md for this GitHub repository.
+        const prompt = `You are an expert technical writer. Generate a professional, comprehensive README.md for this GitHub repository.
 
 ═══════════════════════════════════════════════════════════════════════════════
 REPOSITORY INFORMATION
@@ -1606,14 +1570,14 @@ REPOSITORY INFORMATION
 
 📊 **BASIC INFO:**
 - Repository Name: ${repoInfo.name}
-- Description: ${repoInfo.description || "No description provided"}
-- Primary Language: ${repoInfo.primaryLanguage || "Unknown"}
+- Description: ${repoInfo.description || 'No description provided'}
+- Primary Language: ${repoInfo.primaryLanguage || 'Unknown'}
 - All Languages: ${languagesInfo}
 - Stars: ${repoInfo.stars || 0} | Forks: ${repoInfo.forks || 0}
-- Topics/Tags: ${repoInfo.topics?.join(", ") || "None"}
-- Created: ${repoInfo.createdAt || "Unknown"}
-- Last Updated: ${repoInfo.pushedAt || "Unknown"}
-- License: ${repoInfo.license || "Not specified"}
+- Topics/Tags: ${repoInfo.topics?.join(', ') || 'None'}
+- Created: ${repoInfo.createdAt || 'Unknown'}
+- Last Updated: ${repoInfo.pushedAt || 'Unknown'}
+- License: ${repoInfo.license || 'Not specified'}
 
 📁 **DIRECTORY STRUCTURE:**
 ${structureSection}
@@ -1622,11 +1586,12 @@ ${structureSection}
 ${keyFilesSection}
 
 📝 **RECENT COMMITS (for understanding project focus):**
-${repoInfo.commits
+${
+    repoInfo.commits
         ?.slice(0, 15)
         .map((c) => `- ${c.message.substring(0, 100)}`)
-        .join("\n") || "No commits available"
-      }
+        .join('\n') || 'No commits available'
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 README GENERATION REQUIREMENTS
@@ -1928,11 +1893,11 @@ CRITICAL ACCURACY RULES
 
 Generate the README.md now:`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: `You are a senior technical writer who creates exceptional README documentation. 
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content: `You are a senior technical writer who creates exceptional README documentation. 
 Your READMEs are:
 - Clear and well-organized
 - Specific to the project (not generic)
@@ -1941,81 +1906,88 @@ Your READMEs are:
 - Professional yet approachable
 
 Return ONLY raw Markdown content. Do not wrap in code blocks or add explanations.`,
-        },
-        { role: "user", content: prompt },
-      ];
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const readme = await this.makeRequestWithKey(messages, {
-        temperature: 0.4,
-        max_tokens: 4096,
-      }, process.env.GROQ_README_API_KEY || this.apiKey);
+            const readme = await this.makeRequestWithKey(
+                messages,
+                {
+                    temperature: 0.4,
+                    max_tokens: 4096,
+                },
+                process.env.GROQ_README_API_KEY || this.apiKey
+            );
 
-      // Clean up the response - remove any markdown code block wrappers
-      let cleanReadme = readme.trim();
-      if (cleanReadme.startsWith("```markdown")) {
-        cleanReadme = cleanReadme.slice(11);
-      } else if (cleanReadme.startsWith("```md")) {
-        cleanReadme = cleanReadme.slice(5);
-      } else if (cleanReadme.startsWith("```")) {
-        cleanReadme = cleanReadme.slice(3);
-      }
-      if (cleanReadme.endsWith("```")) {
-        cleanReadme = cleanReadme.slice(0, -3);
-      }
-      cleanReadme = cleanReadme.trim();
+            // Clean up the response - remove any markdown code block wrappers
+            let cleanReadme = readme.trim();
+            if (cleanReadme.startsWith('```markdown')) {
+                cleanReadme = cleanReadme.slice(11);
+            } else if (cleanReadme.startsWith('```md')) {
+                cleanReadme = cleanReadme.slice(5);
+            } else if (cleanReadme.startsWith('```')) {
+                cleanReadme = cleanReadme.slice(3);
+            }
+            if (cleanReadme.endsWith('```')) {
+                cleanReadme = cleanReadme.slice(0, -3);
+            }
+            cleanReadme = cleanReadme.trim();
 
-      console.log("✅ README generated successfully");
+            console.log('✅ README generated successfully');
 
-      return {
-        success: true,
-        readme: cleanReadme,
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("README generation error:", error);
+            return {
+                success: true,
+                readme: cleanReadme,
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('README generation error:', error);
 
-      // Handle rate limits specifically
-      if (error.status === 429 || error.message?.includes('429')) {
-        return {
-          success: false,
-          error: "Rate limit exceeded. Please wait a moment before trying again.",
-          details: error.message
-        };
-      }
+            // Handle rate limits specifically
+            if (error.status === 429 || error.message?.includes('429')) {
+                return {
+                    success: false,
+                    error: 'Rate limit exceeded. Please wait a moment before trying again.',
+                    details: error.message,
+                };
+            }
 
-      return {
-        success: false,
-        error: "Failed to generate README. Please try again.",
-        details: error.message,
-      };
+            return {
+                success: false,
+                error: 'Failed to generate README. Please try again.',
+                details: error.message,
+            };
+        }
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SIMILAR PROJECTS ANALYSIS
-  // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMILAR PROJECTS ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Analyze user's repositories and READMEs to extract search keywords
-   * for finding public repos with similar README content and features
-   * @param {object[]} repos - Array of user's repos with details
-   * @param {string[]} readmeContents - Array of README content strings
-   * @returns {object} - Extracted keywords for searching similar READMEs
-   */
-  async analyzeReposForSimilarProjects(repos, readmeContents = []) {
-    // Build context from repos
-    const repoSummaries = repos.slice(0, 5).map(repo => {
-      return `- ${repo.name}: ${repo.description || 'No description'} (${repo.language || 'Unknown'})${repo.topics?.length > 0 ? ` [Topics: ${repo.topics.join(', ')}]` : ''}`;
-    }).join('\n');
+    /**
+     * Analyze user's repositories and READMEs to extract search keywords
+     * for finding public repos with similar README content and features
+     * @param {object[]} repos - Array of user's repos with details
+     * @param {string[]} readmeContents - Array of README content strings
+     * @returns {object} - Extracted keywords for searching similar READMEs
+     */
+    async analyzeReposForSimilarProjects(repos, readmeContents = []) {
+        // Build context from repos
+        const repoSummaries = repos
+            .slice(0, 5)
+            .map((repo) => {
+                return `- ${repo.name}: ${repo.description || 'No description'} (${repo.language || 'Unknown'})${repo.topics?.length > 0 ? ` [Topics: ${repo.topics.join(', ')}]` : ''}`;
+            })
+            .join('\n');
 
-    // Combine README snippets - prioritize README content for analysis
-    const readmeContext = readmeContents
-      .filter(r => r)
-      .slice(0, 3)
-      .map((r, i) => `### README ${i + 1}:\n${r.substring(0, 1500)}`)
-      .join('\n\n---\n\n');
+        // Combine README snippets - prioritize README content for analysis
+        const readmeContext = readmeContents
+            .filter((r) => r)
+            .slice(0, 3)
+            .map((r, i) => `### README ${i + 1}:\n${r.substring(0, 1500)}`)
+            .join('\n\n---\n\n');
 
-    const prompt = `You are an expert at analyzing software project documentation. Your goal is to deeply analyze the user's README files and extract keywords that will help find PUBLIC repositories with SIMILAR README content, features, and project structure on GitHub.
+        const prompt = `You are an expert at analyzing software project documentation. Your goal is to deeply analyze the user's README files and extract keywords that will help find PUBLIC repositories with SIMILAR README content, features, and project structure on GitHub.
 
 ## User's Repositories:
 ${repoSummaries}
@@ -2049,130 +2021,142 @@ Focus on extracting terms that describe WHAT the project DOES, not just what tec
 
 Return ONLY the JSON, no other text.`;
 
-    try {
-      const messages = [
-        {
-          role: "system",
-          content: "You are a README analysis expert. Extract meaningful keywords from README content to find similar projects. Focus on project features, purpose, and functionality - not just technologies. Return only valid JSON.",
-        },
-        { role: "user", content: prompt },
-      ];
+        try {
+            const messages = [
+                {
+                    role: 'system',
+                    content:
+                        'You are a README analysis expert. Extract meaningful keywords from README content to find similar projects. Focus on project features, purpose, and functionality - not just technologies. Return only valid JSON.',
+                },
+                { role: 'user', content: prompt },
+            ];
 
-      const response = await this.makeRequest(messages, {
-        temperature: 0.3,
-        max_tokens: 1200,
-        jsonMode: true,
-      });
+            const response = await this.makeRequest(messages, {
+                temperature: 0.3,
+                max_tokens: 1200,
+                jsonMode: true,
+            });
 
-      // Parse the JSON response
-      let analysis;
-      try {
-        analysis = JSON.parse(response);
-      } catch (parseError) {
-        // Try to extract JSON if wrapped in markdown
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysis = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("Failed to parse AI response as JSON");
+            // Parse the JSON response
+            let analysis;
+            try {
+                analysis = JSON.parse(response);
+            } catch (parseError) {
+                // Try to extract JSON if wrapped in markdown
+                const jsonMatch = response.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    analysis = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('Failed to parse AI response as JSON');
+                }
+            }
+
+            return {
+                success: true,
+                coreFeatures: analysis.coreFeatures || [],
+                techStackKeywords: analysis.techStackKeywords || [],
+                projectPurpose: analysis.projectPurpose || [],
+                readmePatterns: analysis.readmePatterns || [],
+                searchTerms: analysis.searchTerms || [],
+                suggestedSearchQuery: analysis.suggestedSearchQuery || '',
+                // Legacy compatibility
+                frameworks: analysis.techStackKeywords || [],
+                projectTypes: analysis.projectPurpose || [],
+                domainKeywords: analysis.coreFeatures || [],
+                searchTopics: analysis.searchTerms || [],
+                model: this.model,
+            };
+        } catch (error) {
+            console.error('Similar projects analysis error:', error);
+            return {
+                success: false,
+                error: 'Failed to analyze repositories.',
+                coreFeatures: [],
+                techStackKeywords: [],
+                projectPurpose: [],
+                readmePatterns: [],
+                searchTerms: [],
+                suggestedSearchQuery: '',
+                frameworks: [],
+                projectTypes: [],
+                domainKeywords: [],
+                searchTopics: [],
+            };
         }
-      }
-
-      return {
-        success: true,
-        coreFeatures: analysis.coreFeatures || [],
-        techStackKeywords: analysis.techStackKeywords || [],
-        projectPurpose: analysis.projectPurpose || [],
-        readmePatterns: analysis.readmePatterns || [],
-        searchTerms: analysis.searchTerms || [],
-        suggestedSearchQuery: analysis.suggestedSearchQuery || "",
-        // Legacy compatibility
-        frameworks: analysis.techStackKeywords || [],
-        projectTypes: analysis.projectPurpose || [],
-        domainKeywords: analysis.coreFeatures || [],
-        searchTopics: analysis.searchTerms || [],
-        model: this.model,
-      };
-    } catch (error) {
-      console.error("Similar projects analysis error:", error);
-      return {
-        success: false,
-        error: "Failed to analyze repositories.",
-        coreFeatures: [],
-        techStackKeywords: [],
-        projectPurpose: [],
-        readmePatterns: [],
-        searchTerms: [],
-        suggestedSearchQuery: "",
-        frameworks: [],
-        projectTypes: [],
-        domainKeywords: [],
-        searchTopics: [],
-      };
     }
-  }
 
-  /**
-   * Generate AI insights for the weekly PDF report
-   * @param {object} activityData - The user's activity summary for the week
-   */
-  /**
-   * Generate AI insights for the weekly PDF report
-   * @param {object} activityData - The user's activity summary for the week
-   * @param {object} weeklyStats - Accurate 7-day stats from getWeeklyStats()
-   * @param {object} previousReport - Prior week stored report data for delta
-   */
-  async generateWeeklyInsights(activityData, weeklyStats = null, previousReport = null) {
-    const pdfKeys = [
-      process.env.GROQ_PDF_API_KEY,
-      process.env.GROQ_PDF_API_KEY2,
-      process.env.GROQ_PDF_API_KEY3,
-      this.apiKey
-    ].filter(Boolean);
+    /**
+     * Generate AI insights for the weekly PDF report
+     * @param {object} activityData - The user's activity summary for the week
+     */
+    /**
+     * Generate AI insights for the weekly PDF report
+     * @param {object} activityData - The user's activity summary for the week
+     * @param {object} weeklyStats - Accurate 7-day stats from getWeeklyStats()
+     * @param {object} previousReport - Prior week stored report data for delta
+     */
+    async generateWeeklyInsights(activityData, weeklyStats = null, previousReport = null) {
+        const pdfKeys = [
+            process.env.GROQ_PDF_API_KEY,
+            process.env.GROQ_PDF_API_KEY2,
+            process.env.GROQ_PDF_API_KEY3,
+            this.apiKey,
+        ].filter(Boolean);
 
-    const repoList = Array.isArray(activityData.reposWorkedOn)
-      ? activityData.reposWorkedOn
-      : Array.from((activityData.reposWorkedOn || new Map()).values());
+        const repoList = Array.isArray(activityData.reposWorkedOn)
+            ? activityData.reposWorkedOn
+            : Array.from((activityData.reposWorkedOn || new Map()).values());
 
-    const allMessages = repoList.flatMap(r => r.recentCommits || []).map(m => m.toLowerCase());
-    const totalMsgs = allMessages.length || 1;
-    const typeBreakdown = {
-      features: Math.round((allMessages.filter(m => /feat|add|implement|new|creat/.test(m)).length / totalMsgs) * 100),
-      fixes: Math.round((allMessages.filter(m => /fix|bug|patch|hotfix|resolve|error/.test(m)).length / totalMsgs) * 100),
-      docs: Math.round((allMessages.filter(m => /doc|readme|comment/.test(m)).length / totalMsgs) * 100),
-      refactors: Math.round((allMessages.filter(m => /refactor|clean|rewrite|improve|optimiz/.test(m)).length / totalMsgs) * 100),
-    };
-    typeBreakdown.other = Math.max(0, 100 - typeBreakdown.features - typeBreakdown.fixes - typeBreakdown.docs - typeBreakdown.refactors);
+        const allMessages = repoList.flatMap((r) => r.recentCommits || []).map((m) => m.toLowerCase());
+        const totalMsgs = allMessages.length || 1;
+        const typeBreakdown = {
+            features: Math.round(
+                (allMessages.filter((m) => /feat|add|implement|new|creat/.test(m)).length / totalMsgs) * 100
+            ),
+            fixes: Math.round(
+                (allMessages.filter((m) => /fix|bug|patch|hotfix|resolve|error/.test(m)).length / totalMsgs) * 100
+            ),
+            docs: Math.round((allMessages.filter((m) => /doc|readme|comment/.test(m)).length / totalMsgs) * 100),
+            refactors: Math.round(
+                (allMessages.filter((m) => /refactor|clean|rewrite|improve|optimiz/.test(m)).length / totalMsgs) * 100
+            ),
+        };
+        typeBreakdown.other = Math.max(
+            0,
+            100 - typeBreakdown.features - typeBreakdown.fixes - typeBreakdown.docs - typeBreakdown.refactors
+        );
 
-    const repoStateHints = repoList.map(r => {
-      const msgs = (r.recentCommits || []).join(' ').toLowerCase();
-      const commits = r.commitsThisWeek || 0;
-      const stars = r.stars || 0;
-      const clones = r.clones || 0;
-      let stateHint = 'UNKNOWN';
-      if (commits === 0) stateHint = 'DORMANT';
-      else if (/auth|token|password|secret|env|api_key|crypto|jwt|session/.test(msgs)) stateHint = 'SECURITY_SENSITIVE';
-      else if (clones > 100 && commits < 3) stateHint = 'HIGH_VISIBILITY';
-      else if (commits > 8) stateHint = 'RAPID_GROWTH';
-      else if (typeBreakdown.fixes > 50) stateHint = 'MAINTENANCE_HEAVY';
-      else if (typeBreakdown.features > 50) stateHint = 'FEATURE_EXPANDING';
-      else if (/revert|undo|broke|broken/.test(msgs)) stateHint = 'UNSTABLE';
-      else stateHint = 'MAINTENANCE_HEAVY';
-      return { name: r.name, stateHint, commits, stars, clones };
-    });
+        const repoStateHints = repoList.map((r) => {
+            const msgs = (r.recentCommits || []).join(' ').toLowerCase();
+            const commits = r.commitsThisWeek || 0;
+            const stars = r.stars || 0;
+            const clones = r.clones || 0;
+            let stateHint = 'UNKNOWN';
+            if (commits === 0) stateHint = 'DORMANT';
+            else if (/auth|token|password|secret|env|api_key|crypto|jwt|session/.test(msgs))
+                stateHint = 'SECURITY_SENSITIVE';
+            else if (clones > 100 && commits < 3) stateHint = 'HIGH_VISIBILITY';
+            else if (commits > 8) stateHint = 'RAPID_GROWTH';
+            else if (typeBreakdown.fixes > 50) stateHint = 'MAINTENANCE_HEAVY';
+            else if (typeBreakdown.features > 50) stateHint = 'FEATURE_EXPANDING';
+            else if (/revert|undo|broke|broken/.test(msgs)) stateHint = 'UNSTABLE';
+            else stateHint = 'MAINTENANCE_HEAVY';
+            return { name: r.name, stateHint, commits, stars, clones };
+        });
 
-    const prevCommits = previousReport?.stats?.totalCommits || null;
-    const prevPRs = previousReport?.stats?.totalPRs || null;
-    const weeklyCommits = weeklyStats?.weekly?.commits ?? activityData.pushEvents ?? 0;
-    const weeklyPRs = weeklyStats?.weekly?.prs ?? activityData.prEvents ?? 0;
+        const prevCommits = previousReport?.stats?.totalCommits || null;
+        const prevPRs = previousReport?.stats?.totalPRs || null;
+        const weeklyCommits = weeklyStats?.weekly?.commits ?? activityData.pushEvents ?? 0;
+        const weeklyPRs = weeklyStats?.weekly?.prs ?? activityData.prEvents ?? 0;
 
-    const deltaContext = prevCommits
-      ? `PREVIOUS WEEK (stored): ${prevCommits} commits, ${prevPRs} PRs`
-      : 'PREVIOUS WEEK: No prior data (first report)';
+        const deltaContext = prevCommits
+            ? `PREVIOUS WEEK (stored): ${prevCommits} commits, ${prevPRs} PRs`
+            : 'PREVIOUS WEEK: No prior data (first report)';
 
-    const repoLines = repoList.map((r, i) => {
-      const hint = repoStateHints[i];
-      return `REPO: ${r.name}
+        const repoLines = repoList
+            .map((r, i) => {
+                const hint = repoStateHints[i];
+                return `REPO: ${r.name}
   State Hint: ${hint?.stateHint}
   Visibility: ${r.isPrivate ? 'Private' : 'Public'}
   Commits: ${r.commitsThisWeek || 0}
@@ -2180,9 +2164,10 @@ Return ONLY the JSON, no other text.`;
   Language: ${r.language || 'Unknown'}
   Description: ${r.description || 'No description'}
   Recent Commits: ${(r.recentCommits || []).slice(0, 6).join(' | ') || 'No commits'}`;
-    }).join('\n\n');
+            })
+            .join('\n\n');
 
-    const context = `WEEKLY ACTIVITY SNAPSHOT (7-day accurate GraphQL window):
+        const context = `WEEKLY ACTIVITY SNAPSHOT (7-day accurate GraphQL window):
 - Commits This Week (verified): ${weeklyCommits}
 - Pull Requests: ${weeklyPRs}
 - Issues: ${weeklyStats?.weekly?.issues ?? activityData.issueEvents ?? 0}
@@ -2198,126 +2183,220 @@ ${deltaContext}
 REPOSITORIES THIS WEEK:
 ${repoLines}`;
 
-    const messages = [
-      { role: "system", content: this.weeklyReportPrompt },
-      { role: "user", content: `Perform a deep weekly code-intelligence review. Override state hints with evidence from commits. Return strictly valid JSON.\n\n${context}` }
-    ];
+        const messages = [
+            { role: 'system', content: this.weeklyReportPrompt },
+            {
+                role: 'user',
+                content: `Perform a deep weekly code-intelligence review. Override state hints with evidence from commits. Return strictly valid JSON.\n\n${context}`,
+            },
+        ];
 
-    let lastError = null;
-    for (const key of pdfKeys) {
-      try {
-        const response = await this.makeRequestWithKey(messages, {
-          temperature: 0.3,
-          max_tokens: 4096,
-          jsonMode: true
-        }, key);
-        return JSON.parse(response);
-      } catch (error) {
-        lastError = error;
-        if (error.message?.includes('429')) { console.warn('Rate limit, rotating key...'); continue; }
-        console.error(`Groq PDF Key Error: ${error.message}`);
-        continue;
-      }
+        let lastError = null;
+        for (const key of pdfKeys) {
+            try {
+                const response = await this.makeRequestWithKey(
+                    messages,
+                    {
+                        temperature: 0.3,
+                        max_tokens: 4096,
+                        jsonMode: true,
+                    },
+                    key
+                );
+                return JSON.parse(response);
+            } catch (error) {
+                lastError = error;
+                if (error.message?.includes('429')) {
+                    console.warn('Rate limit, rotating key...');
+                    continue;
+                }
+                console.error(`Groq PDF Key Error: ${error.message}`);
+                continue;
+            }
+        }
+
+        console.error('All PDF API keys failed. Returning fallback insights.', lastError?.message);
+        const focusScore = repoList.length === 1 ? 90 : Math.max(40, 90 - repoList.length * 10);
+        return {
+            dashboard: {
+                momentum: 'STABLE →',
+                kpis: {
+                    weeklyCommits,
+                    weeklyPRs,
+                    commitsDelta: prevCommits
+                        ? `${weeklyCommits - prevCommits >= 0 ? '+' : ''}${weeklyCommits - prevCommits}`
+                        : 'First report',
+                    focusScore,
+                    collaborationScore: weeklyPRs > 0 ? 70 : 40,
+                    consistencyScore: weeklyStats?.behavioral?.consistencyScore ?? 50,
+                },
+                biggestWin: `${weeklyCommits} verified commits across ${repoList.length} repositories this week.`,
+                biggestRisk: 'AI intelligence pipeline offline — insights require manual review.',
+                strategicFocus: 'Restore API connectivity for deeper intelligence analysis.',
+            },
+            behavioral: {
+                peakDay: weeklyStats?.behavioral?.peakDay ?? 'N/A',
+                peakDayCount: weeklyStats?.behavioral?.peakDayCount ?? 0,
+                consistencyPattern: `${weeklyStats?.weekly?.activeDays ?? 0} of 7 days active.`,
+                focusFragmentation: repoList.length > 3 ? 'Multi-repo fragmentation detected.' : 'Focus concentrated.',
+                commitTypeBreakdown: typeBreakdown,
+                behaviorSummary: `${weeklyCommits} commits across ${weeklyStats?.weekly?.activeDays ?? 0} active days. Behavioral intelligence pending API restoration.`,
+            },
+            intelligence: {
+                workConsistency: {
+                    status: 'Stable',
+                    interpretation: `${weeklyStats?.weekly?.activeDays ?? 0}/7 active days.`,
+                    trend: '→',
+                    score: weeklyStats?.behavioral?.consistencyScore ?? 50,
+                },
+                focusAnalysis: {
+                    status: 'Stable',
+                    interpretation: 'Focus metrics unavailable in fallback mode.',
+                    trend: '→',
+                    score: 50,
+                },
+                collaboration: {
+                    status: weeklyPRs > 0 ? 'Stable' : 'Warning',
+                    interpretation: `${weeklyPRs} PRs this week.`,
+                    trend: weeklyPRs > 0 ? '→' : '↓',
+                    score: weeklyPRs > 0 ? 65 : 30,
+                },
+                codeQuality: {
+                    status: 'Stable',
+                    interpretation: `${typeBreakdown.fixes}% fix commits, ${typeBreakdown.features}% feature commits.`,
+                    trend: '→',
+                    score: 60,
+                },
+            },
+            repositories: Object.fromEntries(
+                repoList.map((r, i) => {
+                    const stateHint = repoStateHints[i]?.stateHint ?? 'UNKNOWN';
+                    const isSecuritySensitive = stateHint === 'SECURITY_SENSITIVE';
+                    let calculatedVisibilityRisk = isSecuritySensitive ? 35 : r.isPrivate ? 15 : 25;
+                    if (typeBreakdown.fixes > 30) calculatedVisibilityRisk += 10;
+                    return [
+                        r.name,
+                        {
+                            state: stateHint,
+                            metrics: {
+                                momentum: r.commitsThisWeek > 5 ? 'HIGH' : r.commitsThisWeek > 1 ? 'MEDIUM' : 'LOW',
+                                commitVelocity: r.commitsThisWeek || 0,
+                                visibilityRisk: Math.min(100, calculatedVisibilityRisk),
+                                estimatedMaintenanceRatio: Math.min(100, Math.max(10, typeBreakdown.fixes * 1.5)),
+                            },
+                            insight: `${r.commitsThisWeek || 0} commits recorded. State: ${stateHint}. Intelligence analysis active.`,
+                            suggestedAction: isSecuritySensitive
+                                ? 'Audit secret management and authentication endpoints.'
+                                : 'Review commit patterns manually and run dependency audits.',
+                        },
+                    ];
+                })
+            ),
+            security: [
+                {
+                    issue: 'Dependency Audit Required',
+                    severity: 'Low',
+                    confidence: 'Low',
+                    evidence: 'API failure prevented deep analysis',
+                    affectedArea: 'All repositories',
+                    suggestion: 'Run npm audit or pip check.',
+                },
+            ],
+            weeklyDelta: {
+                note: prevCommits ? 'Comparison vs stored previous week.' : 'First report.',
+                metrics: [
+                    {
+                        label: 'Commits',
+                        current: weeklyCommits,
+                        estimated: prevCommits ? `~${prevCommits}` : 'N/A',
+                        delta: prevCommits
+                            ? `${weeklyCommits >= prevCommits ? '+' : ''}${weeklyCommits - prevCommits}`
+                            : 'N/A',
+                        signal: prevCommits ? (weeklyCommits >= prevCommits ? '↑' : '↓') : '→',
+                    },
+                    {
+                        label: 'PRs Merged',
+                        current: weeklyPRs,
+                        estimated: prevPRs ? `~${prevPRs}` : 'N/A',
+                        delta: 'N/A',
+                        signal: '→',
+                    },
+                    { label: 'Active Repos', current: repoList.length, estimated: 'N/A', delta: 'N/A', signal: '→' },
+                    { label: 'Focus Score', current: focusScore, estimated: 'N/A', delta: 'N/A', signal: '→' },
+                ],
+                interpretation:
+                    'Fallback mode — delta analysis unavailable. Stored metrics provide baseline for next week.',
+            },
+            globalScore: {
+                total: Math.min(
+                    100,
+                    Math.round(
+                        ((weeklyStats?.behavioral?.consistencyScore ?? 50) +
+                            Math.min(100, weeklyCommits * 3) +
+                            weeklyPRs * 5) /
+                            3
+                    )
+                ),
+                breakdown: {
+                    consistency: weeklyStats?.behavioral?.consistencyScore ?? 50,
+                    velocity: Math.min(100, weeklyCommits * 5),
+                    collaboration: weeklyPRs > 0 ? 65 : 35,
+                    codeQuality: 60,
+                    security: 60,
+                },
+                scoringNote: 'Scores computed from raw metrics in fallback mode. AI-enhanced scoring unavailable.',
+            },
+            narrative: `Fallback mode active. ${weeklyCommits} commits recorded across ${repoList.length} repositories over ${weeklyStats?.weekly?.activeDays ?? 0} active days. Manual review recommended.`,
+        };
+
+        console.error('All PDF API keys failed. Returning fallback elite insights.', lastError);
+        return {
+            dashboard: {
+                momentum: 'STABLE →',
+                kpis: { commitsDelta: '+0%', prsDelta: '+0%', focusScore: 75, collaborationScore: 70 },
+                biggestWin: 'Maintained baseline contribution velocity despite API failure.',
+                biggestRisk: 'AI intelligence pipeline offline, manual review required.',
+                strategicFocus: 'Restore API connectivity for deeper analytics.',
+            },
+            intelligence: {
+                workConsistency: { status: 'Stable', interpretation: 'Standard operating capacity.', trend: '→' },
+                focusAnalysis: { status: 'Stable', interpretation: 'Focus metrics unavailable.', trend: '→' },
+                collaboration: {
+                    status: 'Warning',
+                    interpretation: 'Collaboration signals could not be parsed.',
+                    trend: '↓',
+                },
+                documentation: { status: 'Stable', interpretation: 'Documentation analysis skipped.', trend: '→' },
+            },
+            repositories: {},
+            security: [
+                {
+                    issue: 'Fallback Security Mode',
+                    severity: 'Low',
+                    confidence: 'Low',
+                    suggestion: 'Manually run dependency audits.',
+                },
+            ],
+            narrative:
+                "This week's intelligence report was generated in fallback mode due to AI connectivity issues. Base metrics indicate stable progression, but deep strategic insights and repository-level tracking are temporarily suspended. Focus on core deliverables and manual code reviews until full telemetry is restored.",
+            globalScore: {
+                total: 75,
+                breakdown: { consistency: 75, velocity: 75, security: 75, oss: 75 },
+            },
+        };
     }
 
-    console.error('All PDF API keys failed. Returning fallback insights.', lastError?.message);
-    const focusScore = repoList.length === 1 ? 90 : Math.max(40, 90 - (repoList.length * 10));
-    return {
-      dashboard: {
-        momentum: 'STABLE →',
-        kpis: { weeklyCommits, weeklyPRs, commitsDelta: prevCommits ? `${weeklyCommits - prevCommits >= 0 ? '+' : ''}${weeklyCommits - prevCommits}` : 'First report', focusScore, collaborationScore: weeklyPRs > 0 ? 70 : 40, consistencyScore: weeklyStats?.behavioral?.consistencyScore ?? 50 },
-        biggestWin: `${weeklyCommits} verified commits across ${repoList.length} repositories this week.`,
-        biggestRisk: 'AI intelligence pipeline offline — insights require manual review.',
-        strategicFocus: 'Restore API connectivity for deeper intelligence analysis.'
-      },
-      behavioral: {
-        peakDay: weeklyStats?.behavioral?.peakDay ?? 'N/A', peakDayCount: weeklyStats?.behavioral?.peakDayCount ?? 0,
-        consistencyPattern: `${weeklyStats?.weekly?.activeDays ?? 0} of 7 days active.`,
-        focusFragmentation: repoList.length > 3 ? 'Multi-repo fragmentation detected.' : 'Focus concentrated.',
-        commitTypeBreakdown: typeBreakdown,
-        behaviorSummary: `${weeklyCommits} commits across ${weeklyStats?.weekly?.activeDays ?? 0} active days. Behavioral intelligence pending API restoration.`
-      },
-      intelligence: {
-        workConsistency: { status: 'Stable', interpretation: `${weeklyStats?.weekly?.activeDays ?? 0}/7 active days.`, trend: '→', score: weeklyStats?.behavioral?.consistencyScore ?? 50 },
-        focusAnalysis: { status: 'Stable', interpretation: 'Focus metrics unavailable in fallback mode.', trend: '→', score: 50 },
-        collaboration: { status: weeklyPRs > 0 ? 'Stable' : 'Warning', interpretation: `${weeklyPRs} PRs this week.`, trend: weeklyPRs > 0 ? '→' : '↓', score: weeklyPRs > 0 ? 65 : 30 },
-        codeQuality: { status: 'Stable', interpretation: `${typeBreakdown.fixes}% fix commits, ${typeBreakdown.features}% feature commits.`, trend: '→', score: 60 }
-      },
-      repositories: Object.fromEntries(repoList.map((r, i) => {
-        const stateHint = repoStateHints[i]?.stateHint ?? 'UNKNOWN';
-        const isSecuritySensitive = stateHint === 'SECURITY_SENSITIVE';
-        let calculatedVisibilityRisk = isSecuritySensitive ? 35 : (r.isPrivate ? 15 : 25);
-        if (typeBreakdown.fixes > 30) calculatedVisibilityRisk += 10;
-        return [r.name, {
-          state: stateHint,
-          metrics: {
-            momentum: r.commitsThisWeek > 5 ? 'HIGH' : r.commitsThisWeek > 1 ? 'MEDIUM' : 'LOW',
-            commitVelocity: r.commitsThisWeek || 0,
-            visibilityRisk: Math.min(100, calculatedVisibilityRisk),
-            estimatedMaintenanceRatio: Math.min(100, Math.max(10, typeBreakdown.fixes * 1.5))
-          },
-          insight: `${r.commitsThisWeek || 0} commits recorded. State: ${stateHint}. Intelligence analysis active.`,
-          suggestedAction: isSecuritySensitive ? 'Audit secret management and authentication endpoints.' : 'Review commit patterns manually and run dependency audits.'
-        }];
-      })),
-      security: [{ issue: 'Dependency Audit Required', severity: 'Low', confidence: 'Low', evidence: 'API failure prevented deep analysis', affectedArea: 'All repositories', suggestion: 'Run npm audit or pip check.' }],
-      weeklyDelta: {
-        note: prevCommits ? 'Comparison vs stored previous week.' : 'First report.',
-        metrics: [
-          { label: 'Commits', current: weeklyCommits, estimated: prevCommits ? `~${prevCommits}` : 'N/A', delta: prevCommits ? `${weeklyCommits >= prevCommits ? '+' : ''}${weeklyCommits - prevCommits}` : 'N/A', signal: prevCommits ? (weeklyCommits >= prevCommits ? '↑' : '↓') : '→' },
-          { label: 'PRs Merged', current: weeklyPRs, estimated: prevPRs ? `~${prevPRs}` : 'N/A', delta: 'N/A', signal: '→' },
-          { label: 'Active Repos', current: repoList.length, estimated: 'N/A', delta: 'N/A', signal: '→' },
-          { label: 'Focus Score', current: focusScore, estimated: 'N/A', delta: 'N/A', signal: '→' }
-        ],
-        interpretation: 'Fallback mode — delta analysis unavailable. Stored metrics provide baseline for next week.'
-      },
-      globalScore: {
-        total: Math.min(100, Math.round(((weeklyStats?.behavioral?.consistencyScore ?? 50) + Math.min(100, weeklyCommits * 3) + (weeklyPRs * 5)) / 3)),
-        breakdown: { consistency: weeklyStats?.behavioral?.consistencyScore ?? 50, velocity: Math.min(100, weeklyCommits * 5), collaboration: weeklyPRs > 0 ? 65 : 35, codeQuality: 60, security: 60 },
-        scoringNote: 'Scores computed from raw metrics in fallback mode. AI-enhanced scoring unavailable.'
-      },
-      narrative: `Fallback mode active. ${weeklyCommits} commits recorded across ${repoList.length} repositories over ${weeklyStats?.weekly?.activeDays ?? 0} active days. Manual review recommended.`
-    };
+    // ═══════════════════════════════════════════════════════════════════════
+    // INSIGHTS ENGINE — Productivity, Recommendations, Risk
+    // ═══════════════════════════════════════════════════════════════════════
 
-
-    console.error("All PDF API keys failed. Returning fallback elite insights.", lastError);
-    return {
-      dashboard: {
-        momentum: "STABLE →",
-        kpis: { commitsDelta: "+0%", prsDelta: "+0%", focusScore: 75, collaborationScore: 70 },
-        biggestWin: "Maintained baseline contribution velocity despite API failure.",
-        biggestRisk: "AI intelligence pipeline offline, manual review required.",
-        strategicFocus: "Restore API connectivity for deeper analytics."
-      },
-      intelligence: {
-        workConsistency: { status: "Stable", interpretation: "Standard operating capacity.", trend: "→" },
-        focusAnalysis: { status: "Stable", interpretation: "Focus metrics unavailable.", trend: "→" },
-        collaboration: { status: "Warning", interpretation: "Collaboration signals could not be parsed.", trend: "↓" },
-        documentation: { status: "Stable", interpretation: "Documentation analysis skipped.", trend: "→" }
-      },
-      repositories: {},
-      security: [
-        { issue: "Fallback Security Mode", severity: "Low", confidence: "Low", suggestion: "Manually run dependency audits." }
-      ],
-      narrative: "This week's intelligence report was generated in fallback mode due to AI connectivity issues. Base metrics indicate stable progression, but deep strategic insights and repository-level tracking are temporarily suspended. Focus on core deliverables and manual code reviews until full telemetry is restored.",
-      globalScore: {
-        total: 75,
-        breakdown: { consistency: 75, velocity: 75, security: 75, oss: 75 }
-      }
-    };
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // INSIGHTS ENGINE — Productivity, Recommendations, Risk
-  // ═══════════════════════════════════════════════════════════════════════
-
-  /**
-   * Analyze developer productivity trends over a time period.
-   * Returns JSON with trend summary, peak periods, and consistency insights.
-   * @param {object} data - { username, days, totalCommits, streak, activeDays, inactiveDays, projects }
-   */
-  async analyzeProductivityTrends(data) {
-    const prompt = `Analyze this developer's GitHub activity and return ONLY valid JSON (no markdown, no extra text):
+    /**
+     * Analyze developer productivity trends over a time period.
+     * Returns JSON with trend summary, peak periods, and consistency insights.
+     * @param {object} data - { username, days, totalCommits, streak, activeDays, inactiveDays, projects }
+     */
+    async analyzeProductivityTrends(data) {
+        const prompt = `Analyze this developer's GitHub activity and return ONLY valid JSON (no markdown, no extra text):
 
 DATA:
 - Username: ${data.username}
@@ -2343,35 +2422,41 @@ Return this exact JSON structure:
   "recommendation": "Single most impactful thing they can do this week"
 }`;
 
-    try {
-      const messages = [
-        { role: "system", content: "You are a senior engineering productivity coach. Return ONLY valid JSON." },
-        { role: "user", content: prompt },
-      ];
-      const raw = await this.makeRequest(messages, { temperature: 0.4, max_tokens: 1024, jsonMode: true });
-      return typeof raw === "object" ? raw : JSON.parse(raw);
-    } catch {
-      return {
-        trendDirection: "stable",
-        consistencyScore: 60,
-        summary: "Analysis unavailable. Keep tracking your commits for trend data.",
-        peakPeriods: ["Data pending"],
-        insights: [{ title: "Stay Consistent", detail: "Daily commits compound into major progress over time." }],
-        recommendation: "Aim for at least one commit per day this week.",
-      };
+        try {
+            const messages = [
+                { role: 'system', content: 'You are a senior engineering productivity coach. Return ONLY valid JSON.' },
+                { role: 'user', content: prompt },
+            ];
+            const raw = await this.makeRequest(messages, { temperature: 0.4, max_tokens: 1024, jsonMode: true });
+            return typeof raw === 'object' ? raw : JSON.parse(raw);
+        } catch {
+            return {
+                trendDirection: 'stable',
+                consistencyScore: 60,
+                summary: 'Analysis unavailable. Keep tracking your commits for trend data.',
+                peakPeriods: ['Data pending'],
+                insights: [
+                    { title: 'Stay Consistent', detail: 'Daily commits compound into major progress over time.' },
+                ],
+                recommendation: 'Aim for at least one commit per day this week.',
+            };
+        }
     }
-  }
 
-  /**
-   * Generate personalized strategic recommendations based on GitHub activity + project health.
-   * @param {object} data - { username, totalEvents, pushEvents, projects, role, experienceLevel, goals }
-   */
-  async generateStrategicRecommendations(data) {
-    const projectSummary = data.projects.slice(0, 5).map(p =>
-      `${p.name} (health: ${p.healthScore ?? 'N/A'}, issues: ${p.openIssues ?? 0}, lang: ${p.primaryLanguage || '?'})`
-    ).join('; ');
+    /**
+     * Generate personalized strategic recommendations based on GitHub activity + project health.
+     * @param {object} data - { username, totalEvents, pushEvents, projects, role, experienceLevel, goals }
+     */
+    async generateStrategicRecommendations(data) {
+        const projectSummary = data.projects
+            .slice(0, 5)
+            .map(
+                (p) =>
+                    `${p.name} (health: ${p.healthScore ?? 'N/A'}, issues: ${p.openIssues ?? 0}, lang: ${p.primaryLanguage || '?'})`
+            )
+            .join('; ');
 
-    const prompt = `Generate strategic developer recommendations and return ONLY valid JSON:
+        const prompt = `Generate strategic developer recommendations and return ONLY valid JSON:
 
 CONTEXT:
 - Developer role: ${data.role}, level: ${data.experienceLevel}
@@ -2392,37 +2477,51 @@ Return this exact JSON:
 
 priorityActions must have exactly 3-4 items. Be specific to the data.`;
 
-    try {
-      const messages = [
-        { role: "system", content: "You are a senior staff engineer coach. Return ONLY valid JSON." },
-        { role: "user", content: prompt },
-      ];
-      const raw = await this.makeRequest(messages, { temperature: 0.5, max_tokens: 1024, jsonMode: true });
-      return typeof raw === "object" ? raw : JSON.parse(raw);
-    } catch {
-      return {
-        priorityActions: [
-          { title: "Address Open Issues", detail: "High open issue counts signal technical debt. Spend 30 min triaging.", urgency: "high", estimatedTime: "30 min" },
-          { title: "Write Tests for Core Logic", detail: "Test coverage prevents regressions as your codebase grows.", urgency: "medium", estimatedTime: "1 hr" },
-        ],
-        skillGaps: ["Testing practices", "Documentation"],
-        weeklyFocus: "Reduce open issues and improve test coverage in your highest-risk project.",
-        longTermAdvice: "Invest in code quality now to prevent compound technical debt. Consistent small improvements beat periodic rewrites.",
-      };
+        try {
+            const messages = [
+                { role: 'system', content: 'You are a senior staff engineer coach. Return ONLY valid JSON.' },
+                { role: 'user', content: prompt },
+            ];
+            const raw = await this.makeRequest(messages, { temperature: 0.5, max_tokens: 1024, jsonMode: true });
+            return typeof raw === 'object' ? raw : JSON.parse(raw);
+        } catch {
+            return {
+                priorityActions: [
+                    {
+                        title: 'Address Open Issues',
+                        detail: 'High open issue counts signal technical debt. Spend 30 min triaging.',
+                        urgency: 'high',
+                        estimatedTime: '30 min',
+                    },
+                    {
+                        title: 'Write Tests for Core Logic',
+                        detail: 'Test coverage prevents regressions as your codebase grows.',
+                        urgency: 'medium',
+                        estimatedTime: '1 hr',
+                    },
+                ],
+                skillGaps: ['Testing practices', 'Documentation'],
+                weeklyFocus: 'Reduce open issues and improve test coverage in your highest-risk project.',
+                longTermAdvice:
+                    'Invest in code quality now to prevent compound technical debt. Consistent small improvements beat periodic rewrites.',
+            };
+        }
     }
-  }
 
-  /**
-   * Analyze code risk signals from high-risk projects.
-   * Token-efficient: only called when high-risk projects exist.
-   * @param {object} data - { highRiskProjects: [...] }
-   */
-  async analyzeCodeRisk(data) {
-    const projectList = data.highRiskProjects.map(p =>
-      `${p.name}: health=${p.healthScore}, issues=${p.openIssues}, stale=${p.daysSinceUpdate}d, flags=[${p.riskFlags.join(', ')}]`
-    ).join('\n');
+    /**
+     * Analyze code risk signals from high-risk projects.
+     * Token-efficient: only called when high-risk projects exist.
+     * @param {object} data - { highRiskProjects: [...] }
+     */
+    async analyzeCodeRisk(data) {
+        const projectList = data.highRiskProjects
+            .map(
+                (p) =>
+                    `${p.name}: health=${p.healthScore}, issues=${p.openIssues}, stale=${p.daysSinceUpdate}d, flags=[${p.riskFlags.join(', ')}]`
+            )
+            .join('\n');
 
-    const prompt = `Analyze these high-risk projects and return ONLY valid JSON:
+        const prompt = `Analyze these high-risk projects and return ONLY valid JSON:
 
 PROJECTS:
 ${projectList}
@@ -2437,22 +2536,22 @@ Return:
   "immediateActions": ["action 1", "action 2", "action 3"]
 }`;
 
-    try {
-      const messages = [
-        { role: "system", content: "You are a technical risk analyst. Return ONLY valid JSON." },
-        { role: "user", content: prompt },
-      ];
-      const raw = await this.makeRequest(messages, { temperature: 0.3, max_tokens: 800, jsonMode: true });
-      return typeof raw === "object" ? raw : JSON.parse(raw);
-    } catch {
-      return {
-        overallRisk: "high",
-        topRisk: "Multiple projects showing signs of neglect — prioritize health score improvements.",
-        projectAnalysis: {},
-        immediateActions: ["Triage open issues", "Update dependencies", "Add CI pipeline"],
-      };
+        try {
+            const messages = [
+                { role: 'system', content: 'You are a technical risk analyst. Return ONLY valid JSON.' },
+                { role: 'user', content: prompt },
+            ];
+            const raw = await this.makeRequest(messages, { temperature: 0.3, max_tokens: 800, jsonMode: true });
+            return typeof raw === 'object' ? raw : JSON.parse(raw);
+        } catch {
+            return {
+                overallRisk: 'high',
+                topRisk: 'Multiple projects showing signs of neglect — prioritize health score improvements.',
+                projectAnalysis: {},
+                immediateActions: ['Triage open issues', 'Update dependencies', 'Add CI pipeline'],
+            };
+        }
     }
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2461,14 +2560,14 @@ Return:
 
 let instance = null;
 const getGroqService = () => {
-  if (!instance) {
-    instance = new GroqService();
-    console.log("🤖 DevTrack AI (Expert Edition) initialized");
-  }
-  return instance;
+    if (!instance) {
+        instance = new GroqService();
+        console.log('🤖 DevTrack AI (Expert Edition) initialized');
+    }
+    return instance;
 };
 
 module.exports = {
-  GroqService,
-  getGroqService,
+    GroqService,
+    getGroqService,
 };

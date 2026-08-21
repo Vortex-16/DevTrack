@@ -30,16 +30,15 @@ const chat = async (req, res, next) => {
         if (userId) {
             try {
                 // Fetch chat history
-                const historySnapshot = await collections.users()
+                const historySnapshot = await collections
+                    .users()
                     .doc(userId)
                     .collection('chatHistory')
                     .orderBy('timestamp', 'desc')
                     .limit(10)
                     .get();
 
-                history = historySnapshot.docs
-                    .map(doc => doc.data())
-                    .reverse(); // Chronological order
+                history = historySnapshot.docs.map((doc) => doc.data()).reverse(); // Chronological order
 
                 // Fetch memory summary for persistent context
                 const userDoc = await collections.users().doc(userId).get();
@@ -62,7 +61,9 @@ const chat = async (req, res, next) => {
 
         console.log('AI response:', { success: response.success, hasMessage: !!response.message });
 
-        const aiMessage = response.success ? response.message : (response.error || 'AI request failed. Please try again.');
+        const aiMessage = response.success
+            ? response.message
+            : response.error || 'AI request failed. Please try again.';
 
         // Save history if user is authenticated
         if (userId && response.success) {
@@ -171,7 +172,7 @@ const healthCheck = async (req, res, next) => {
         res.status(200).json({
             success: true,
             status: response.success ? 'healthy' : 'degraded',
-            model: 'llama-3.3-70b-versatile',
+            model: 'openai/gpt-oss-120b',
         });
     } catch (error) {
         res.status(200).json({
@@ -214,23 +215,24 @@ const getChatHistory = async (req, res, next) => {
     try {
         const userId = req.auth.userId;
 
-        const historySnapshot = await collections.users()
+        const historySnapshot = await collections
+            .users()
             .doc(userId)
             .collection('chatHistory')
             .orderBy('timestamp', 'asc')
             .limit(50)
             .get();
 
-        const history = historySnapshot.docs.map(doc => ({
+        const history = historySnapshot.docs.map((doc) => ({
             id: doc.id,
-            ...doc.data()
+            ...doc.data(),
         }));
 
         res.status(200).json({
             success: true,
             data: {
-                history
-            }
+                history,
+            },
         });
     } catch (error) {
         next(error);
@@ -250,7 +252,7 @@ const deleteChatHistory = async (req, res, next) => {
         const historyRef = collections.users().doc(userId).collection('chatHistory');
         const historySnapshot = await historyRef.get();
 
-        const messages = historySnapshot.docs.map(doc => doc.data());
+        const messages = historySnapshot.docs.map((doc) => doc.data());
         console.log(`📜 Found ${messages.length} messages to process`);
 
         // Try to summarize if there are messages
@@ -269,20 +271,45 @@ const deleteChatHistory = async (req, res, next) => {
                     console.log('✅ Summary created:', newSummary.substring(0, 100) + '...');
 
                     // Basic structured memory extraction (skills, preferred tech stack)
-                    const userText = messages.map(m => m.content || m.text || '').join(' ').toLowerCase();
-                    const knownSkills = ['react', 'node', 'express', 'python', 'java', 'go', 'rust', 'typescript', 'docker', 'redis', 'firebase', 'stripe', 'tailwind', 'next.js', 'mongodb'];
-                    const detectedSkills = knownSkills.filter(skill => userText.includes(skill));
+                    const userText = messages
+                        .map((m) => m.content || m.text || '')
+                        .join(' ')
+                        .toLowerCase();
+                    const knownSkills = [
+                        'react',
+                        'node',
+                        'express',
+                        'python',
+                        'java',
+                        'go',
+                        'rust',
+                        'typescript',
+                        'docker',
+                        'redis',
+                        'firebase',
+                        'stripe',
+                        'tailwind',
+                        'next.js',
+                        'mongodb',
+                    ];
+                    const detectedSkills = knownSkills.filter((skill) => userText.includes(skill));
 
                     // Store the updated memory summary and structured key-value memory
-                    await collections.users().doc(userId).set({
-                        memorySummary: newSummary,
-                        memoryStructured: {
-                            detectedSkills,
-                            lastClearedAt: new Date().toISOString(),
-                            messageCountProcessed: messages.length,
-                        },
-                        memorySummaryUpdatedAt: new Date()
-                    }, { merge: true });
+                    await collections
+                        .users()
+                        .doc(userId)
+                        .set(
+                            {
+                                memorySummary: newSummary,
+                                memoryStructured: {
+                                    detectedSkills,
+                                    lastClearedAt: new Date().toISOString(),
+                                    messageCountProcessed: messages.length,
+                                },
+                                memorySummaryUpdatedAt: new Date(),
+                            },
+                            { merge: true }
+                        );
                 }
             } catch (summaryError) {
                 console.error('⚠️ Summarization failed (continuing with delete):', summaryError.message);
@@ -291,14 +318,14 @@ const deleteChatHistory = async (req, res, next) => {
         }
 
         // Delete the chat history - use Promise.all for individual deletes
-        const deletePromises = historySnapshot.docs.map(doc => doc.ref.delete());
+        const deletePromises = historySnapshot.docs.map((doc) => doc.ref.delete());
         await Promise.all(deletePromises);
         console.log('✅ Chat history deleted');
 
         res.status(200).json({
             success: true,
             message: 'Chat history cleared and summarized',
-            hasSummary: !!newSummary
+            hasSummary: !!newSummary,
         });
     } catch (error) {
         console.error('❌ Delete chat history error:', error);
@@ -313,5 +340,5 @@ module.exports = {
     healthCheck,
     analyzeProject,
     getChatHistory,
-    deleteChatHistory
+    deleteChatHistory,
 };
