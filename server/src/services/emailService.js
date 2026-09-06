@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const { collections } = require('../config/firebase');
+const { isPermanentProUser } = require('../config/adminAccess');
 
 class EmailService {
     constructor() {
@@ -21,16 +22,25 @@ class EmailService {
         // Initialize Nodemailer transporter if SMTP credentials are preset
         if (process.env.SMTP_USER && process.env.SMTP_PASS) {
             const cleanPass = (process.env.SMTP_PASS || '').replace(/^["']|["']$/g, '');
+            const port = parseInt(process.env.SMTP_PORT || '465', 10);
             this.transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: parseInt(process.env.SMTP_PORT || '465', 10),
-                secure: parseInt(process.env.SMTP_PORT || '465', 10) === 465,
+                port,
+                secure: port === 465,
                 auth: {
                     user: process.env.SMTP_USER,
                     pass: cleanPass,
                 },
+                pool: true,
+                maxConnections: 3,
+                maxMessages: 50,
+                connectionTimeout: 15000,
+                greetingTimeout: 15000,
+                socketTimeout: 30000,
             });
-            console.log('📧 Nodemailer SMTP initialized with Gmail');
+            console.log(
+                `📧 Nodemailer SMTP initialized with ${process.env.SMTP_HOST || 'Gmail'} on port ${port} (pooled)`
+            );
         } else {
             console.log('📧 Email service initialized with Brevo');
         }
@@ -49,28 +59,36 @@ class EmailService {
     async sendEmail({ to, subject, html, from, attachments = [] }) {
         try {
             if (this.transporter) {
-                const mailOptions = {
-                    from: from
-                        ? `"${this.defaultFrom.name}" <${from}>`
-                        : `"${this.defaultFrom.name}" <${process.env.SMTP_USER}>`,
-                    to,
-                    subject,
-                    html,
-                    attachments: attachments.map((att) => ({
-                        filename: att.filename,
-                        content: att.content,
-                        path: att.path,
-                        encoding: att.encoding,
-                        cid: att.cid,
-                    })),
-                };
-                const info = await this.transporter.sendMail(mailOptions);
-                console.log(`✅ Nodemailer email sent to ${to}, messageId: ${info.messageId}`);
-                return { success: true, messageId: info.messageId };
+                try {
+                    const mailOptions = {
+                        from: from
+                            ? `"${this.defaultFrom.name}" <${from}>`
+                            : `"${this.defaultFrom.name}" <${process.env.SMTP_USER}>`,
+                        to,
+                        subject,
+                        html,
+                        attachments: attachments.map((att) => ({
+                            filename: att.filename,
+                            content: att.content,
+                            path: att.path,
+                            encoding: att.encoding,
+                            cid: att.cid,
+                        })),
+                    };
+                    const info = await this.transporter.sendMail(mailOptions);
+                    console.log(`✅ Nodemailer email sent to ${to}, messageId: ${info.messageId}`);
+                    return { success: true, messageId: info.messageId };
+                } catch (smtpErr) {
+                    console.error(`⚠️ Nodemailer error sending to ${to}:`, smtpErr.message);
+                    if (!this.apiKey) {
+                        return { success: false, error: smtpErr.message };
+                    }
+                    console.log(`🔄 Attempting Brevo fallback for ${to}...`);
+                }
             }
 
             if (!this.apiKey) {
-                throw new Error('BREVO_API_KEY is not configured');
+                throw new Error('Neither working SMTP nor BREVO_API_KEY is available');
             }
 
             const payload = {
@@ -225,12 +243,12 @@ class EmailService {
      * Colors: Dark black (#1a1a1a), Cyan/Teal borders (#4dd0e1), Warm copper (#e8a838), White text
      * @param {string} to - Recipient email
      * @param {string} userName - User's name
-     * @param {boolean} [isExempt=false] - True if user is Vortex-16 (permanent Pro)
+     * @param {boolean} [isExempt=false] - True if user is a founder or permanent Pro contributor
      * @returns {Promise<Object>}
      */
     async sendProTrialAnnouncementEmail(to, userName = 'Developer', isExempt = false) {
         const subject = isExempt
-            ? `👑 Vortex-16 — Your Permanent Pro Founder Access is Active`
+            ? `👑 ${userName} — Your Permanent Pro Access is Active`
             : `🚀 You've Been Upgraded to DevTrack Pro — 30 Days Free`;
 
         // Find social preview image for inline CID attachment
@@ -254,11 +272,11 @@ class EmailService {
 
         // --- Dynamic content based on founder vs standard user ---
         const badgeHtml = isExempt
-            ? `<div style="background: #e8a838; color: #1a1a1a; font-weight: 800; padding: 8px 18px; border-radius: 6px; display: inline-block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;">👑 Permanent Founder Pro Access</div>`
+            ? `<div style="background: #e8a838; color: #1a1a1a; font-weight: 800; padding: 8px 18px; border-radius: 6px; display: inline-block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;">👑 Permanent Contributor Pro Access</div>`
             : `<div style="background: #4dd0e1; color: #1a1a1a; font-weight: 800; padding: 8px 18px; border-radius: 6px; display: inline-block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;">⚡ 30-Day Pro Pass Unlocked</div>`;
 
         const greetingText = isExempt
-            ? `As the creator of DevTrack, your account has <strong style="color: #e8a838;">Permanent Unlimited Pro Access</strong> across all features — no expiry, no limits, ever. Here is a look at the upgraded ecosystem.`
+            ? `As a core creator & contributor of DevTrack, your account has <strong style="color: #e8a838;">Permanent Unlimited Pro Access</strong> across all features — no expiry, no limits, ever. Here is a look at the upgraded ecosystem.`
             : `We miss seeing your commits! To welcome you back, we've unlocked <strong style="color: #4dd0e1;">DevTrack Pro for 30 days</strong> — 100% free, no credit card needed. Check out how DevTrack has evolved into a complete developer hub.`;
 
         const footerNote = isExempt
@@ -475,12 +493,11 @@ class EmailService {
                     continue;
                 }
 
-                const githubUsername = (userData.githubUsername || '').toLowerCase();
-                const isExempt =
-                    githubUsername === 'vortex-16' ||
-                    githubUsername === 'vortex16' ||
-                    email.toLowerCase().includes('alpha4coders') ||
-                    userData.isExemptFromDowngrade === true;
+                const isExempt = isPermanentProUser({
+                    githubUsername: userData.githubUsername,
+                    email,
+                    isExemptFromDowngrade: userData.isExemptFromDowngrade,
+                });
 
                 const result = await this.sendProTrialAnnouncementEmail(email, userData.name || 'Developer', isExempt);
 
@@ -506,16 +523,25 @@ class EmailService {
     }
 
     /**
-     * Verify Brevo configuration
+     * Verify email transport configuration
      * @returns {Promise<boolean>}
      */
     async verifyConnection() {
-        if (!this.apiKey) {
-            console.error('❌ BREVO_API_KEY is not set!');
-            return false;
+        if (this.transporter) {
+            try {
+                await this.transporter.verify();
+                console.log('✅ Nodemailer SMTP verified successfully');
+                return true;
+            } catch (err) {
+                console.error('⚠️ Nodemailer SMTP verify failed:', err.message);
+            }
         }
-        console.log('✅ Brevo API key is configured');
-        return true;
+        if (this.apiKey) {
+            console.log('ℹ️ Brevo API key is configured');
+            return true;
+        }
+        console.error('❌ Neither working SMTP nor BREVO_API_KEY is configured');
+        return false;
     }
 }
 

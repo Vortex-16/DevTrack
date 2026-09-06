@@ -8,6 +8,7 @@ const { clerkClient } = require('@clerk/clerk-sdk-node');
 const { APIError } = require('../middleware/errorHandler');
 const { TIERS } = require('../config/constants');
 const { fetchGitHubAvatar } = require('../services/profileSyncService');
+const { isPermanentProUser } = require('../config/adminAccess');
 const {
     getActiveGithubToken,
     hasGithubAccessExpired,
@@ -99,7 +100,8 @@ const syncUser = async (req, res, next) => {
         if (clerkUser.externalAccounts && Array.isArray(clerkUser.externalAccounts)) {
             // Try different provider names
             githubAccount = clerkUser.externalAccounts.find(
-                (acc) => acc.provider === 'github' ||
+                (acc) =>
+                    acc.provider === 'github' ||
                     acc.provider === 'oauth_github' ||
                     acc.provider?.toLowerCase().includes('github')
             );
@@ -149,12 +151,10 @@ const syncUser = async (req, res, next) => {
         const existingWindow = existingData ? getGithubAccessWindow(existingData) : null;
         const expiresAtDate = existingWindow?.expiresAt ? new Date(existingWindow.expiresAt) : null;
         const hasValidWindow = !expiresAtDate || Number.isNaN(expiresAtDate.getTime()) || expiresAtDate > now;
-        const missingTokenButRecoverable = !!existingData && !hasStoredGithubAccess(existingData, now) && hasValidWindow && hasRepoScope;
+        const missingTokenButRecoverable =
+            !!existingData && !hasStoredGithubAccess(existingData, now) && hasValidWindow && hasRepoScope;
 
-        const canAutoFetchToken =
-            !existingData ||
-            !existingData?.githubAccessGrantedAt ||
-            missingTokenButRecoverable;
+        const canAutoFetchToken = !existingData || !existingData?.githubAccessGrantedAt || missingTokenButRecoverable;
         try {
             if (canAutoFetchToken) {
                 // Get OAuth access token from Clerk (provider key can vary by setup)
@@ -210,20 +210,28 @@ const syncUser = async (req, res, next) => {
                 githubAvatarUrl = await fetchGitHubAvatar(githubUsername, githubAccessToken);
             }
 
-            // Initialize tier and 30-day Pro trial grandfathering if not present
-            const isVortexAdmin = (githubUsername || '').toLowerCase() === 'vortex-16' ||
-                (clerkUser.emailAddresses?.[0]?.emailAddress || '').toLowerCase().includes('alpha4coders');
+            // Check permanent lifetime Pro contributor/founder status
+            const userEmail = clerkUser.emailAddresses?.[0]?.emailAddress || userData.email || existing.email;
+            const isPermanentPro = isPermanentProUser({
+                githubUsername,
+                email: userEmail,
+                isExemptFromDowngrade: existing.isExemptFromDowngrade,
+            });
 
             const proTrialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-            const currentTier = isVortexAdmin ? TIERS.PRO : (existing.tier || TIERS.PRO);
-            const currentTierExpiresAt = isVortexAdmin ? null : (existing.tierExpiresAt !== undefined ? existing.tierExpiresAt : proTrialExpiry);
+            const currentTier = isPermanentPro ? TIERS.PRO : existing.tier || TIERS.PRO;
+            const currentTierExpiresAt = isPermanentPro
+                ? null
+                : existing.tierExpiresAt !== undefined
+                  ? existing.tierExpiresAt
+                  : proTrialExpiry;
 
             await userRef.update({
                 ...userData,
                 ...(githubAccessUpdate || {}),
                 tier: currentTier,
                 tierExpiresAt: currentTierExpiresAt,
-                isExemptFromDowngrade: isVortexAdmin || existing.isExemptFromDowngrade || false,
+                isExemptFromDowngrade: isPermanentPro || existing.isExemptFromDowngrade || false,
                 avatarUrl: githubAvatarUrl || userData.avatarUrl || existing.avatarUrl || null,
                 githubAvatarUrl: githubAvatarUrl || existing.githubAvatarUrl || null,
                 createdAt: existing.createdAt, // Keep original creation date
@@ -232,9 +240,11 @@ const syncUser = async (req, res, next) => {
             });
         } else {
             // Create new user with 30-day Pro trial grandfathering
-            const isVortexAdmin = (githubUsername || '').toLowerCase() === 'vortex-16' ||
-                (githubUsername || '').toLowerCase() === 'vortex-16' ||
-                (clerkUser.emailAddresses?.[0]?.emailAddress || '').toLowerCase().includes('alpha4coders');
+            const userEmail = clerkUser.emailAddresses?.[0]?.emailAddress || userData.email;
+            const isPermanentPro = isPermanentProUser({
+                githubUsername,
+                email: userEmail,
+            });
 
             const proTrialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             let githubAvatarUrl = null;
@@ -245,8 +255,8 @@ const syncUser = async (req, res, next) => {
             const newUserData = {
                 ...userData,
                 tier: TIERS.PRO,
-                tierExpiresAt: isVortexAdmin ? null : proTrialExpiry,
-                isExemptFromDowngrade: isVortexAdmin,
+                tierExpiresAt: isPermanentPro ? null : proTrialExpiry,
+                isExemptFromDowngrade: isPermanentPro,
                 tierTrialStartedAt: new Date().toISOString(),
             };
 
@@ -383,9 +393,7 @@ const deleteAccount = async (req, res, next) => {
         const { userId } = req.auth;
 
         // Delete user's logs
-        const logsSnapshot = await collections.logs()
-            .where('uid', '==', userId)
-            .get();
+        const logsSnapshot = await collections.logs().where('uid', '==', userId).get();
 
         const batch = collections.users().firestore.batch();
 

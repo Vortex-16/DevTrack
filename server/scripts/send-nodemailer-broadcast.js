@@ -1,10 +1,11 @@
 require('dotenv').config();
 const { initializeFirebase, collections } = require('../src/config/firebase');
+const { isPermanentProUser } = require('../src/config/adminAccess');
 const emailService = require('../src/services/emailService');
 
 async function broadcastWithNodemailer() {
     console.log('📧 Initializing Firebase and starting Nodemailer + Gmail SMTP broadcast...');
-    
+
     try {
         await initializeFirebase();
         console.log('✅ Firebase initialized');
@@ -30,10 +31,11 @@ async function broadcastWithNodemailer() {
             }
 
             const githubUsername = (userData.githubUsername || '').toLowerCase();
-            const isExempt = githubUsername === 'vortex-16' ||
-                             githubUsername === 'vortex16' ||
-                             email.toLowerCase().includes('alpha4coders') ||
-                             userData.isExemptFromDowngrade === true;
+            const isExempt = isPermanentProUser({
+                githubUsername: userData.githubUsername,
+                email,
+                isExemptFromDowngrade: userData.isExemptFromDowngrade,
+            });
 
             console.log(`Sending email with inline CID poster to ${email} (Founder: ${isExempt})...`);
             const result = await emailService.sendProTrialAnnouncementEmail(
@@ -44,16 +46,19 @@ async function broadcastWithNodemailer() {
 
             if (result.success) {
                 sentCount++;
-                await collections.users().doc(userId).set({
-                    proTrialEmailSentV2: true,
-                    proTrialEmailSentAtV2: new Date().toISOString(),
-                }, { merge: true });
+                await collections.users().doc(userId).set(
+                    {
+                        proTrialEmailSentV2: true,
+                        proTrialEmailSentAtV2: new Date().toISOString(),
+                    },
+                    { merge: true }
+                );
             } else {
                 console.error(`Failed to send to ${email}:`, result.error);
             }
 
             // 500ms delay between emails to respect Gmail SMTP rate limits
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise((r) => setTimeout(r, 500));
         }
 
         console.log(`\n🎉 Broadcast Complete! Total Sent: ${sentCount}, Skipped: ${skippedCount}`);

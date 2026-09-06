@@ -51,7 +51,8 @@ const enqueueJob = async (userId, options = {}) => {
     const { email, username, scheduledAt, reportType = 'weekly' } = options;
 
     // Check for an existing pending/processing job to prevent duplicates
-    const existing = await getFirestore().collection('reportJobs')
+    const existing = await getFirestore()
+        .collection('reportJobs')
         .where('userId', '==', userId)
         .where('status', 'in', ['pending', 'processing'])
         .limit(1)
@@ -98,12 +99,12 @@ const enqueueJob = async (userId, options = {}) => {
  */
 const enqueueWeeklyJobs = async () => {
     const now = new Date();
-    const currentDay = now.getUTCDay();   // 0=Sun, 1=Mon, …, 6=Sat
+    const currentDay = now.getUTCDay(); // 0=Sun, 1=Mon, …, 6=Sat
     const currentHour = now.getUTCHours();
 
     const sixDaysAgo = new Date(now);
     sixDaysAgo.setUTCDate(sixDaysAgo.getUTCDate() - 6);
-    
+
     const thirteenDaysAgo = new Date(now);
     thirteenDaysAgo.setUTCDate(thirteenDaysAgo.getUTCDate() - 13);
 
@@ -116,13 +117,21 @@ const enqueueWeeklyJobs = async () => {
         noEmail: 0,
         recentlySent: 0,
         biweeklySkip: 0,
-        alreadyQueued: 0
+        alreadyQueued: 0,
     };
 
     try {
         // Fetch all users with email (required for sending)
-        const usersSnapshot = await collections.users()
-            .select('email', 'githubUsername', 'reportPreferences', 'lastReportSentAt', 'name')
+        const usersSnapshot = await collections
+            .users()
+            .select(
+                'email',
+                'githubUsername',
+                'reportPreferences',
+                'lastReportSentAt',
+                'lastWeeklyReportSentAt',
+                'name'
+            )
             .get();
 
         const jobs = [];
@@ -132,15 +141,15 @@ const enqueueWeeklyJobs = async () => {
             const userId = userDoc.id;
             const userName = data.name || data.githubUsername || userId;
 
-            if (!data.email) { 
+            if (!data.email) {
                 stats.noEmail++;
-                skipped++; 
-                continue; 
+                skipped++;
+                continue;
             }
 
             // Use reportPreferences (matches reportController.js)
             const schedule = data.reportPreferences || { dayOfWeek: 1, hour: 15, frequency: 'weekly', enabled: true };
-            
+
             // Ensure enabled (defaults to true if preferences exist but flag is missing)
             if (schedule.enabled === false) {
                 stats.disabled++;
@@ -153,17 +162,17 @@ const enqueueWeeklyJobs = async () => {
             const frequency = schedule.frequency || 'weekly';
 
             // 1. Check Day
-            if (currentDay !== targetDay) { 
+            if (currentDay !== targetDay) {
                 stats.dayMismatch++;
-                skipped++; 
-                continue; 
+                skipped++;
+                continue;
             }
 
             // 2. Check Hour
-            if (currentHour !== targetHour) { 
+            if (currentHour !== targetHour) {
                 stats.hourMismatch++;
-                skipped++; 
-                continue; 
+                skipped++;
+                continue;
             }
 
             // 3. Check Last Sent (Frequency Logic)
@@ -171,7 +180,7 @@ const enqueueWeeklyJobs = async () => {
             const lastWeekly = data.lastWeeklyReportSentAt || data.lastReportSentAt;
             if (lastWeekly) {
                 const lastSent = new Date(lastWeekly);
-                
+
                 if (frequency === 'biweekly') {
                     if (lastSent > thirteenDaysAgo) {
                         stats.biweeklySkip++;
@@ -195,7 +204,7 @@ const enqueueWeeklyJobs = async () => {
                 username: data.githubUsername || null,
             });
         }
-        
+
         if (jobs.length > 0) {
             console.log(`📊 [Queue Service] Found ${jobs.length} reports due for processing at ${currentHour}:00 UTC.`);
         }
@@ -204,9 +213,7 @@ const enqueueWeeklyJobs = async () => {
         const CHUNK_SIZE = 10;
         for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
             const chunk = jobs.slice(i, i + CHUNK_SIZE);
-            const results = await Promise.allSettled(
-                chunk.map(job => enqueueJob(job.userId, job))
-            );
+            const results = await Promise.allSettled(chunk.map((job) => enqueueJob(job.userId, job)));
             results.forEach((result, idx) => {
                 if (result.status === 'fulfilled') {
                     if (result.value.alreadyQueued) {
@@ -256,7 +263,8 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
     const reportService = require('./reportService');
 
     try {
-        const pendingJobsSnapshot = await getFirestore().collection('reportJobs')
+        const pendingJobsSnapshot = await getFirestore()
+            .collection('reportJobs')
             .where('status', '==', 'pending')
             .get();
 
@@ -266,14 +274,13 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
         }
 
         const nowStr = now.toISOString();
-        
+
         // Filter in-memory for jobs that are due to avoid composite index error
-        let dueJobsDocs = pendingJobsSnapshot.docs
-            .filter(doc => doc.data().scheduledAt <= nowStr);
+        let dueJobsDocs = pendingJobsSnapshot.docs.filter((doc) => doc.data().scheduledAt <= nowStr);
 
         // If targetUserId is provided, prioritize/limit to that user
         if (targetUserId) {
-            dueJobsDocs = dueJobsDocs.filter(doc => doc.data().userId === targetUserId);
+            dueJobsDocs = dueJobsDocs.filter((doc) => doc.data().userId === targetUserId);
         }
 
         dueJobsDocs = dueJobsDocs
@@ -312,9 +319,9 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
 
                 // Process the job — this may take 10-30 seconds
                 console.log(`📄 Processing ${job.reportType || 'weekly'} report for user ${job.userId}...`);
-                const result = await reportService.sendWeeklyReport(job.userId, { 
+                const result = await reportService.sendWeeklyReport(job.userId, {
                     fromQueue: true,
-                    reportType: job.reportType || 'weekly'
+                    reportType: job.reportType || 'weekly',
                 });
 
                 if (!result || result.success === false) {
@@ -351,13 +358,15 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
                 const backoffMinutes = [15, 30, 60][retries - 1] || 60;
                 const retryAt = new Date(Date.now() + backoffMinutes * 60 * 1000);
 
-                await jobRef.update({
-                    status: nextStatus,
-                    retries,
-                    lastError: jobErr.message?.substring(0, 500) || 'Unknown error',
-                    scheduledAt: nextStatus === 'failed' ? retryAt.toISOString() : jobDoc.data().scheduledAt,
-                    updatedAt: new Date().toISOString(),
-                }).catch(() => null);
+                await jobRef
+                    .update({
+                        status: nextStatus,
+                        retries,
+                        lastError: jobErr.message?.substring(0, 500) || 'Unknown error',
+                        scheduledAt: nextStatus === 'failed' ? retryAt.toISOString() : jobDoc.data().scheduledAt,
+                        updatedAt: new Date().toISOString(),
+                    })
+                    .catch(() => null);
 
                 console.error(`❌ Report job ${jobDoc.id} failed (attempt ${retries}/${MAX_RETRIES}):`, jobErr.message);
 
@@ -383,11 +392,9 @@ const processQueue = async (batchSize = 5, targetUserId = null) => {
  * @param {number} [limit=10]
  */
 const getJobHistory = async (userId, limit = 10) => {
-    const snapshot = await getFirestore().collection('reportJobs')
-        .where('userId', '==', userId)
-        .get();
+    const snapshot = await getFirestore().collection('reportJobs').where('userId', '==', userId).get();
 
-    const jobs = snapshot.docs.map(doc => ({
+    const jobs = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
     }));
@@ -403,15 +410,16 @@ const getJobHistory = async (userId, limit = 10) => {
  * @param {string} userId
  */
 const getLastCompletedJob = async (userId) => {
-    const snapshot = await getFirestore().collection('reportJobs')
+    const snapshot = await getFirestore()
+        .collection('reportJobs')
         .where('userId', '==', userId)
         .where('status', '==', 'completed')
         .get();
 
     if (snapshot.empty) return null;
 
-    const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
+    const jobs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
     // Sort by completedAt desc in-memory
     jobs.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 
@@ -435,7 +443,7 @@ const triggerManualReport = async (userId, email, username) => {
 
     // Kick off processing in the background immediately for THIS user
     // We don't await this so the API response remains fast
-    processQueue(1, userId).catch(err => console.error('Error starting manual job processing:', err));
+    processQueue(1, userId).catch((err) => console.error('Error starting manual job processing:', err));
 
     return result;
 };

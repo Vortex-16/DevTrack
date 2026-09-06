@@ -20,11 +20,9 @@ exports.getUserReports = async (req, res, next) => {
         const limit = Math.min(parseInt(req.query.limit) || 10, 50);
 
         // Fetch all user reports and sort in-memory to avoid index requirements
-        const reportsSnapshot = await collections.reports()
-            .where('userId', '==', userId)
-            .get();
+        const reportsSnapshot = await collections.reports().where('userId', '==', userId).get();
 
-        let reports = reportsSnapshot.docs.map(doc => ({
+        let reports = reportsSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
         }));
@@ -68,7 +66,10 @@ exports.downloadReport = async (req, res, next) => {
         const { pdfBuffer } = await reportService.generatePDFReport(userId, reportData);
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=DevTrack-Report-${(reportData.createdAt || '').split('T')[0] || 'download'}.pdf`);
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename=DevTrack-Report-${(reportData.createdAt || '').split('T')[0] || 'download'}.pdf`
+        );
         res.send(pdfBuffer);
     } catch (error) {
         next(error);
@@ -84,23 +85,21 @@ exports.downloadLatestReport = async (req, res, next) => {
         const userId = req.auth.userId;
 
         // Get all reports for this user and sort in-memory to avoid needing a Firestore composite index
-        const reportsSnapshot = await collections.reports()
-            .where('userId', '==', userId)
-            .get();
+        const reportsSnapshot = await collections.reports().where('userId', '==', userId).get();
 
         if (reportsSnapshot.empty) {
             return res.status(404).json({
                 success: false,
-                error: 'No reports found. Please generate a report first.'
+                error: 'No reports found. Please generate a report first.',
             });
         }
 
         // Sort by createdAt descending
-        const allReports = reportsSnapshot.docs.map(doc => ({
+        const allReports = reportsSnapshot.docs.map((doc) => ({
             id: doc.id,
-            ...doc.data()
+            ...doc.data(),
         }));
-        
+
         allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const latestReport = allReports[0];
 
@@ -108,7 +107,10 @@ exports.downloadLatestReport = async (req, res, next) => {
         const { pdfBuffer } = await reportService.generatePDFReport(userId, latestReport);
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=DevTrack-Latest-Report-${(latestReport.createdAt || '').split('T')[0] || 'download'}.pdf`);
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename=DevTrack-Latest-Report-${(latestReport.createdAt || '').split('T')[0] || 'download'}.pdf`
+        );
         res.send(pdfBuffer);
     } catch (error) {
         next(error);
@@ -200,12 +202,10 @@ exports.getQueueStatus = async (req, res, next) => {
         const userData = userDoc.exists ? userDoc.data() : {};
 
         // Fetch jobs and filter in-memory to avoid composite index requirements
-        const jobsSnapshot = await getFirestore().collection('reportJobs')
-            .where('userId', '==', userId)
-            .get();
+        const jobsSnapshot = await getFirestore().collection('reportJobs').where('userId', '==', userId).get();
 
-        const allUserJobs = jobsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const pendingJob = allUserJobs.find(job => ['pending', 'processing'].includes(job.status));
+        const allUserJobs = jobsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const pendingJob = allUserJobs.find((job) => ['pending', 'processing'].includes(job.status));
 
         res.status(200).json({
             success: true,
@@ -215,7 +215,7 @@ exports.getQueueStatus = async (req, res, next) => {
                 recentJobs: jobHistory,
                 pendingJob: pendingJob || null,
                 schedule: userData.reportPreferences || { dayOfWeek: 1, hour: 15, frequency: 'weekly', enabled: true },
-            }
+            },
         });
     } catch (error) {
         next(error);
@@ -238,11 +238,7 @@ exports.triggerReport = async (req, res, next) => {
         const userData = userDoc.data();
         if (!userData.email) throw new APIError('Email not found on your account. Please update your profile.', 400);
 
-        const result = await reportQueue.triggerManualReport(
-            userId,
-            userData.email,
-            userData.githubUsername
-        );
+        const result = await reportQueue.triggerManualReport(userId, userData.email, userData.githubUsername);
 
         if (result.alreadyQueued) {
             return res.status(200).json({
@@ -254,7 +250,7 @@ exports.triggerReport = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            message: 'Report queued! You\'ll receive it via email within a few minutes.',
+            message: "Report queued! You'll receive it via email within a few minutes.",
             data: { jobId: result.jobId, alreadyQueued: false },
         });
     } catch (error) {
@@ -267,18 +263,16 @@ exports.getLatestJobStatus = async (req, res, next) => {
         const userId = req.auth.userId;
 
         // Get the most recent job for this user
-        const snapshot = await getFirestore().collection('reportJobs')
-            .where('userId', '==', userId)
-            .get();
+        const snapshot = await getFirestore().collection('reportJobs').where('userId', '==', userId).get();
 
         if (snapshot.empty) {
             return res.status(200).json({ success: true, status: 'none' });
         }
 
         // Sort in-memory to avoid index requirement
-        const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const jobs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        
+
         const latestJob = jobs[0];
 
         res.status(200).json({
@@ -288,7 +282,41 @@ exports.getLatestJobStatus = async (req, res, next) => {
             reportType: latestJob.reportType,
             createdAt: latestJob.createdAt,
             completedAt: latestJob.completedAt,
-            lastError: latestJob.lastError
+            lastError: latestJob.lastError,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * POST /api/reports/cron-trigger
+ * Triggers weekly report job enqueue and queue processing.
+ * Can be called by external pingers (cron-job.org / GitHub Actions) to wake Render up and process jobs.
+ */
+exports.triggerCronDistribution = async (req, res, next) => {
+    try {
+        const cronSecret = process.env.CRON_SECRET;
+        const providedSecret =
+            req.headers['x-cron-secret'] ||
+            req.headers['authorization']?.replace(/^Bearer\s+/i, '') ||
+            req.query.secret;
+
+        if (cronSecret && providedSecret !== cronSecret) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Invalid cron secret' });
+        }
+
+        console.log('⏰ [Cron Trigger] External trigger received, executing enqueueWeeklyJobs & processQueue...');
+        const enqueueResult = await reportQueue.enqueueWeeklyJobs();
+        const processResult = await reportQueue.processQueue(5);
+
+        res.status(200).json({
+            success: true,
+            message: 'Cron distribution executed',
+            enqueued: enqueueResult.enqueued,
+            skipped: enqueueResult.skipped,
+            processed: processResult.processed,
+            failed: processResult.failed,
         });
     } catch (error) {
         next(error);

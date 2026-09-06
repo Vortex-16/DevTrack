@@ -19,6 +19,7 @@
 const { collections } = require('../config/firebase');
 const { TIERS, ACTIONS, QUOTA_WINDOWS } = require('../config/constants');
 const { getLimitForTier, isUnlimited } = require('../config/tierConfig');
+const { isPermanentProUser } = require('../config/adminAccess');
 const logger = require('../utils/logger');
 
 // ─── Key Helpers ─────────────────────────────────────────────────────────────
@@ -38,9 +39,9 @@ function _windowSuffix(window) {
     const now = new Date();
     switch (window) {
         case QUOTA_WINDOWS.DAY:
-            return now.toISOString().slice(0, 10);          // "2026-07-27"
+            return now.toISOString().slice(0, 10); // "2026-07-27"
         case QUOTA_WINDOWS.MONTH:
-            return now.toISOString().slice(0, 7);            // "2026-07"
+            return now.toISOString().slice(0, 7); // "2026-07"
         case QUOTA_WINDOWS.LIFETIME:
             return 'lifetime';
         default:
@@ -64,7 +65,7 @@ function _ttlForWindow(window) {
             return Math.ceil((endOfMonth - now) / 1000);
         }
         case QUOTA_WINDOWS.LIFETIME:
-            return 0;   // Never expires
+            return 0; // Never expires
         default:
             return 86400; // 24h fallback
     }
@@ -87,7 +88,7 @@ function _resetAt(window) {
             return nextMonth.toISOString();
         }
         case QUOTA_WINDOWS.LIFETIME:
-            return null;   // Never resets
+            return null; // Never resets
         default:
             return null;
     }
@@ -115,7 +116,7 @@ async function _getAndIncrement(key, ttlSeconds) {
     if (cache.incr) {
         try {
             const newVal = await cache.incr(key, ttlSeconds);
-            return newVal - 1;   // Return count before this increment
+            return newVal - 1; // Return count before this increment
         } catch {
             // Fall through to in-memory
         }
@@ -164,13 +165,14 @@ async function getUserTier(userId) {
         const githubUsername = (userData.githubUsername || '').toLowerCase();
         const email = (userData.email || '').toLowerCase();
 
-        // Permanent Pro Exemption for Vortex-16 / Admin
-        const isVortexUser = githubUsername === 'vortex-16' ||
-            githubUsername === 'Vortex-16' ||
-            email.includes('alpha4coders') ||
-            userData.isExemptFromDowngrade === true;
+        // Permanent Pro Exemption for Founders & Core Contributors
+        const isPermanent = isPermanentProUser({
+            githubUsername,
+            email,
+            isExemptFromDowngrade: userData.isExemptFromDowngrade,
+        });
 
-        if (isVortexUser) {
+        if (isPermanent) {
             cache.set(cacheKey, TIERS.PRO, 300);
             return TIERS.PRO;
         }
@@ -193,7 +195,7 @@ async function getUserTier(userId) {
             }
         }
 
-        cache.set(cacheKey, tier, 120);   // Cache for 2 min
+        cache.set(cacheKey, tier, 120); // Cache for 2 min
         return tier;
     } catch (error) {
         logger.warn('Failed to fetch user tier, defaulting to free', { userId, error: error.message });
@@ -295,7 +297,15 @@ async function checkAndIncrement(userId, action) {
     const limitConfig = getLimitForTier(tier, action);
 
     if (limitConfig.max === Infinity) {
-        return { allowed: true, remaining: Infinity, limit: Infinity, used: 0, resetAt: null, label: limitConfig.label, tier };
+        return {
+            allowed: true,
+            remaining: Infinity,
+            limit: Infinity,
+            used: 0,
+            resetAt: null,
+            label: limitConfig.label,
+            tier,
+        };
     }
 
     if (limitConfig.max === 0) {
@@ -311,7 +321,11 @@ async function checkAndIncrement(userId, action) {
         // (In-memory: just set to the limit value to avoid over-counting)
         const cache = _getCache();
         if (cache.decr) {
-            try { await cache.decr(key); } catch { /* best effort */ }
+            try {
+                await cache.decr(key);
+            } catch {
+                /* best effort */
+            }
         } else {
             cache.set(key, usedBefore, ttl || undefined);
         }

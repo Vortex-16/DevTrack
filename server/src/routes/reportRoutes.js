@@ -25,4 +25,7 @@ router.get('/status', requireAuth, reportController.getQueueStatus);
 // Manually trigger a report generation (quota protected)
 router.post('/trigger', requireAuth, quotaGuard('pdf_report'), reportController.triggerReport);
 
+// External trigger for automated distribution (cron pingers to wake up Render)
+router.post('/cron-trigger', reportController.triggerCronDistribution);
+
 module.exports = router;
