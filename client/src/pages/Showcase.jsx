@@ -27,6 +27,7 @@ import {
     Clock,
     Trash2,
     ShieldCheck,
+    RefreshCw,
 } from 'lucide-react';
 import { projectsApi, showcaseApi } from '../services/api';
 import Button from '../components/ui/Button';
@@ -63,6 +64,11 @@ function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
             smoothWheel: true,
         });
 
+        const resizeObserver = new ResizeObserver(() => {
+            lenis.resize();
+        });
+        resizeObserver.observe(contentRef.current);
+
         function raf(time) {
             lenis.raf(time);
             requestAnimationFrame(raf);
@@ -71,6 +77,7 @@ function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
         const animationId = requestAnimationFrame(raf);
 
         return () => {
+            resizeObserver.disconnect();
             cancelAnimationFrame(animationId);
             lenis.destroy();
         };
@@ -96,7 +103,8 @@ function Modal({ isOpen, onClose, title, children, size = 'lg' }) {
             >
                 <div
                     ref={modalRef}
-                    className={`w-full ${sizeClasses[size]} rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar`}
+                    data-lenis-prevent="true"
+                    className={`w-full ${sizeClasses[size]} rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto overscroll-contain custom-scrollbar`}
                     style={{
                         background: 'linear-gradient(145deg, #23201E, #090C0E)',
                         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
@@ -312,7 +320,10 @@ function ShowcaseCard({ showcase, onStar, onComment, onDeleteComment, currentUse
                                 <div className="pt-4 mt-4 border-t border-white/5 space-y-3">
                                     {/* Existing Comments */}
                                     {showcase.comments?.length > 0 ? (
-                                        <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar">
+                                        <div
+                                            data-lenis-prevent="true"
+                                            className="max-h-48 overflow-y-auto overscroll-contain space-y-2 custom-scrollbar"
+                                        >
                                             {showcase.comments.map((comment, idx) => (
                                                 <div key={idx} className="flex gap-2 p-2 rounded-lg bg-white/5 group">
                                                     {comment.authorAvatar ? (
@@ -393,7 +404,7 @@ function ShowcaseCard({ showcase, onStar, onComment, onDeleteComment, currentUse
 }
 
 // Submit Showcase Modal
-function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
+function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit, onRefresh, isRefreshing }) {
     const { user } = useUser();
     const [step, setStep] = useState(1);
     const [selectedProject, setSelectedProject] = useState(null);
@@ -513,24 +524,65 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
                         exit={{ opacity: 0, x: 20 }}
                         className="space-y-4"
                     >
-                        <p className="text-slate-400 text-sm mb-4">
-                            Select one of your <strong className="text-emerald-400">public GitHub repositories</strong>{' '}
-                            to showcase:
-                        </p>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                            <p className="text-slate-400 text-sm">
+                                Select one of your{' '}
+                                <strong className="text-emerald-400">public GitHub repositories</strong> to showcase:
+                            </p>
+                            {onRefresh && (
+                                <button
+                                    type="button"
+                                    onClick={onRefresh}
+                                    disabled={isRefreshing}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                                    title="Refresh repository list"
+                                >
+                                    <RefreshCw
+                                        size={12}
+                                        className={isRefreshing ? 'animate-spin text-purple-400' : 'text-slate-400'}
+                                    />
+                                    <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                                </button>
+                            )}
+                        </div>
 
-                        <div className="grid gap-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                        <div
+                            data-lenis-prevent="true"
+                            className="grid gap-3 max-h-80 overflow-y-auto overscroll-contain custom-scrollbar pr-2"
+                        >
                             {projects.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500">
                                     <Github className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                    <p>No public repositories available.</p>
-                                    <p className="text-sm mt-2">
-                                        Add a public GitHub repository to your Projects first.
+                                    <p className="font-medium text-slate-400">No public repositories available.</p>
+                                    <p className="text-sm mt-1 text-slate-500">
+                                        Add or import a public GitHub repository to your Projects first.
                                     </p>
+                                    <div className="flex items-center justify-center gap-3 mt-4">
+                                        {onRefresh && (
+                                            <button
+                                                type="button"
+                                                onClick={onRefresh}
+                                                disabled={isRefreshing}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                                            >
+                                                <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                                                {isRefreshing ? 'Refreshing...' : 'Refresh Repos'}
+                                            </button>
+                                        )}
+                                        <Link
+                                            to="/projects"
+                                            onClick={onClose}
+                                            className="text-xs text-purple-400 hover:text-purple-300 underline font-medium"
+                                        >
+                                            Manage in Projects
+                                        </Link>
+                                    </div>
                                 </div>
                             ) : (
                                 projects.map((project) => (
                                     <button
                                         key={project.id}
+                                        type="button"
                                         onClick={() => setSelectedProject(project)}
                                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                                             selectedProject?.id === project.id
@@ -562,7 +614,35 @@ function SubmitShowcaseModal({ isOpen, onClose, projects, onSubmit }) {
                             )}
                         </div>
 
-                        <div className="flex justify-end pt-4">
+                        {/* Repo list not up to date prompt */}
+                        {projects.length > 0 && (
+                            <div className="flex items-center justify-between text-xs text-slate-400 bg-white/[0.03] border border-white/5 rounded-xl px-3.5 py-2.5">
+                                <span className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-slate-400">Repo list not up to date?</span>
+                                    <Link
+                                        to="/projects"
+                                        onClick={onClose}
+                                        className="text-purple-400 hover:text-purple-300 underline font-medium"
+                                    >
+                                        Import or manage in Projects
+                                    </Link>
+                                </span>
+                                {onRefresh && (
+                                    <button
+                                        type="button"
+                                        onClick={onRefresh}
+                                        disabled={isRefreshing}
+                                        className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-medium px-2 py-1 rounded bg-purple-500/10 hover:bg-purple-500/20 transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                                        title="Reload repositories"
+                                    >
+                                        <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                                        <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end pt-2">
                             <Button onClick={() => setStep(2)} disabled={!selectedProject} className="px-6">
                                 Continue
                             </Button>
@@ -756,6 +836,29 @@ export default function Showcase() {
     const [searchQuery, setSearchQuery] = useState('');
     const [techFilter, setTechFilter] = useState('');
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [refreshingProjects, setRefreshingProjects] = useState(false);
+
+    const refreshProjects = async () => {
+        setRefreshingProjects(true);
+        try {
+            const [projectsRes, mineRes] = await Promise.allSettled([
+                projectsApi.getAll({ limit: 100 }),
+                showcaseApi.getMine(),
+            ]);
+
+            if (projectsRes.status === 'fulfilled') {
+                const projects = projectsRes.value.data?.data?.projects || projectsRes.value.data?.data || [];
+                setMyProjects(projects);
+            }
+            if (mineRes.status === 'fulfilled') {
+                setMyShowcases(mineRes.value.data?.data || []);
+            }
+        } catch (err) {
+            console.error('Failed to refresh projects:', err);
+        } finally {
+            setRefreshingProjects(false);
+        }
+    };
 
     // Fetch data on mount
     useEffect(() => {
@@ -769,7 +872,7 @@ export default function Showcase() {
             const results = await Promise.allSettled([
                 showcaseApi.getAll(true, '', ''), // Exclude own for discovery
                 showcaseApi.getMine(),
-                projectsApi.getAll(),
+                projectsApi.getAll({ limit: 100 }),
                 showcaseApi.getTrending(),
             ]);
 
@@ -1347,6 +1450,8 @@ export default function Showcase() {
                 onClose={() => setShowSubmitModal(false)}
                 projects={availableProjects}
                 onSubmit={handleSubmitShowcase}
+                onRefresh={refreshProjects}
+                isRefreshing={refreshingProjects}
             />
         </div>
     );
