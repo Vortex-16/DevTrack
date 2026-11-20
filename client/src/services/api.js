@@ -239,6 +239,7 @@ export const leetCodeApi = {
 
 export const publicApi = {
     getProfile: (username) => api.get(`/public/profile/${username}`),
+    getPlatformStats: () => api.get('/public/stats'),
 };
 
 export const resumeApi = {
