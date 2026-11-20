@@ -5,7 +5,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
 // Firebase configuration from environment variables
@@ -46,6 +46,10 @@ export const signInToFirebase = async (customToken) => {
     const authInstance = getFirebaseAuth();
     if (!authInstance || !customToken) return null;
     try {
+        // If already signed in, prevent redundant re-auth which destroys WebChannel streams
+        if (authInstance.currentUser) {
+            return authInstance.currentUser;
+        }
         const userCredential = await signInWithCustomToken(authInstance, customToken);
         return userCredential.user;
     } catch (error) {
@@ -86,7 +90,15 @@ export const getFirebaseDb = () => {
         const firebaseApp = initializeFirebase();
         if (!firebaseApp) return null;
 
-        db = getFirestore(firebaseApp);
+        try {
+            // Auto-detect & use long polling to avoid UDP packet write failures (ERR_QUIC_PROTOCOL_ERROR)
+            // and premature WebChannel connection terminations (400 Bad Request)
+            db = initializeFirestore(firebaseApp, {
+                experimentalAutoDetectLongPolling: true,
+            });
+        } catch {
+            db = getFirestore(firebaseApp);
+        }
         return db;
     } catch (error) {
         console.error('Failed to get Firebase Firestore:', error);
@@ -126,94 +138,93 @@ export const requestNotificationPermission = async () => {
     }
 
     inFlightTokenPromise = (async () => {
-    try {
-        // Check if notifications are supported
-        if (!('Notification' in window)) {
-            console.warn('Notifications not supported in this browser');
-            return null;
-        }
-
-        // Check if service workers are supported
-        if (!('serviceWorker' in navigator)) {
-            console.warn('Service Workers not supported in this browser');
-            return null;
-        }
-
-        // Check VAPID key
-        if (!VAPID_KEY) {
-            console.error('VAPID key is not configured! Check VITE_FIREBASE_VAPID_KEY environment variable.');
-            return null;
-        }
-        // console.log('VAPID key is configured');
-
-        // Request permission
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.log('Notification permission denied');
-            return null;
-        }
-        // console.log(' Notification permission granted');
-
-        // Get messaging instance
-        const messagingInstance = getFirebaseMessaging();
-        if (!messagingInstance) {
-            console.warn('Firebase Messaging not available');
-            return null;
-        }
-
-        // Register or reuse service worker
-        let registration;
         try {
-            registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-            if (!registration) {
-                // console.log('Registering service worker...');
-                registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                // console.log('Service Worker registered:', registration.scope);
-            }
-
-            // Wait for the service worker to be ready
-            await navigator.serviceWorker.ready;
-            // console.log('Service Worker is ready');
-        } catch (swError) {
-            console.error('Service Worker registration failed:', swError);
-            return null;
-        }
-
-        // Get FCM token with detailed error handling
-        try {
-            // console.log('Getting FCM token...');
-            const token = await getToken(messagingInstance, {
-                vapidKey: VAPID_KEY,
-                serviceWorkerRegistration: registration,
-            });
-
-            if (token) {
-                // console.log('FCM Token obtained:', token.substring(0, 20) + '...');
-                cachedFcmToken = token;
-                return token;
-            } else {
-                console.warn('No FCM token available - getToken returned null');
+            // Check if notifications are supported
+            if (!('Notification' in window)) {
+                console.warn('Notifications not supported in this browser');
                 return null;
             }
-        } catch (tokenError) {
-            console.error('Error getting FCM token:', tokenError);
-            console.error('Token error details:', {
-                code: tokenError.code,
-                message: tokenError.message,
-            });
+
+            // Check if service workers are supported
+            if (!('serviceWorker' in navigator)) {
+                console.warn('Service Workers not supported in this browser');
+                return null;
+            }
+
+            // Check VAPID key
+            if (!VAPID_KEY) {
+                console.error('VAPID key is not configured! Check VITE_FIREBASE_VAPID_KEY environment variable.');
+                return null;
+            }
+            // console.log('VAPID key is configured');
+
+            // Request permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log('Notification permission denied');
+                return null;
+            }
+            // console.log(' Notification permission granted');
+
+            // Get messaging instance
+            const messagingInstance = getFirebaseMessaging();
+            if (!messagingInstance) {
+                console.warn('Firebase Messaging not available');
+                return null;
+            }
+
+            // Register or reuse service worker
+            let registration;
+            try {
+                registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+                if (!registration) {
+                    // console.log('Registering service worker...');
+                    registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    // console.log('Service Worker registered:', registration.scope);
+                }
+
+                // Wait for the service worker to be ready
+                await navigator.serviceWorker.ready;
+                // console.log('Service Worker is ready');
+            } catch (swError) {
+                console.error('Service Worker registration failed:', swError);
+                return null;
+            }
+
+            // Get FCM token with detailed error handling
+            try {
+                // console.log('Getting FCM token...');
+                const token = await getToken(messagingInstance, {
+                    vapidKey: VAPID_KEY,
+                    serviceWorkerRegistration: registration,
+                });
+
+                if (token) {
+                    // console.log('FCM Token obtained:', token.substring(0, 20) + '...');
+                    cachedFcmToken = token;
+                    return token;
+                } else {
+                    console.warn('No FCM token available - getToken returned null');
+                    return null;
+                }
+            } catch (tokenError) {
+                console.error('Error getting FCM token:', tokenError);
+                console.error('Token error details:', {
+                    code: tokenError.code,
+                    message: tokenError.message,
+                });
+                return null;
+            }
+        } catch (error) {
+            console.error('Error in requestNotificationPermission:', error);
             return null;
+        } finally {
+            inFlightTokenPromise = null;
         }
-    } catch (error) {
-        console.error('Error in requestNotificationPermission:', error);
-        return null;
-    } finally {
-        inFlightTokenPromise = null;
-    }
     })();
 
     return inFlightTokenPromise;
 };
-
 
 /**
  * Set up foreground message handler

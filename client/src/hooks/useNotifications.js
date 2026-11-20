@@ -8,6 +8,7 @@ import {
     initializeFirebase,
     getFirebaseDb,
     getFirebaseAuth,
+    signInToFirebase,
 } from '../config/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -85,20 +86,18 @@ const useNotifications = () => {
     useEffect(() => {
         // Wait for BOTH Clerk and Firebase Auth to be ready
         if (!isSignedIn || !user?.id || !isFirebaseAuthReady) {
-            if (isSignedIn && user?.id && !isFirebaseAuthReady) {
-                // console.log('⏳ Waiting for Firebase Auth before starting listener...');
-            }
             return;
         }
 
         const db = getFirebaseDb();
         if (!db) return;
 
-        // console.log('📡 Starting real-time notification listener for:', user.id);
+        let isMounted = true;
 
         const unsubscribe = onSnapshot(
             doc(db, 'users', user.id),
             (snapshot) => {
+                if (!isMounted) return;
                 if (snapshot.exists()) {
                     const userData = snapshot.data();
                     const newNotifs = userData.notifications || [];
@@ -115,16 +114,21 @@ const useNotifications = () => {
                 setNotificationsLoading(false);
             },
             (err) => {
-                // If we get a permission error, it might be because the session expired
-                console.error('❌ Notification listener error:', err);
+                if (!isMounted) return;
+                // Suppress excessive noisy network drop logging
                 if (err.code === 'permission-denied') {
                     setIsFirebaseAuthReady(false); // Force re-auth
+                } else {
+                    console.warn('Real-time notification listener note:', err.message || err);
                 }
                 setNotificationsLoading(false);
             }
         );
 
-        return () => unsubscribe();
+        return () => {
+            isMounted = false;
+            unsubscribe();
+        };
     }, [isSignedIn, user?.id, isFirebaseAuthReady]);
 
     // ── FCM status check + token refresh on sign-in ───────────────────────────
@@ -138,9 +142,7 @@ const useNotifications = () => {
 
                 // Sign in to Firebase Auth for onSnapshot permissions
                 if (firebaseToken) {
-                    const { signInToFirebase } = await import('../config/firebase');
                     await signInToFirebase(firebaseToken);
-                    // console.log('✅ Signed into Firebase Auth');
                 }
 
                 if (enabled && Notification.permission === 'granted') {

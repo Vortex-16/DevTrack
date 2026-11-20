@@ -9,6 +9,8 @@ const { APIError } = require('../middleware/errorHandler');
 const { TIERS } = require('../config/constants');
 const { fetchGitHubAvatar } = require('../services/profileSyncService');
 const { isPermanentProUser } = require('../config/adminAccess');
+const { userManager } = require('../services/userService');
+const logger = require('../utils/logger');
 const {
     getActiveGithubToken,
     hasGithubAccessExpired,
@@ -239,12 +241,31 @@ const syncUser = async (req, res, next) => {
                 lastEndTime: existing.lastEndTime,
             });
         } else {
-            // Create new user with 30-day Pro trial grandfathering
+            // Check if another user document exists with the same email or githubUsername (OOP deduplication)
             const userEmail = clerkUser.emailAddresses?.[0]?.emailAddress || userData.email;
-            const isPermanentPro = isPermanentProUser({
-                githubUsername,
-                email: userEmail,
-            });
+            let priorUser = null;
+
+            if (userEmail) {
+                const sameEmail = await userManager.findUsersByEmail(userEmail);
+                priorUser = sameEmail.find((u) => u.id !== userId);
+            }
+            if (!priorUser && githubUsername) {
+                const sameGh = await userManager.findUsersByGithub(githubUsername);
+                priorUser = sameGh.find((u) => u.id !== userId);
+            }
+
+            if (priorUser) {
+                logger.info(`Deduplication on sync: Merging prior user ${priorUser.id} into current user ${userId}`);
+                await userManager.mergeUserRecords(userId, priorUser.id);
+            }
+
+            // Create new user with 30-day Pro trial grandfathering (or retain Pro if merged)
+            const isPermanentPro =
+                isPermanentProUser({
+                    githubUsername,
+                    email: userEmail,
+                }) ||
+                (priorUser && priorUser.isExemptFromDowngrade);
 
             const proTrialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             let githubAvatarUrl = null;
@@ -254,13 +275,14 @@ const syncUser = async (req, res, next) => {
 
             const newUserData = {
                 ...userData,
-                tier: TIERS.PRO,
+                tier: priorUser && priorUser.isPro ? TIERS.PRO : TIERS.PRO,
                 tierExpiresAt: isPermanentPro ? null : proTrialExpiry,
-                isExemptFromDowngrade: isPermanentPro,
+                isExemptFromDowngrade: Boolean(isPermanentPro),
                 tierTrialStartedAt: new Date().toISOString(),
+                createdAt: priorUser ? priorUser.createdAt : userData.createdAt,
             };
 
-            await userRef.set(newUserData);
+            await userRef.set(newUserData, { merge: true });
             if (githubAvatarUrl) {
                 await userRef.update({
                     avatarUrl: githubAvatarUrl,
