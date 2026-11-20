@@ -1,34 +1,36 @@
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { ReactLenis } from 'lenis/react';
 import AppLayout from './components/layout/AppLayout';
 import ProfessionalLoader from './components/ui/ProfessionalLoader';
 import Landing from './pages/Landing';
-import Dashboard from './pages/Dashboard';
-import Learning from './pages/Learning';
-import Projects from './pages/Projects';
-import Chat from './pages/Chat';
-import SystemInfo from './pages/SystemInfo';
-import Onboarding from './pages/Onboarding';
-import MobileAuth from './pages/MobileAuth';
-import GitHubInsights from './pages/GitHubInsights';
-import Showcase from './pages/Showcase';
-import PublicProfile from './pages/PublicProfile';
-import ResumeBuilder from './pages/ResumeBuilder';
-import Roadmap from './pages/Roadmap';
-import NotFound from './pages/NotFound';
-import UserGuide from './pages/UserGuide';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Pricing from './pages/Pricing';
+
+// Lazy-loaded routes for optimal initial bundle size (<150KB) and smooth navigation
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Learning = lazy(() => import('./pages/Learning'));
+const Projects = lazy(() => import('./pages/Projects'));
+const Chat = lazy(() => import('./pages/Chat'));
+const SystemInfo = lazy(() => import('./pages/SystemInfo'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const MobileAuth = lazy(() => import('./pages/MobileAuth'));
+const GitHubInsights = lazy(() => import('./pages/GitHubInsights'));
+const Showcase = lazy(() => import('./pages/Showcase'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
+const ResumeBuilder = lazy(() => import('./pages/ResumeBuilder'));
+const Roadmap = lazy(() => import('./pages/Roadmap'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const UserGuide = lazy(() => import('./pages/UserGuide'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+
 import UpgradePrompt from './components/common/UpgradePrompt';
 import CommandPalette from './components/common/CommandPalette';
 import OnboardingTour from './components/common/OnboardingTour';
 import { SubscriptionProvider, useSubscription } from './hooks/useSubscription';
-import { preferencesApi } from './services/api';
+import { preferencesApi, authApi } from './services/api';
 import useHeartbeat from './hooks/useHeartbeat';
-import Lenis from 'lenis';
 import { CacheProvider } from './context/CacheContext';
-import { authApi } from './services/api';
 
 // Component that handles automatic onboarding redirect after signup
 function OnboardingRedirect({ children }) {
@@ -168,10 +170,6 @@ function BackgroundSync() {
     return null;
 }
 
-import { ReactLenis } from 'lenis/react';
-
-// ... existing imports
-
 function App() {
     useHeartbeat();
 
@@ -180,85 +178,93 @@ function App() {
             <CacheProvider>
                 <SubscriptionProvider>
                     <BackgroundSync />
-                    <Routes>
-                        {/* Public Routes */}
-                        <Route
-                            path="/"
-                            element={
-                                <>
-                                    <SignedOut>
-                                        <Landing />
-                                    </SignedOut>
+                    <Suspense
+                        fallback={
+                            <div className="min-h-screen bg-[#fafafa] dark:bg-slate-950 flex items-center justify-center">
+                                <ProfessionalLoader size="lg" />
+                            </div>
+                        }
+                    >
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route
+                                path="/"
+                                element={
+                                    <>
+                                        <SignedOut>
+                                            <Landing />
+                                        </SignedOut>
+                                        <SignedIn>
+                                            <OnboardingRedirect>
+                                                <Navigate to="/dashboard" replace />
+                                            </OnboardingRedirect>
+                                        </SignedIn>
+                                    </>
+                                }
+                            />
+
+                            {/* Public Profile Route */}
+                            <Route path="/u/:username" element={<PublicProfile />} />
+                            <Route
+                                path="/resume"
+                                element={
                                     <SignedIn>
                                         <OnboardingRedirect>
-                                            <Navigate to="/dashboard" replace />
+                                            <ResumeBuilder />
                                         </OnboardingRedirect>
                                     </SignedIn>
-                                </>
-                            }
-                        />
+                                }
+                            />
 
-                        {/* Public Profile Route */}
-                        <Route path="/u/:username" element={<PublicProfile />} />
-                        <Route
-                            path="/resume"
-                            element={
-                                <SignedIn>
-                                    <OnboardingRedirect>
-                                        <ResumeBuilder />
-                                    </OnboardingRedirect>
-                                </SignedIn>
-                            }
-                        />
-
-                        {/* Onboarding Route (Protected) */}
-                        <Route
-                            path="/onboarding"
-                            element={
-                                <SignedIn>
-                                    <Onboarding />
-                                </SignedIn>
-                            }
-                        />
-
-                        {/* Protected Routes */}
-                        <Route
-                            element={
-                                <>
+                            {/* Onboarding Route (Protected) */}
+                            <Route
+                                path="/onboarding"
+                                element={
                                     <SignedIn>
-                                        <OnboardingRedirect>
-                                            <AppLayout />
-                                        </OnboardingRedirect>
+                                        <Onboarding />
                                     </SignedIn>
-                                    <SignedOut>
-                                        <Navigate to="/?expired=true" replace />
-                                    </SignedOut>
-                                </>
-                            }
-                        >
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/learning" element={<Learning />} />
-                            <Route path="/roadmap" element={<Roadmap />} />
-                            <Route path="/projects" element={<Projects />} />
-                            <Route path="/chat" element={<Chat />} />
-                            <Route path="/github-insights" element={<GitHubInsights />} />
-                            <Route path="/showcase" element={<Showcase />} />
-                            <Route path="/pricing" element={<Pricing />} />
-                            <Route path="/system-info" element={<SystemInfo />} />
-                            {/* Documentation Pages inside AppLayout */}
-                            <Route path="/guide" element={<UserGuide />} />
-                            <Route path="/privacy" element={<PrivacyPolicy />} />
-                        </Route>
+                                }
+                            />
 
-                        {/* Preview Landing Page (for testing while signed in) */}
-                        <Route path="/preview-landing" element={<Landing />} />
+                            {/* Protected Routes */}
+                            <Route
+                                element={
+                                    <>
+                                        <SignedIn>
+                                            <OnboardingRedirect>
+                                                <AppLayout />
+                                            </OnboardingRedirect>
+                                        </SignedIn>
+                                        <SignedOut>
+                                            <Navigate to="/?expired=true" replace />
+                                        </SignedOut>
+                                    </>
+                                }
+                            >
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/learning" element={<Learning />} />
+                                <Route path="/roadmap" element={<Roadmap />} />
+                                <Route path="/projects" element={<Projects />} />
+                                <Route path="/chat" element={<Chat />} />
+                                <Route path="/github-insights" element={<GitHubInsights />} />
+                                <Route path="/showcase" element={<Showcase />} />
+                                <Route path="/pricing" element={<Pricing />} />
+                                <Route path="/system-info" element={<SystemInfo />} />
+                                {/* Documentation Pages inside AppLayout */}
+                                <Route path="/guide" element={<UserGuide />} />
+                                <Route path="/privacy" element={<PrivacyPolicy />} />
+                            </Route>
 
-                        {/* Mobile Auth Page - for Flutter app authentication */}
-                        <Route path="/mobile-auth" element={<MobileAuth />} />
+                            {/* Preview Landing Page (for testing while signed in) */}
+                            <Route path="/preview-landing" element={<Landing />} />
 
-                        {/* Catch all - 404 Not Found */}
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
+                            {/* Mobile Auth Page - for Flutter app authentication */}
+                            <Route path="/mobile-auth" element={<MobileAuth />} />
+
+                            {/* Catch all - 404 Not Found */}
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </Suspense>
                     <UpgradePrompt />
                     <CommandPalette />
                     <SignedIn>

@@ -543,32 +543,41 @@ export default function Landing() {
             </section>
 
             {/* Live Stats Bar */}
-            <section className="py-16 px-4 sm:px-6 max-w-[1200px] mx-auto">
+            <section
+                className="py-16 px-4 sm:px-6 max-w-[1200px] mx-auto"
+                role="region"
+                aria-label="Platform Telemetry and Live Statistics"
+            >
                 <div className="flex items-center justify-between mb-5 px-1">
                     <div className="flex items-center gap-2">
                         <span
-                            className={`w-2 h-2 rounded-full ${isLiveStats ? 'bg-sprout animate-pulse' : 'bg-emerald-400'}`}
+                            className={`w-2 h-2 rounded-full ${isLiveStats ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-400'}`}
+                            aria-hidden="true"
                         />
-                        <span className="font-mono text-xs uppercase tracking-[0.08em] text-zinc-600 font-semibold">
+                        <span className="font-mono text-xs uppercase tracking-[0.08em] text-zinc-700 font-semibold">
                             Platform Telemetry &amp; Live Stats
                         </span>
                     </div>
-                    <span className="font-mono text-[11px] text-zinc-400 hidden sm:inline-block">
+                    <span className="font-mono text-[11px] text-zinc-500 hidden sm:inline-block">
                         Real-time repository syncs &amp; activity
                     </span>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6" aria-live="polite" aria-atomic="true">
                     <a
                         href="https://github.com/Vortex-16/DevTrack"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-6 rounded-[12px] bg-white border border-zinc-200 shadow-sm text-center transition-all hover:border-zinc-300 hover:shadow-md group block"
-                        title="View DevTrack on GitHub"
+                        className="p-6 rounded-[12px] bg-white border border-zinc-200 shadow-sm text-center transition-all hover:border-zinc-300 hover:shadow-md group block focus-visible:ring-2 focus-visible:ring-[#6a5ed9] focus-visible:outline-hidden"
+                        title="View DevTrack open-source repository on GitHub (opens in new tab)"
+                        aria-label={`DevTrack GitHub Stars: ${platformStats.githubStars || 16} stars. Opens GitHub in a new tab.`}
                     >
                         <div className="flex items-center justify-center gap-1.5 text-cobalt mb-2">
-                            <Star className="w-4 h-4 fill-amber-400 text-amber-500 group-hover:scale-110 transition-transform" />
-                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">
+                            <Star
+                                className="w-4 h-4 fill-amber-400 text-amber-500 group-hover:scale-110 transition-transform"
+                                aria-hidden="true"
+                            />
+                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-600 font-medium">
                                 GitHub Stars
                             </span>
                         </div>
@@ -577,14 +586,17 @@ export default function Landing() {
                         </div>
                         <p className="text-xs text-zinc-500 mt-1 flex items-center justify-center gap-1">
                             <span>Open-source community</span>
-                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400" />
+                            <ExternalLink
+                                className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400"
+                                aria-hidden="true"
+                            />
                         </p>
                     </a>
 
                     <div className="p-6 rounded-[12px] bg-white border border-zinc-200 shadow-sm text-center">
                         <div className="flex items-center justify-center gap-1.5 text-sprout mb-2">
-                            <GitCommit className="w-4 h-4 text-sprout" />
-                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">
+                            <GitCommit className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-600 font-medium">
                                 Commits Analyzed
                             </span>
                         </div>
@@ -598,8 +610,8 @@ export default function Landing() {
 
                     <div className="p-6 rounded-[12px] bg-white border border-zinc-200 shadow-sm text-center">
                         <div className="flex items-center justify-center gap-1.5 text-coral mb-2">
-                            <Users className="w-4 h-4 text-coral" />
-                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">
+                            <Users className="w-4 h-4 text-orange-600" aria-hidden="true" />
+                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-600 font-medium">
                                 Active Developers
                             </span>
                         </div>
@@ -613,8 +625,8 @@ export default function Landing() {
 
                     <div className="p-6 rounded-[12px] bg-white border border-zinc-200 shadow-sm text-center">
                         <div className="flex items-center justify-center gap-1.5 text-cobalt mb-2">
-                            <Award className="w-4 h-4 text-cobalt" />
-                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">
+                            <Award className="w-4 h-4 text-indigo-600" aria-hidden="true" />
+                            <span className="font-mono text-xs uppercase tracking-wider text-zinc-600 font-medium">
                                 Habit Retention
                             </span>
                         </div>

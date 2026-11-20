@@ -10,6 +10,19 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                    'vendor-clerk': ['@clerk/clerk-react'],
+                    'vendor-motion': ['framer-motion', 'gsap'],
+                    'vendor-icons': ['lucide-react', 'react-icons'],
+                },
+            },
+        },
+        chunkSizeWarningLimit: 600,
+    },
     server: {
         proxy: {
             '/api': {

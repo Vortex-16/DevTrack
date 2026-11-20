@@ -6,7 +6,8 @@ import {
     onForegroundMessage,
     showNotification,
     initializeFirebase,
-    getFirebaseDb
+    getFirebaseDb,
+    getFirebaseAuth,
 } from '../config/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -44,33 +45,24 @@ const useNotifications = () => {
         const app = initializeFirebase();
         if (!app) return;
 
-        const { getFirebaseAuth } = import('../config/firebase'); // Dynamic import to be safe
-        
-        // Track Firebase Auth state
-        const setupAuthListener = async () => {
-            const { getFirebaseAuth } = await import('../config/firebase');
-            const auth = getFirebaseAuth();
-            if (!auth) return;
+        const auth = getFirebaseAuth();
+        if (!auth) return;
 
-            return onAuthStateChanged(auth, (fbUser) => {
-                if (fbUser) {
-                    // console.log('🔥 Firebase Auth session active:', fbUser.uid);
-                    setIsFirebaseAuthReady(true);
-                } else {
-                    // console.log('🔥 No Firebase Auth session');
-                    setIsFirebaseAuthReady(false);
-                }
-            });
-        };
-
-        let unsubscribe;
-        setupAuthListener().then(unsub => { unsubscribe = unsub; });
+        const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+            if (fbUser) {
+                setIsFirebaseAuthReady(true);
+            } else {
+                setIsFirebaseAuthReady(false);
+            }
+        });
 
         if ('Notification' in window) {
             setPermission(Notification.permission);
         }
 
-        return () => { if (unsubscribe) unsubscribe(); };
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, []);
 
     // ── Fetch in-app notifications ────────────────────────────────────────────
@@ -81,7 +73,7 @@ const useNotifications = () => {
             const res = await notificationsApi.getAll(20);
             const data = res.data?.data || [];
             setNotifications(data);
-            setUnreadCount(res.data?.unreadCount || data.filter(n => !n.read).length);
+            setUnreadCount(res.data?.unreadCount || data.filter((n) => !n.read).length);
         } catch (err) {
             // Non-fatal — just don't update
         } finally {
@@ -103,30 +95,34 @@ const useNotifications = () => {
         if (!db) return;
 
         // console.log('📡 Starting real-time notification listener for:', user.id);
-        
-        const unsubscribe = onSnapshot(doc(db, 'users', user.id), (snapshot) => {
-            if (snapshot.exists()) {
-                const userData = snapshot.data();
-                const newNotifs = userData.notifications || [];
-                
-                // Update state
-                setNotifications(newNotifs);
-                
-                // Calculate unread count
-                const unread = newNotifs.filter(n => !n.read).length;
-                setUnreadCount(unread);
-                
-                setIsEnabled(!!userData.fcmToken || (userData.fcmTokens && userData.fcmTokens.length > 0));
+
+        const unsubscribe = onSnapshot(
+            doc(db, 'users', user.id),
+            (snapshot) => {
+                if (snapshot.exists()) {
+                    const userData = snapshot.data();
+                    const newNotifs = userData.notifications || [];
+
+                    // Update state
+                    setNotifications(newNotifs);
+
+                    // Calculate unread count
+                    const unread = newNotifs.filter((n) => !n.read).length;
+                    setUnreadCount(unread);
+
+                    setIsEnabled(!!userData.fcmToken || (userData.fcmTokens && userData.fcmTokens.length > 0));
+                }
+                setNotificationsLoading(false);
+            },
+            (err) => {
+                // If we get a permission error, it might be because the session expired
+                console.error('❌ Notification listener error:', err);
+                if (err.code === 'permission-denied') {
+                    setIsFirebaseAuthReady(false); // Force re-auth
+                }
+                setNotificationsLoading(false);
             }
-            setNotificationsLoading(false);
-        }, (err) => {
-            // If we get a permission error, it might be because the session expired
-            console.error('❌ Notification listener error:', err);
-            if (err.code === 'permission-denied') {
-                setIsFirebaseAuthReady(false); // Force re-auth
-            }
-            setNotificationsLoading(false);
-        });
+        );
 
         return () => unsubscribe();
     }, [isSignedIn, user?.id, isFirebaseAuthReady]);
@@ -157,7 +153,7 @@ const useNotifications = () => {
 
                 // Also refresh in-app unread count from status endpoint
                 const unread = response.data.data?.unreadCount || 0;
-                setUnreadCount(prev => Math.max(prev, unread));
+                setUnreadCount((prev) => Math.max(prev, unread));
             } catch (err) {
                 console.error('Error checking notification status:', err);
             }
@@ -171,25 +167,25 @@ const useNotifications = () => {
         if (!isEnabled) return;
 
         const unsubscribe = onForegroundMessage((payload) => {
-            showNotification(
-                payload.notification?.title || 'DevTrack',
-                { body: payload.notification?.body, data: payload.data }
-            );
+            showNotification(payload.notification?.title || 'DevTrack', {
+                body: payload.notification?.body,
+                data: payload.data,
+            });
             // Refresh in-app list when a push arrives in foreground
             fetchNotifications();
         });
 
-        return () => { if (unsubscribe) unsubscribe(); };
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [isEnabled, fetchNotifications]);
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
     const markRead = useCallback(async (id) => {
         // Optimistic update
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
 
         try {
             await notificationsApi.markRead(id);
@@ -201,7 +197,7 @@ const useNotifications = () => {
 
     const markAllRead = useCallback(async () => {
         // Optimistic update
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         setUnreadCount(0);
 
         try {
@@ -213,12 +209,12 @@ const useNotifications = () => {
 
     const deleteNotification = useCallback(async (id) => {
         // Optimistic update
-        setNotifications(prev => {
-            const removed = prev.find(n => n.id === id);
+        setNotifications((prev) => {
+            const removed = prev.find((n) => n.id === id);
             if (removed && !removed.read) {
-                setUnreadCount(c => Math.max(0, c - 1));
+                setUnreadCount((c) => Math.max(0, c - 1));
             }
-            return prev.filter(n => n.id !== id);
+            return prev.filter((n) => n.id !== id);
         });
 
         try {
@@ -306,10 +302,13 @@ const useNotifications = () => {
         }
     }, [isSignedIn, isEnabled, fetchNotifications]);
 
-    const showLocalNotification = useCallback((title, options = {}) => {
-        if (permission !== 'granted') return;
-        showNotification(title, options);
-    }, [permission]);
+    const showLocalNotification = useCallback(
+        (title, options = {}) => {
+            if (permission !== 'granted') return;
+            showNotification(title, options);
+        },
+        [permission]
+    );
 
     return {
         // Push / FCM state

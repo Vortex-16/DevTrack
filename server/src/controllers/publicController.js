@@ -232,28 +232,37 @@ const getPlatformStats = async (req, res, next) => {
                     logger.warn('Failed to fetch DevTrack GitHub stars', { error: err.message });
                 }
 
-                // Real Firestore metrics
+                // Real Firestore metrics (optimized with server-side aggregations and field selection)
                 let activeDevelopers = 37;
                 let commitsAnalyzed = 42709;
                 let habitRetention = 60.5;
                 let totalProjects = 154;
 
                 try {
-                    const [usersSnap, projectsSnap, reportsSnap] = await Promise.all([
-                        collections.users().get(),
-                        collections.projects().get(),
+                    const [usersCountSnap, projectsSnap, reportsSnap] = await Promise.all([
+                        collections
+                            .users()
+                            .count()
+                            .get()
+                            .catch(() => null),
+                        collections
+                            .projects()
+                            .select('commits')
+                            .get()
+                            .catch(() => null),
                         collections
                             .reports()
-                            .limit(100)
+                            .limit(50)
+                            .select('aiInsights')
                             .get()
                             .catch(() => ({ docs: [], size: 0 })),
                     ]);
 
-                    if (!usersSnap.empty) {
-                        activeDevelopers = usersSnap.size;
+                    if (usersCountSnap && typeof usersCountSnap.data?.().count === 'number') {
+                        activeDevelopers = usersCountSnap.data().count;
                     }
 
-                    if (!projectsSnap.empty) {
+                    if (projectsSnap && !projectsSnap.empty) {
                         totalProjects = projectsSnap.size;
                         let projectCommits = 0;
                         projectsSnap.forEach((doc) => {
