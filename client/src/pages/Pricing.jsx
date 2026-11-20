@@ -18,6 +18,18 @@ const FEATURES = [
 const Pricing = () => {
     const { tier, isPro } = useSubscription();
     const [loading, setLoading] = useState(false);
+    const [cancelledNotice, setCancelledNotice] = useState(false);
+
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('subscription') === 'cancelled') {
+            setCancelledNotice(true);
+            params.delete('subscription');
+            const query = params.toString();
+            const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+    }, []);
 
     const handleUpgrade = async () => {
         setLoading(true);
@@ -66,6 +78,12 @@ const Pricing = () => {
                         Choose the tier that fits your development workflow. Upgrade anytime for unlimited AI
                         intelligence, PDF reports, and codebase analysis.
                     </p>
+
+                    {cancelledNotice && (
+                        <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-amber-300 bg-amber-950/60 border border-amber-800/60 rounded-xl">
+                            <span>Checkout was cancelled. Your card has not been charged.</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Pricing Cards */}

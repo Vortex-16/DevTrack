@@ -15,6 +15,7 @@ const { requireAuth } = require('../middleware/auth');
 
 router.post('/create-checkout-session', requireAuth, paymentController.createCheckoutSession);
 router.post('/create-portal-session', requireAuth, paymentController.createPortalSession);
+router.post('/verify-checkout-session', requireAuth, paymentController.verifyCheckoutSession);
 router.get('/status', requireAuth, paymentController.getStatus);
 router.get('/usage', requireAuth, paymentController.getUsage);
 router.post('/cancel', requireAuth, paymentController.cancelSubscription);

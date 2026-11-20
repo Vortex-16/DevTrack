@@ -27,12 +27,7 @@ const createCheckoutSession = async (req, res, next) => {
 
         const userEmail = email || req.auth.sessionClaims?.email || `${userId}@user.devtrack.app`;
 
-        const session = await paymentService.createCheckoutSession(
-            userId,
-            userEmail,
-            countryCode || 'IN',
-            returnUrl
-        );
+        const session = await paymentService.createCheckoutSession(userId, userEmail, countryCode || 'IN', returnUrl);
 
         return respond.success(res, session);
     } catch (error) {
@@ -52,6 +47,29 @@ const createPortalSession = async (req, res, next) => {
         const portal = await paymentService.createPortalSession(userId, returnUrl);
 
         return respond.success(res, portal);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Verify a completed checkout session directly with Stripe (immediate sync upon return).
+ * POST /api/payments/verify-checkout-session
+ */
+const verifyCheckoutSession = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId;
+        const { sessionId } = req.body;
+
+        if (!userId) {
+            throw new APIError('Unauthorized access', 401);
+        }
+        if (!sessionId) {
+            throw new ValidationError('sessionId is required in request body');
+        }
+
+        const result = await paymentService.verifyCheckoutSession(userId, sessionId);
+        return respond.success(res, result);
     } catch (error) {
         next(error);
     }
@@ -132,6 +150,7 @@ const cancelSubscription = async (req, res, next) => {
 module.exports = {
     createCheckoutSession,
     createPortalSession,
+    verifyCheckoutSession,
     handleWebhook,
     getStatus,
     getUsage,

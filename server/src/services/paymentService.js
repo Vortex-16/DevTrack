@@ -56,8 +56,8 @@ class PaymentService {
         // Determine pricing based on country (Geo-pricing: INR for IN, USD for international)
         const isIndia = (countryCode || '').toUpperCase() === 'IN';
         const priceId = isIndia
-            ? (process.env.STRIPE_PRICE_ID_INR || 'price_pro_inr_mock')
-            : (process.env.STRIPE_PRICE_ID_USD || 'price_pro_usd_mock');
+            ? process.env.STRIPE_PRICE_ID_INR || 'price_pro_inr_mock'
+            : process.env.STRIPE_PRICE_ID_USD || 'price_pro_usd_mock';
 
         const baseUrl = returnUrl || process.env.CLIENT_URL || 'http://localhost:5173';
 
@@ -76,9 +76,12 @@ class PaymentService {
             stripeCustomerId = customer.id;
 
             // Save customer ID back to user document
-            await collections.users().doc(userId).set({
-                stripeCustomerId,
-            }, { merge: true });
+            await collections.users().doc(userId).set(
+                {
+                    stripeCustomerId,
+                },
+                { merge: true }
+            );
         }
 
         // Create Checkout Session
@@ -150,6 +153,71 @@ class PaymentService {
 
         return {
             portalUrl: portalSession.url,
+        };
+    }
+
+    /**
+     * Verify a completed checkout session directly with Stripe (fallback / immediate sync).
+     * Provides instant tier upgrade upon user redirect, bypassing any webhook latency or delivery failures.
+     *
+     * @param {string} userId - User's Clerk ID
+     * @param {string} sessionId - Stripe Checkout Session ID
+     * @returns {Promise<{ success: boolean, tier: string, verified: boolean, message: string }>}
+     */
+    async verifyCheckoutSession(userId, sessionId) {
+        if (!sessionId) {
+            throw new Error('Session ID is required');
+        }
+
+        // 1. Check if user is already upgraded in Firestore
+        const userDoc = await collections.users().doc(userId).get();
+        if (userDoc.exists && userDoc.data()?.tier === TIERS.PRO) {
+            return {
+                success: true,
+                tier: TIERS.PRO,
+                verified: true,
+                message: 'User is already active on Pro tier',
+            };
+        }
+
+        const stripe = getStripe();
+        if (!stripe) {
+            throw new Error('Stripe is not configured on the server');
+        }
+
+        // 2. Fetch session from Stripe
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        // Security check: ensure session belongs to this user
+        const sessionUserId = session.client_reference_id || session.metadata?.userId;
+        if (sessionUserId && sessionUserId !== userId) {
+            logger.warn('Checkout session user mismatch', { requestedUser: userId, sessionUser: sessionUserId });
+            throw new Error('Session does not belong to the authenticated user');
+        }
+
+        // 3. Check if session payment succeeded or is paid
+        if (session.payment_status === 'paid' || session.status === 'complete') {
+            logger.info('Direct verification: Session paid, fulfilling Pro tier upgrade', {
+                userId,
+                sessionId,
+            });
+
+            await this._handleCheckoutCompleted(session);
+
+            return {
+                success: true,
+                tier: TIERS.PRO,
+                verified: true,
+                message: 'Subscription verified and activated successfully',
+            };
+        }
+
+        return {
+            success: false,
+            tier: userDoc.exists ? userDoc.data()?.tier || TIERS.FREE : TIERS.FREE,
+            verified: false,
+            status: session.payment_status,
+            message: 'Payment has not been completed yet',
         };
     }
 
@@ -301,23 +369,29 @@ class PaymentService {
         logger.info('Upgrading user to Pro tier following checkout', { userId, subscriptionId });
 
         // Update User document
-        await collections.users().doc(userId).set({
-            tier: TIERS.PRO,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            tierUpgradedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections.users().doc(userId).set(
+            {
+                tier: TIERS.PRO,
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
+                tierUpgradedAt: new Date().toISOString(),
+            },
+            { merge: true }
+        );
 
         // Record in subscriptions collection
-        await collections.subscriptions().doc(userId).set({
-            userId,
-            tier: TIERS.PRO,
-            status: 'active',
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections.subscriptions().doc(userId).set(
+            {
+                userId,
+                tier: TIERS.PRO,
+                status: 'active',
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+        );
 
         // Log payment record
         await collections.payments().doc(session.id).set({
@@ -341,19 +415,28 @@ class PaymentService {
         const isActive = subscription.status === 'active' || subscription.status === 'trialing';
         const newTier = isActive ? TIERS.PRO : TIERS.FREE;
 
-        await collections.users().doc(userId).set({
-            tier: newTier,
-            stripeSubscriptionStatus: subscription.status,
-            updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections.users().doc(userId).set(
+            {
+                tier: newTier,
+                stripeSubscriptionStatus: subscription.status,
+                updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+        );
 
-        await collections.subscriptions().doc(userId).set({
-            status: subscription.status,
-            currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-            updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections
+            .subscriptions()
+            .doc(userId)
+            .set(
+                {
+                    status: subscription.status,
+                    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+                    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                    updatedAt: new Date().toISOString(),
+                },
+                { merge: true }
+            );
 
         const cache = require('../config/cache');
         cache.del(`tier:${userId}`);
@@ -365,17 +448,23 @@ class PaymentService {
 
         logger.info('Subscription cancelled, downgrading user to Free', { userId });
 
-        await collections.users().doc(userId).set({
-            tier: TIERS.FREE,
-            stripeSubscriptionStatus: 'canceled',
-            tierDowngradedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections.users().doc(userId).set(
+            {
+                tier: TIERS.FREE,
+                stripeSubscriptionStatus: 'canceled',
+                tierDowngradedAt: new Date().toISOString(),
+            },
+            { merge: true }
+        );
 
-        await collections.subscriptions().doc(userId).set({
-            status: 'canceled',
-            cancelledAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        }, { merge: true });
+        await collections.subscriptions().doc(userId).set(
+            {
+                status: 'canceled',
+                cancelledAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+        );
 
         const cache = require('../config/cache');
         cache.del(`tier:${userId}`);

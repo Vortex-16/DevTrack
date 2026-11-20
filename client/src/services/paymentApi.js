@@ -25,6 +25,15 @@ export const paymentApi = {
     },
 
     /**
+     * Verify a Stripe Checkout Session immediately upon return.
+     * @param {string} sessionId
+     */
+    async verifyCheckoutSession(sessionId) {
+        const response = await api.post('/payments/verify-checkout-session', { sessionId });
+        return response.data;
+    },
+
+    /**
      * Get user's current subscription & tier status.
      */
     async getStatus() {

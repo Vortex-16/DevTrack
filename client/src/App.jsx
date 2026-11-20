@@ -29,6 +29,8 @@ import CommandPalette from './components/common/CommandPalette';
 import OnboardingTour from './components/common/OnboardingTour';
 import { SubscriptionProvider, useSubscription } from './hooks/useSubscription';
 import { preferencesApi, authApi } from './services/api';
+import paymentApi from './services/paymentApi';
+import confetti from 'canvas-confetti';
 import useHeartbeat from './hooks/useHeartbeat';
 import { CacheProvider } from './context/CacheContext';
 
@@ -142,28 +144,66 @@ function BackgroundSync() {
         if (!isLoaded || !isSignedIn) return;
 
         const params = new URLSearchParams(window.location.search);
-        if (params.get('subscription') === 'success') {
-            console.log('🎉 Stripe subscription success detected. Triggering instant sync...');
-            refreshUsage();
+        const isSubscriptionSuccess = params.get('subscription') === 'success';
+        const sessionId = params.get('session_id');
 
-            // Webhook might take a brief second, so poll every 2s (up to 5 times) to ensure sync
-            let count = 0;
-            const interval = setInterval(async () => {
-                count++;
-                console.log(`Polling for subscription update (${count}/5)...`);
-                await refreshUsage();
-                if (count >= 5) {
-                    clearInterval(interval);
+        if (isSubscriptionSuccess) {
+            console.log('🎉 Subscription success detected. Triggering instant verification & celebration...');
+
+            // Trigger celebration confetti
+            try {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                });
+            } catch (err) {
+                // Non-critical visual effect
+            }
+
+            // Immediately verify with Stripe on backend if sessionId is present
+            const verifyAndPoll = async () => {
+                if (sessionId) {
+                    try {
+                        const verifyRes = await paymentApi.verifyCheckoutSession(sessionId);
+                        console.log('Direct session verification succeeded:', verifyRes);
+                    } catch (err) {
+                        console.warn('Direct session verification attempted, falling back to polling:', err);
+                    }
                 }
-            }, 2000);
 
-            // Clean query param
+                // Immediate usage & tier refresh
+                await refreshUsage();
+
+                // Poll every 2s (up to 5 times) to ensure DB and cache sync
+                let count = 0;
+                const interval = setInterval(async () => {
+                    count++;
+                    console.log(`Polling for subscription update (${count}/5)...`);
+                    await refreshUsage();
+                    if (count >= 5) {
+                        clearInterval(interval);
+                    }
+                }, 2000);
+
+                return interval;
+            };
+
+            let pollInterval = null;
+            verifyAndPoll().then((interval) => {
+                pollInterval = interval;
+            });
+
+            // Clean query params from URL so refresh doesn't re-trigger
             params.delete('subscription');
+            params.delete('session_id');
             const query = params.toString();
             const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
             window.history.replaceState({}, '', nextUrl);
 
-            return () => clearInterval(interval);
+            return () => {
+                if (pollInterval) clearInterval(pollInterval);
+            };
         }
     }, [isLoaded, isSignedIn, refreshUsage]);
 
