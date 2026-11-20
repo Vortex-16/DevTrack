@@ -4,7 +4,7 @@
 
 DevTrack is an AI-enhanced developer ecosystem designed to bridge the gap between learning and building. It provides a centralized platform to track learning streaks, analyze project progress via GitHub integration, and manage growth with intelligent insights.
 
-[Live Demo](https://devtrack-pwkj.onrender.com) • [Project Brief](docs/project-brief.md) • [Alpha Coders](https://github.com/Alpha-Coders)
+[Live Demo](https://devtrackweb.xyz) • [Project Brief](docs/project-brief.md) • [Alpha Coders](https://github.com/Alpha4Coders)
 
 ---
 
@@ -101,24 +101,29 @@ Developed with ❤️ by **Alpha Coders**:
 ## 📊 Detailed Contribution Report
 
 ### Description
+
 This update includes the creation of a comprehensive **Feature Roadmap & Status Report** within the `Project Brief` folder. The roadmap was built after a deep audit of the server-side controllers and client-side logic to ensure all advanced features (LeetCode, Showcase, Social, Goals) are accurately cataloged.
 
 Fixes # (No specific issue - Feature Documentation)
 
 ### Type of change
+
 - [x] New feature (non-breaking change which adds functionality)
 - [x] This change requires a documentation update
 
 ### How Has This Been Tested?
+
 - [x] **File Verification**: Verified `Feature_Roadmap.md` exists and contains accurate data matched against the current Express controllers.
 - [x] **README Sync**: Updated main README to reflect April 2026 updates.
 
 **Test Configuration**:
-* OS: Windows
-* Workspace: DevTrack
-* Engine: AI Codebase Audit
+
+- OS: Windows
+- Workspace: DevTrack
+- Engine: AI Codebase Audit
 
 ### Checklist:
+
 - [x] My code follows the style guidelines of this project
 - [x] I have performed a self-review of my own code
 - [x] I have commented my code, particularly in hard-to-understand areas
