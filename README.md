@@ -81,6 +81,28 @@ npm run dev
 
 ---
 
+## ⚡ Performance & Benchmarks
+
+DevTrack's backend is optimized for high-throughput and minimal latency. Load testing executed with `autocannon` against the API health endpoint under **20 concurrent connections**:
+
+| Metric             | Average         | Min       | Median (p50) | p97.5     | p99       | Max         |
+| :----------------- | :-------------- | :-------- | :----------- | :-------- | :-------- | :---------- |
+| **Latency**        | **2.77 ms**     | 0 ms      | 2 ms         | 7 ms      | 10 ms     | 63 ms       |
+| **Requests / Sec** | **6,200 req/s** | 4,495     | 6,563        | 7,083     | 7,083     | 7,083 req/s |
+| **Throughput**     | **55.6 MB/s**   | 40.3 MB/s | 58.8 MB/s    | 63.5 MB/s | 63.5 MB/s | 63.5 MB/s   |
+
+- **Total Requests Processed**: **31,000+ requests** in 5.03 seconds.
+- **Success Rate**: **100%** (0 errors, 0 timeouts).
+- **Protection**: Automated rate limiting via `express-rate-limit` capped at 2,000 requests per 15-minute window in production to mitigate abuse and DDoS attempts.
+
+To run load tests locally:
+
+```bash
+npx autocannon -c 20 -d 5 http://localhost:9001/api/health
+```
+
+---
+
 ## 🗺 Roadmap
 
 - [x] **Phase 1**: Core Tracking (Learning/Projects) & GitHub OAuth
