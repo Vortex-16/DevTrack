@@ -121,6 +121,40 @@ const PrivacyPolicy = () => {
                                 <strong className="text-slate-300">Groq / Gemini:</strong> For AI-powered repository
                                 insights. We do not use your private code to train these models.
                             </li>
+                            <li>
+                                <strong className="text-slate-300">Microsoft Clarity:</strong> We partner with Microsoft
+                                Clarity and Microsoft Advertising to capture how you use and interact with our website
+                                through behavioral metrics, heatmaps, and session replay to improve and market our
+                                products/services. Website usage data is captured using first and third-party cookies
+                                and other tracking technologies to determine the popularity of products/services and
+                                online activity. Additionally, we use this information for site optimization,
+                                fraud/security purposes, and advertising. For more information about how Microsoft
+                                collects and uses your data, visit the{' '}
+                                <a
+                                    href="https://privacy.microsoft.com/en-us/privacystatement"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-cyan-400 hover:underline"
+                                >
+                                    Microsoft Privacy Statement
+                                </a>
+                                .
+                            </li>
+                            <li>
+                                <strong className="text-slate-300">Google Analytics:</strong> We use Google Analytics
+                                (GA4) to collect aggregated data about site traffic, page views, and user navigation to
+                                continuously improve DevTrack's user experience. Google Analytics processes data in
+                                accordance with the{' '}
+                                <a
+                                    href="https://policies.google.com/privacy"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-cyan-400 hover:underline"
+                                >
+                                    Google Privacy Policy
+                                </a>
+                                .
+                            </li>
                         </ul>
                     </motion.section>
                 </div>
