@@ -155,6 +155,21 @@ const PrivacyPolicy = () => {
                                 </a>
                                 .
                             </li>
+                            <li>
+                                <strong className="text-slate-300">Google Analytics:</strong> We use Google Analytics
+                                (GA4) to collect aggregated data about site traffic, page views, and user navigation to
+                                continuously improve DevTrack's user experience. Google Analytics processes data in
+                                accordance with the{' '}
+                                <a
+                                    href="https://policies.google.com/privacy"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-cyan-400 hover:underline"
+                                >
+                                    Google Privacy Policy
+                                </a>
+                                .
+                            </li>
                         </ul>
                     </motion.section>
                 </div>
